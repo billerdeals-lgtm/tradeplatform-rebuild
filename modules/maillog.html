@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 发送记录</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-3); margin-bottom:var(--sp-4); }
+  .stat { padding:var(--sp-3); text-align:center; }
+  .stat b { display:block; font-size:22px; }
+  .stat span { font-size:12px; color:var(--text-2); }
+  .toolbar { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-4); }
+  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar .grow { flex:1; min-width:160px; }
+  .log { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); display:flex; gap:var(--sp-3); align-items:flex-start; }
+  .log .body { flex:1; min-width:0; }
+  .log .meta { font-size:12px; color:var(--text-3); margin-bottom:2px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .log .name { font-weight:600; font-size:14px; }
+  .log pre { white-space:pre-wrap; word-break:break-word; font-family:var(--font-sans); font-size:13px; color:var(--text-2); background:var(--bg-inset); border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-3); margin:6px 0 0; max-height:200px; overflow:auto; display:none; }
+  .log.open pre { display:block; }
+  .tag-mail { background:var(--info-bg); color:var(--info); }
+  .tag-wa { background:var(--ok-bg); color:var(--ok); }
+  .tag-ai_rewrite, .tag-ai_followup, .tag-ai_objection { background:var(--accent-100); color:#8a5a00; }
+  .tag-holiday { background:#fce7f3; color:#be185d; }
+  .tag-manual { background:var(--bg-inset); color:var(--text-2); }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:460px; width:92%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  dialog h3 { margin:0 0 var(--sp-3); font-size:15px; color:var(--brand-700); }
+  label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-2) 0 4px; }
+  dialog input, dialog textarea, dialog select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  dialog textarea { min-height:80px; resize:vertical; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="logo">
+  <h1>发送记录</h1>
+</header>
+<main>
+  <div class="stats">
+    <div class="ft-card stat"><b id="stAll">0</b><span>累计触达</span></div>
+    <div class="ft-card stat"><b id="stWeek">0</b><span>本周</span></div>
+    <div class="ft-card stat"><b id="stLeads">0</b><span>触达客户数</span></div>
+    <div class="ft-card stat"><b id="stAi">0</b><span>AI 参与生成</span></div>
+  </div>
+
+  <div class="toolbar">
+    <input class="grow" id="q" placeholder="搜索客户 / 内容关键词…" oninput="render()">
+    <select id="fType" onchange="render()">
+      <option value="">全部类型</option>
+      <option value="mail">邮件</option>
+      <option value="wa">WhatsApp</option>
+      <option value="ai_rewrite">AI 改写</option>
+      <option value="ai_followup">AI 跟进</option>
+      <option value="ai_objection">AI 异议应对</option>
+      <option value="holiday">节日问候</option>
+      <option value="manual">手动补录</option>
+    </select>
+    <button class="ft-btn-primary" onclick="dlgAdd.showModal()">＋ 补记录</button>
+    <button onclick="exportCsv()">导出 CSV</button>
+  </div>
+
+  <div id="list"></div>
+</main>
+
+<!-- 补记录弹窗 -->
+<dialog id="dlgAdd">
+  <h3>＋ 补充触达记录</h3>
+  <label>客户（线索 Pipeline 内选择）</label>
+  <select id="a_lead"></select>
+  <label>类型</label>
+  <select id="a_type"><option value="mail">邮件</option><option value="wa">WhatsApp</option><option value="call">电话</option></select>
+  <label>内容摘要</label>
+  <textarea id="a_content" placeholder="发了什么、客户反应…"></textarea>
+  <div style="display:flex;gap:8px;margin-top:var(--sp-3)">
+    <button class="ft-btn-primary" onclick="addManual()">保存</button>
+    <button onclick="dlgAdd.close()" style="background:none;border:0;cursor:pointer;color:var(--text-2)">取消</button>
+  </div>
+</dialog>
+
+<script src="../js/datastore.js"></script>
+<script>
+/* 发送记录 = outreach 统一视图（线索/待办/话术/节假日各模块生成时已落库） */
+var TYPE_NAME = { mail:'邮件', wa:'WhatsApp', ai_rewrite:'AI 改写', ai_followup:'AI 跟进', ai_objection:'AI 异议应对', objection:'AI 异议应对', holiday:'节日问候', manual:'手动', call:'电话' };
+function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function fmtDate(iso) { return (iso||'').slice(0,16).replace('T',' '); }
+
+function filtered() {
+  var q = document.getElementById('q').value.toLowerCase(), t = document.getElementById('fType').value;
+  return DataStore.list('outreach').filter(function(o) {
+    if (t && o.type !== t) return false;
+    if (!q) return true;
+    return ((o.leadName||'') + ' ' + (o.content||'')).toLowerCase().indexOf(q) >= 0;
+  }).slice().sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
+}
+function render() {
+  var all = DataStore.list('outreach');
+  var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+  var wiso = weekAgo.toISOString();
+  document.getElementById('stAll').textContent = all.length;
+  document.getElementById('stWeek').textContent = all.filter(function(o){ return (o.createdAt||'') >= wiso; }).length;
+  document.getElementById('stLeads').textContent = new Set(all.map(function(o){ return o.leadId||o.leadName; })).size;
+  document.getElementById('stAi').textContent = all.filter(function(o){ return String(o.type).indexOf('ai_') === 0 || o.type === 'holiday'; }).length;
+
+  var rows = filtered();
+  var box = document.getElementById('list');
+  if (!rows.length) { box.innerHTML = '<div class="empty">暂无记录 · 触达类操作会自动落库，也可右上角手动补录</div>'; return; }
+  box.innerHTML = rows.map(function(o) {
+    var cls = 'tag-' + String(o.type).replace(/[^a-z_]/g, '');
+    return '<div class="ft-card log" onclick="this.classList.toggle(\'open\')">'
+      + '<div class="body"><div class="meta">'
+      + '<span class="name">' + esc(o.leadName || '未关联客户') + '</span>'
+      + '<span class="ft-tag ' + cls + '">' + esc(TYPE_NAME[o.type] || o.type) + '</span>'
+      + '<span>' + fmtDate(o.createdAt) + '</span>'
+      + '<button style="margin-left:auto;font-size:11px;padding:2px 10px" onclick="event.stopPropagation();del(\'' + o.id + '\')">删除</button>'
+      + '</div>'
+      + (o.tplTitle ? '<div style="font-size:12.5px;color:var(--text-2)">模板：' + esc(o.tplTitle) + '</div>' : '')
+      + '<pre>' + esc(o.content || '(无正文)') + '</pre>'
+      + '</div></div>';
+  }).join('');
+}
+function del(id) { if (confirm('删除这条记录？')) { DataStore.remove('outreach', id); render(); } }
+function addManual() {
+  var leadId = document.getElementById('a_lead').value;
+  var lead = DataStore.get('leads', leadId);
+  var content = document.getElementById('a_content').value.trim();
+  if (!lead || !content) { alert('请选客户并填内容摘要'); return; }
+  DataStore.add('outreach', { leadId: leadId, leadName: lead.name, type: document.getElementById('a_type').value, content: content });
+  dlgAdd.close(); document.getElementById('a_content').value = ''; render();
+}
+function exportCsv() {
+  var rows = [['时间', '客户', '类型', '内容']];
+  filtered().forEach(function(o){ rows.push([fmtDate(o.createdAt), o.leadName||'', TYPE_NAME[o.type]||o.type, (o.content||'').replace(/\s+/g,' ')]); });
+  var csv = '\ufeff' + rows.map(function(r){ return r.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(','); }).join('\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = '触达记录_' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
+}
+/* 补记录弹窗的客户下拉：按 AI 评分排 */
+(function() {
+  var leads = DataStore.list('leads').slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  document.getElementById('a_lead').innerHTML = leads.map(function(l){ return '<option value="' + l.id + '">' + esc(l.name) + '（' + esc(l.country||'?') + (l.score?' · AI'+l.score:'') + '）</option>'; }).join('') || '<option value="">（先去线索模块添加客户）</option>';
+})();
+render();
+</script>
+</body>
+</html>

@@ -319,7 +319,12 @@ async function genTouch() {
   btn.disabled = true; out.style.display = 'block'; out.textContent = 'AI 生成中…';
   try {
     if (S.touchMode === 'mail') {
-      S.lastOut = await AgnesAI.genOutreach(l, v('t_scene'), { name: '', company: '', selling: v('t_me') });
+      var me = DataStore.list('profile')[0] || {};   // 我的资料：署名/卖点自动注入
+      S.lastOut = await AgnesAI.genOutreach(l, v('t_scene'), {
+        name: me.name || '', company: me.company || '',
+        selling: v('t_me') || me.selling || '',
+        products: me.products || '', port: me.port || '', payment: me.payment || ''
+      });
     } else if (S.touchMode === 'reply') {
       S.lastOut = await AgnesAI.genReply(l, document.getElementById('t_cw').value);
     } else {
@@ -328,8 +333,8 @@ async function genTouch() {
     }
     out.textContent = S.lastOut;
     document.getElementById('t_sendRow').style.display = 'flex';
-    // 落库：触达历史（复盘模块的触达数据源）
-    DataStore.add('outreach', { leadId: l.id, leadName: l.name, type: S.touchMode, content: S.lastOut });
+    // 落库：触达历史（发送记录模块的数据源）
+    DataStore.add('outreach', { leadId: l.id, leadName: l.name, type: S.touchMode === 'objection' ? 'ai_objection' : S.touchMode, content: S.lastOut });
   } catch (e) { out.textContent = '❌ ' + e.message; }
   btn.disabled = false;
 }
