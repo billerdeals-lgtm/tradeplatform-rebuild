@@ -289,12 +289,13 @@ async function aiSearch() {
   try {
     // 第 1 步：AI 生成搜索策略（多组词，覆盖不同客户类型表述）
     st.textContent = '🧭 AI 生成搜索策略…'; box.style.display = 'block'; box.textContent = 'AI 正在规划搜索词…';
-    var qRes = await AgnesAI.ask(
+    var rawQ = await AgnesAI.ask(
       '我要在 Bing 找外贸 B2B 买家网站。产品：' + prod + '；目标市场：' + market + '；优先客户类型：' + ctype + '。'
       + '输出 JSON：{"queries":["英文搜索词1","英文搜索词2",...]}，要求：5 条；每条自带不同的客户类型表述（distributor/wholesaler/importer/agent/buying house 等）；'
       + '每条都带 -site:amazon.com -site:alibaba.com 排除 C 端；覆盖不同用词习惯；不要解释。', { json: true, maxTokens: 500, temperature: 0.4 });
-    var queries = (qRes && qRes.queries) || [];
-    if (!queries.length) throw new Error('AI 未返回搜索词');
+    var qRes = AgnesAI.parseLoose(rawQ) || {};
+    var queries = (Array.isArray(qRes.queries) ? qRes.queries : []).filter(function(q){ return typeof q === 'string' && q.length > 5; });
+    if (!queries.length) throw new Error('AI 未返回可用搜索词（原始返回片段：' + String(rawQ).slice(0, 120) + '）');
     box.textContent = 'AI 给出 ' + queries.length + ' 组搜索词：\n' + queries.map(function(q){ return '· ' + q; }).join('\n');
 
     // 第 2 步：逐个自动搜索（最多 4 组，控次数控时间），按 URL 去重合并
@@ -319,11 +320,11 @@ async function aiSearch() {
       var host = ''; try { host = new URL(r.url).hostname; } catch (e) {}
       return i + '| ' + r.title.slice(0, 70) + ' | ' + host + ' | ' + (r.snippet || '').slice(0, 90);
     }).join('\n');
-    var vRes = await AgnesAI.ask(
+    var vRes = AgnesAI.parseLoose(await AgnesAI.ask(
       '以下是外贸客户搜索结果（序号|标题|域名|摘要）。逐条判断是不是值得联系的 B2B 买家/渠道商网站。'
       + '输出 JSON：{"results":[{"i":序号,"verdict":"buyer|maybe|noise","type":"importer/distributor/wholesaler/brand/…","why":"≤15字中文理由"}]}。'
       + '规则：B2B 公司官网=buyer；B2B 平台店铺页/目录黄页/新闻/招聘/C 端零售=noise；介于两者（如行业名录里的公司页）=maybe。\n' + digest,
-      { json: true, maxTokens: 1200, temperature: 0.2 });
+      { json: true, maxTokens: 1200, temperature: 0.2 })) || {};
     ((vRes && vRes.results) || []).forEach(function(vv) {
       var idx = parseInt(vv.i, 10);
       if (S.results[idx] && /^(buyer|maybe|noise)$/.test(vv.verdict)) {

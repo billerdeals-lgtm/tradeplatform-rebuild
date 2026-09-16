@@ -266,6 +266,7 @@
     chat: agnesChat,
     ask: ask,
     scoreLead: scoreLead,
+    parseLoose: parseLoose,
     genOutreach: genOutreach,
     genReply: genReply,
     genObjection: genObjection,
