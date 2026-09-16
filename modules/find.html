@@ -28,6 +28,11 @@
   .acts { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); align-items:center; flex-wrap:wrap; }
   .status { font-size:13px; color:var(--text-2); }
   .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
+  .ai-badge { display:inline-block; font-size:11.5px; padding:2px 10px; border-radius:999px; margin-right:6px; }
+  .ai-buyer { background:var(--accent-100); color:#8a5a00; }
+  .ai-noise { background:var(--bg-inset); color:var(--text-3); }
+  .ai-maybe { background:var(--info-bg); color:var(--info); }
+  .ai-why { font-size:12.5px; color:#8a5a00; margin-top:4px; }
   .hist { font-size:12.5px; color:var(--text-3); margin-top:var(--sp-4); }
   .hist span { display:inline-block; background:var(--bg-inset); border-radius:999px; padding:3px 12px; margin:3px 6px 3px 0; cursor:pointer; }
   .hist span:hover { background:var(--brand-100); }
@@ -89,7 +94,8 @@
   <input id="k_query" class="qbox" placeholder="搜索词自动生成，也可直接手写">
   <div class="acts">
     <button class="ft-btn-primary" onclick="doSearch()">搜索</button>
-    <button class="ft-btn-ai" onclick="aiExpand()">✨ AI 扩展搜索词</button>
+    <button class="ft-btn-ai" onclick="aiSearch()">🧭 AI 智能搜</button>
+    <button class="ghostbtn" onclick="aiExpand()">✨ AI 扩展搜索词</button>
     <span class="status" id="st"></span>
   </div>
   <div id="ai_out" class="ft-ai-output"></div>
@@ -214,10 +220,21 @@ function render() {
   document.getElementById('stTotal').textContent = DataStore.list('leads').length;
   document.getElementById('stHist').textContent = DataStore.list('searches').length;
   if (!S.results.length) { box.innerHTML = '<div class="empty">无结果，换个关键词试试</div>'; return; }
-  box.innerHTML = S.results.map(function(r, i) {
-    var conv = S.convIds[i];
-    return '<div class="res"><h3><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a></h3>'
+  // AI 甄别过的：买家在前、噪音沉底（无 verdict 保持原序）
+  var rank = { buyer: 0, maybe: 1, none: 2, noise: 3 };
+  var list = S.results.map(function(r, i) { return { r: r, i: i }; })
+    .sort(function(a, b) { return (rank[(a.r.ai && a.r.ai.verdict) || 'none'] - rank[(b.r.ai && b.r.ai.verdict) || 'none']); });
+  box.innerHTML = list.map(function(it) {
+    var r = it.r, i = it.i, conv = S.convIds[i];
+    var badge = '';
+    if (r.ai && r.ai.verdict === 'buyer') badge = '<span class="ai-badge ai-buyer">🧭 AI 判定：' + esc(r.ai.type || '买家') + '</span>';
+    else if (r.ai && r.ai.verdict === 'maybe') badge = '<span class="ai-badge ai-maybe">🧭 待观察</span>';
+    else if (r.ai && r.ai.verdict === 'noise') badge = '<span class="ai-badge ai-noise">噪音</span>';
+    return '<div class="res"' + (r.ai && r.ai.verdict === 'noise' ? ' style="opacity:.55"' : '') + '>'
+      + '<h3><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a></h3>'
       + '<div class="u">' + esc(r.url) + '</div>'
+      + badge
+      + (r.ai && r.ai.why ? '<div class="ai-why">' + esc(r.ai.why) + '</div>' : '')
       + (r.snippet ? '<div class="s">' + esc(r.snippet) + '</div>' : '')
       + '<div class="acts">' + (conv
         ? '<span class="ft-tag" style="background:var(--ok-bg);color:var(--ok)">✓ 已转线索：' + esc(conv) + '</span>'
@@ -245,7 +262,9 @@ function openConv(i) {
   var ph = (r.snippet.match(/\+\d{2}[\d\s-]{7,14}/) || [''])[0].trim();
   document.getElementById('c_email').value = em;
   document.getElementById('c_wa').value = ph;
-  document.getElementById('c_note').value = '找客户搜索命中：' + host + (r.snippet ? ' · ' + r.snippet.slice(0, 80) : '');
+  document.getElementById('c_note').value = '找客户搜索命中：' + host
+    + (S.pending.ai && S.pending.ai.verdict === 'buyer' ? '（AI 判定：' + (S.pending.ai.type || '买家') + '，' + (S.pending.ai.why || '') + '）' : '')
+    + (r.snippet ? ' · ' + r.snippet.slice(0, 80) : '');
   dlgLead.showModal();
 }
 function convSave() {
@@ -258,6 +277,69 @@ function convSave() {
   });
   S.convIds[S.results.indexOf(S.pending)] = name;
   dlgLead.close(); render();
+}
+
+/* ---------- 🧭 AI 智能搜：生词 → 自动多轮搜索 → 去重 → AI 甄别买家 ---------- */
+async function aiSearch() {
+  var prod = v('k_prod').trim();
+  if (!prod) { alert('先填产品关键词'); return; }
+  var st = document.getElementById('st'), box = document.getElementById('ai_out');
+  var market = v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '全球';
+  var ctype = document.getElementById('k_type').selectedOptions[0].text;
+  try {
+    // 第 1 步：AI 生成搜索策略（多组词，覆盖不同客户类型表述）
+    st.textContent = '🧭 AI 生成搜索策略…'; box.style.display = 'block'; box.textContent = 'AI 正在规划搜索词…';
+    var qRes = await AgnesAI.ask(
+      '我要在 Bing 找外贸 B2B 买家网站。产品：' + prod + '；目标市场：' + market + '；优先客户类型：' + ctype + '。'
+      + '输出 JSON：{"queries":["英文搜索词1","英文搜索词2",...]}，要求：5 条；每条自带不同的客户类型表述（distributor/wholesaler/importer/agent/buying house 等）；'
+      + '每条都带 -site:amazon.com -site:alibaba.com 排除 C 端；覆盖不同用词习惯；不要解释。', { json: true, maxTokens: 500, temperature: 0.4 });
+    var queries = (qRes && qRes.queries) || [];
+    if (!queries.length) throw new Error('AI 未返回搜索词');
+    box.textContent = 'AI 给出 ' + queries.length + ' 组搜索词：\n' + queries.map(function(q){ return '· ' + q; }).join('\n');
+
+    // 第 2 步：逐个自动搜索（最多 4 组，控次数控时间），按 URL 去重合并
+    var seen = {}, merged = [];
+    for (var qi = 0; qi < Math.min(queries.length, 4); qi++) {
+      st.textContent = '🧭 自动搜索 ' + (qi + 1) + '/' + Math.min(queries.length, 4) + '…';
+      try {
+        var res = await fetchThrough('https://www.bing.com/search?q=' + encodeURIComponent(queries[qi]) + '&count=15');
+        parseBing(res.body, res.html).forEach(function(r) {
+          var key = r.url.replace(/[#?].*$/, '').replace(/\/$/, '').toLowerCase();
+          if (!seen[key]) { seen[key] = 1; merged.push(r); }
+        });
+      } catch (e) { /* 单组失败不影响整体 */ }
+    }
+    if (!merged.length) throw new Error('各组搜索均无结果（代理可能限流，稍后再试）');
+    S.results = merged.slice(0, 24);
+    st.textContent = '去重后 ' + S.results.length + ' 条，AI 甄别中…';
+    box.textContent += '\n\n共抓到 ' + merged.length + ' 条，去重 ' + S.results.length + ' 条，正在让 AI 甄别哪些是真买家…';
+
+    // 第 3 步：AI 批量甄别（标题+域名+摘要 → buyer/maybe/noise）
+    var digest = S.results.map(function(r, i) {
+      var host = ''; try { host = new URL(r.url).hostname; } catch (e) {}
+      return i + '| ' + r.title.slice(0, 70) + ' | ' + host + ' | ' + (r.snippet || '').slice(0, 90);
+    }).join('\n');
+    var vRes = await AgnesAI.ask(
+      '以下是外贸客户搜索结果（序号|标题|域名|摘要）。逐条判断是不是值得联系的 B2B 买家/渠道商网站。'
+      + '输出 JSON：{"results":[{"i":序号,"verdict":"buyer|maybe|noise","type":"importer/distributor/wholesaler/brand/…","why":"≤15字中文理由"}]}。'
+      + '规则：B2B 公司官网=buyer；B2B 平台店铺页/目录黄页/新闻/招聘/C 端零售=noise；介于两者（如行业名录里的公司页）=maybe。\n' + digest,
+      { json: true, maxTokens: 1200, temperature: 0.2 });
+    ((vRes && vRes.results) || []).forEach(function(vv) {
+      var idx = parseInt(vv.i, 10);
+      if (S.results[idx] && /^(buyer|maybe|noise)$/.test(vv.verdict)) {
+        S.results[idx].ai = { verdict: vv.verdict, type: vv.type || '', why: vv.why || '' };
+      }
+    });
+    var nBuyer = S.results.filter(function(r){ return r.ai && r.ai.verdict === 'buyer'; }).length;
+    st.textContent = '完成：' + S.results.length + ' 条中 AI 判定 ' + nBuyer + ' 条买家，已置顶';
+    render();
+    DataStore.add('searches', { query: '🧭 ' + prod + '（' + market + '）AI 智能搜', via: 'ai-pipeline', n: S.results.length, buyers: nBuyer });
+    renderHist();
+  } catch (e) {
+    st.textContent = '❌ ' + e.message;
+    box.style.display = 'block';
+    box.textContent = 'AI 智能搜中断：' + e.message;
+  }
 }
 
 /* ---------- AI 扩展搜索词 ---------- */
