@@ -135,7 +135,8 @@
     try { return JSON.parse(s); } catch (e) {}
     var a = s.indexOf('{'), b = s.lastIndexOf('}');
     if (a >= 0 && b > a) {
-      try { return JSON.parse(s.slice(a, b + 1)); } catch (e) {}
+      var seg = s.slice(a, b + 1).replace(/,\s*([}\]])/g, '$1'); // 清洗尾逗号
+      try { return JSON.parse(seg); } catch (e) {}
       // 仍是坏 JSON：逐字段正则抠（score/next_action 等关键值）
       var out = {};
       var m = s.match(/"score"\s*:\s*([0-9.]+)/);          if (m) out.score = parseFloat(m[1]);
