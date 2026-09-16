@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 单证中心</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
+  main { display:flex; gap:var(--sp-4); max-width:1280px; margin:0 auto; padding:var(--sp-4); align-items:flex-start; }
+  /* 左：选择 + 表单 */
+  .left { width:400px; flex-shrink:0; }
+  .doclist { max-height:180px; overflow:auto; display:flex; flex-wrap:wrap; gap:6px; padding:var(--sp-3); }
+  .docchip { font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--border-strong); background:var(--bg-card); cursor:pointer; }
+  .docchip.on { background:var(--brand-700); color:#fff; border-color:var(--brand-700); }
+  .catlbl { width:100%; font-size:11px; color:var(--text-3); margin-top:4px; }
+  .form { padding:var(--sp-4); }
+  .form h3 { margin:0 0 8px; font-size:15px; }
+  .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
+  .fgrid .full { grid-column:1 / -1; }
+  .fgrid label { font-size:11px; color:var(--text-2); display:block; margin-bottom:2px; }
+  .fgrid input { width:100%; box-sizing:border-box; padding:7px 9px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; }
+  .btnrow { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-top:var(--sp-3); }
+  /* 右：预览（A4 纸面） */
+  .right { flex:1; min-width:0; }
+  .paper { background:#fff; border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--shadow-card); padding:44px 52px; min-height:600px; }
+  .paper h2 { text-align:center; font-size:19px; margin:0 0 4px; }
+  .paper .no { text-align:right; font-size:12px; color:var(--text-2); }
+  .paper .party { display:flex; justify-content:space-between; font-size:13px; line-height:1.6; margin:16px 0; }
+  .paper table { width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; }
+  .paper th, .paper td { border:1px solid #cfc9b8; padding:7px 10px; text-align:left; }
+  .paper th { background:var(--bg-inset); font-size:12px; }
+  .paper .notes { font-size:13px; line-height:1.9; margin-top:10px; }
+  .paper .sig { display:flex; justify-content:space-between; margin-top:48px; font-size:13px; }
+  .aicheck { margin-top:var(--sp-3); font-size:13px; line-height:1.7; }
+  @media print {
+    body * { visibility:hidden; }
+    .paper, .paper * { visibility:visible; }
+    .paper { position:absolute; left:0; top:0; width:100%; border:0; box-shadow:none; }
+  }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:560px; width:92%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
+  .dlg-b { padding:var(--sp-4); }
+  .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
+  .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="">
+  <h1>单证中心 <span style="font-size:12px;opacity:.7;font-weight:400">20 张出口单证 · 共享字段一次填写全单联动 · AI 单单一致校验</span></h1>
+  <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
+</header>
+<main>
+  <div class="left">
+    <div class="ft-card doclist" id="doclist"></div>
+    <div class="ft-card form">
+      <h3 id="formTitle">选择一张单证</h3>
+      <div class="fgrid" id="formFields"></div>
+      <div class="btnrow">
+        <button class="ft-btn-primary" onclick="printPaper()">🖨 打印 / 存 PDF</button>
+        <button class="iconbtn" onclick="saveDoc()">💾 保存到单证夹</button>
+        <button class="iconbtn" onclick="dlgSaved.showModal()">📂 单证夹</button>
+        <button class="iconbtn" onclick="importLead()">👤 从线索带入</button>
+        <button class="iconbtn" onclick="clearForm()">清空</button>
+      </div>
+      <div class="btnrow">
+        <button class="ft-btn-ai" onclick="aiCheck()">🧭 AI 单单一致校验</button>
+        <button class="ft-btn-ai" onclick="aiPolish()">✨ AI 润色英文备注</button>
+      </div>
+      <div class="ft-ai-output aicheck" id="aiOut" style="display:none"></div>
+    </div>
+  </div>
+  <div class="right"><div class="paper" id="paper"></div></div>
+</main>
+
+<!-- 单证夹 -->
+<dialog id="dlgSaved">
+  <div class="dlg-h"><span>单证夹（已保存单证）</span><button class="iconbtn" onclick="dlgSaved.close()">✕</button></div>
+  <div class="dlg-b" id="savedList" style="max-height:400px;overflow:auto"></div>
+</dialog>
+
+<!-- AI 润色 -->
+<dialog id="dlgPolish">
+  <div class="dlg-h"><span>✨ AI 润色备注</span><button class="iconbtn" onclick="dlgPolish.close()">✕</button></div>
+  <div class="dlg-b">
+    <label>要润色的内容（中文可）</label>
+    <textarea id="polishIn" rows="3" placeholder="例如：请尽快安排余款，我们收到后 3 天内安排发货"></textarea>
+    <div style="margin-top:var(--sp-3)">
+      <button class="ft-btn-ai" id="btnPolish" onclick="doPolish()">✨ 润色为商务英文</button>
+    </div>
+    <div class="ft-ai-output" id="polishOut" style="display:none;margin-top:var(--sp-3);white-space:pre-wrap;font-size:14px;line-height:1.7"></div>
+  </div>
+</dialog>
+
+<!-- 从线索带入 -->
+<dialog id="dlgImport">
+  <div class="dlg-h"><span>从线索带入客户信息</span><button class="iconbtn" onclick="dlgImport.close()">✕</button></div>
+  <div class="dlg-b">
+    <label>选择线索（自动带入买方名/地址/产品，AI 评分高的排前面）</label>
+    <select id="impLead"></select>
+    <div style="margin-top:var(--sp-3);text-align:right">
+      <button class="ft-btn-primary" onclick="doImport()">带入</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- AI 设置 -->
+<dialog id="dlgSettings">
+  <div class="dlg-h"><span>AI 设置（Agnes 2.5 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+  <div class="dlg-b" id="agPanel"></div>
+</dialog>
+
+<script src="../agnes-ai.js"></script>
+<script src="../js/datastore.js"></script>
+<script src="../js/docs_data.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   FT Compass 单证中心 v0.1（矩阵 #6 模块）
+   共享字段联动 + 通用单证渲染 + AI 校验/润色（结果落 doc.aiCheck）
+   ============================================================ */
+var current = DOCS_DEF[2]; // 默认 PI
+var values = {};           // 字段值（共享+专有）
+var editingSavedId = null;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
+  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+function fill(k){ // 占位符替换，未填字段显示浅色占位
+  var v = values[k];
+  return v ? esc(v) : '<span style="color:#c5bfae">____</span>';
+}
+function rep(t){ return t.replace(/\{\{(\w+)\}\}/g, function(m,k){ return fill(k); }); }
+
+/* ---------- 左侧：单证选择 ---------- */
+function renderList(){
+  var cats = []; DOCS_DEF.forEach(function(d){ if(cats.indexOf(d.cat)<0) cats.push(d.cat); });
+  var html = '';
+  cats.forEach(function(c){
+    html += '<div class="catlbl">'+esc(c)+'</div>';
+    html += DOCS_DEF.filter(function(d){ return d.cat===c; }).map(function(d){
+      return '<span class="docchip'+(d.id===current.id?' on':'')+'" onclick="pick(\''+d.id+'\')">'+esc(d.title.split(' / ')[0])+'</span>';
+    }).join('');
+  });
+  $('doclist').innerHTML = html;
+}
+function pick(id){
+  current = DOCS_DEF.find(function(d){ return d.id===id; });
+  editingSavedId = null; $('aiOut').style.display='none';
+  renderList(); renderForm(); renderPaper();
+}
+
+/* ---------- 表单：共享字段 + 专有字段 ---------- */
+function fieldInput(f){
+  var ph = f.ph ? ' placeholder="'+esc(f.ph)+'"' : '';
+  var cls = (['seller','buyer','product','remark'].indexOf(f.k)>=0) ? 'full' : '';
+  return '<div class="'+cls+'"><label>'+esc(f.label)+'</label>'
+    + '<input data-k="'+f.k+'" type="'+(f.type||'text')+'"'+ph+' value="'+esc(values[f.k]||'')+'" oninput="onVal(this)"></div>';
+}
+function renderForm(){
+  $('formTitle').textContent = current.title;
+  var all = SHARED_FIELDS.concat((current.rows||[]).map(function(r){ return {k:r[0], label:r[1], ph:r[2]}; }));
+  $('formFields').innerHTML = all.map(fieldInput).join('');
+}
+function onVal(input){
+  values[input.dataset.k] = input.value;
+  renderPaper(); // 实时联动预览
+  // 已保存单证的编辑态：防抖保存
+  if (editingSavedId){ clearTimeout(window._sv); window._sv = setTimeout(saveDoc, 800); }
+}
+
+/* ---------- 右侧：通用单证渲染 ---------- */
+function renderPaper(){
+  var d = current;
+  var rowsHtml = '';
+  if (d.table !== false){
+    rowsHtml = '<table><tr><th style="width:50%">Description 品名</th><th>Qty 数量</th><th>Unit Price 单价</th><th>Amount 金额</th></tr>'
+      + '<tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></table>';
+  }
+  var notes = (d.notes||[]).map(function(n){ return '<div>'+rep(n)+'</div>'; }).join('');
+  $('paper').innerHTML =
+    '<h2>'+esc(d.title.split(' / ')[1]||d.title)+'</h2>'
+    + '<div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:10px">'+esc(d.title.split(' / ')[0])+'</div>'
+    + '<div class="no">No. '+fill('no')+'<br>Date: '+fill('date')+'</div>'
+    + '<div class="party"><div><b>Seller 卖方</b><br>'+fill('seller')+'<br>'+fill('sellerAddr')+'</div>'
+    + '<div style="text-align:right"><b>Buyer 买方</b><br>'+fill('buyer')+'<br>'+fill('buyerAddr')+'</div></div>'
+    + rowsHtml
+    + '<div class="notes">'+notes+'</div>'
+    + (values.remark ? '<div class="notes"><b>Remarks:</b> '+esc(values.remark)+'</div>' : '')
+    + '<div class="sig"><div>Seller: ______________</div><div>Buyer: ______________</div></div>';
+}
+
+/* ---------- AI 1：单单一致校验（矩阵落点 doc.aiCheck） ---------- */
+async function aiCheck(){
+  var empty = ['no','date','buyer','product','total'].filter(function(k){ return !values[k]; });
+  var out = $('aiOut'); out.style.display='block';
+  if (empty.length){ out.innerHTML = '⚠️ 先填关键字段：'+empty.join(', '); return; }
+  out.innerHTML = '⏳ AI 校验中…';
+  try {
+    var txt = await AgnesAI.chat([
+      {role:'system', content:'你是外贸单证审核员。输出 JSON：{"ok":true/false,"issues":["问题1"],"suggestion":"一句话建议"}。只查逻辑一致性，不挑措辞。'},
+      {role:'user', content:'请校验这张「'+current.title+'」的单据字段逻辑（金额=数量×单价、币种一致、港口一致、日期先后、付款条款完整性等）：\n'+JSON.stringify(values)}
+    ], {json:true, temperature:0.2, maxTokens:500});
+    var res = JSON.parse(txt);
+    out.innerHTML = (res.ok?'✅ 校验通过':'⚠️ 发现问题')
+      + (res.issues&&res.issues.length?'<br>· '+res.issues.map(esc).join('<br>· '):'')
+      + (res.suggestion?'<br><b>建议：</b>'+esc(res.suggestion):'');
+    // 落库
+    if (editingSavedId) DataStore.saveAIResult('docs', editingSavedId, { aiCheck:{ok:res.ok, issues:res.issues, at:new Date().toISOString()} });
+  } catch(e){ out.innerHTML = '校验失败：'+esc(e.message); }
+}
+
+/* ---------- AI 2：备注润色 ---------- */
+async function aiPolish(){
+  if (!values.remark){ toast('先在备注里写点内容（中文即可）'); return; }
+  $('polishIn').value = values.remark;
+  $('polishOut').style.display='none'; dlgPolish.showModal();
+}
+async function doPolish(){
+  var src = $('polishIn').value.trim(); if(!src) return;
+  $('btnPolish').disabled=true; $('btnPolish').textContent='⏳ 润色中…';
+  try {
+    var txt = await AgnesAI.chat([
+      {role:'system', content:'你是外贸单证英文润色助手。输出礼貌、专业、简洁的商务英文，直接给润色结果，不要解释。'},
+      {role:'user', content:'润色成英文备注（用于「'+current.title+'」单证，上下文：客户 '+ (values.buyer||'') +'，金额 '+ (values.currency||'')+' '+(values.total||'') +'）：\n'+src}
+    ], {temperature:0.5, maxTokens:300});
+    $('polishOut').textContent = txt; $('polishOut').style.display='block';
+    values.remark = txt; renderPaper(); syncInput('remark', txt);
+  } catch(e){ $('polishOut').textContent='润色失败：'+e.message; $('polishOut').style.display='block'; }
+  $('btnPolish').disabled=false; $('btnPolish').textContent='✨ 润色为商务英文';
+}
+function syncInput(k,v){ var el=document.querySelector('input[data-k="'+k+'"]'); if(el) el.value=v; }
+
+/* ---------- 打印（CSS @media print 只出 A4 预览区） ---------- */
+function printPaper(){ window.print(); }
+
+/* ---------- 保存 / 单证夹 ---------- */
+function saveDoc(){
+  var rec = editingSavedId ? DataStore.get('docs', editingSavedId) : null;
+  if (rec){
+    DataStore.update('docs', editingSavedId, { docId:current.id, docTitle:current.title, values:values });
+  } else {
+    var added = DataStore.add('docs', { docId:current.id, docTitle:current.title, values:values });
+    editingSavedId = added.id;
+  }
+  toast('已保存到单证夹');
+}
+function clearForm(){ values={}; editingSavedId=null; $('aiOut').style.display='none'; renderForm(); renderPaper(); }
+function renderSaved(){
+  var docs = DataStore.list('docs');
+  $('savedList').innerHTML = docs.length ? docs.map(function(d){
+    return '<div class="ft-card" style="padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px">'
+      + '<div style="flex:1"><b style="font-size:13px">'+esc(d.docTitle)+'</b>'
+      + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(d.values.no||'—')+' · '+esc(d.values.buyer||'—')+' · '+esc((d.updatedAt||'').slice(0,10))
+      + (d.aiCheck?' · <span style="color:'+(d.aiCheck.ok?'var(--ok)':'var(--danger)')+'">AI 校验'+(d.aiCheck.ok?'通过':'有问题')+'</span>':'')+'</div></div>'
+      + '<button class="iconbtn" onclick="loadSaved(\''+d.id+'\')">打开</button>'
+      + '<button class="iconbtn" onclick="DataStore.remove(\'docs\',\''+d.id+'\');renderSaved()">🗑</button></div>';
+  }).join('') : '<div style="color:var(--text-3);text-align:center;padding:20px">单证夹是空的</div>';
+}
+function loadSaved(id){
+  var d = DataStore.get('docs', id); if(!d) return;
+  editingSavedId = id; values = d.values||{};
+  current = DOCS_DEF.find(function(x){ return x.id===d.docId; }) || current;
+  dlgSaved.close(); renderList(); renderForm(); renderPaper();
+  if (d.aiCheck){ $('aiOut').style.display='block'; $('aiOut').innerHTML=(d.aiCheck.ok?'✅':'⚠️')+' 上次 AI 校验：'+esc((d.aiCheck.issues||[]).join('；')||'通过'); }
+}
+
+/* ---------- 从线索带入客户信息 ---------- */
+function importLead(){
+  var leads = DataStore.list('leads').slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  var opts = '<option value="">（选择线索，自动带入客户/产品）</option>';
+  leads.forEach(function(l){
+    opts += '<option value="'+l.id+'">'+esc(l.name)+'（'+esc(l.country||'')+' · '+esc(l.product||'')+'）</option>';
+  });
+  $('impLead').innerHTML = opts;
+  dlgImport.showModal();
+}
+
+function doImport(){
+  var l = DataStore.get('leads', $('impLead').value);
+  if (!l){ dlgImport.close(); return; }
+  values.buyer = values.buyer || l.name;
+  values.buyerAddr = values.buyerAddr || (l.country||'');
+  values.product = values.product || l.product || '';
+  renderForm(); renderPaper(); dlgImport.close();
+  toast('已带入：'+l.name+'（金额/数量需手工确认）');
+}
+
+/* ---------- 初始化 ---------- */
+$('agPanel').innerHTML = AgnesAI.settingsHTML();
+renderList(); renderForm(); renderPaper();
+</script>
+</body>
+</html>

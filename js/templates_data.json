@@ -1,0 +1,534 @@
+[
+ {
+  "n": 0,
+  "title": "首封冷开发信 / First cold outreach",
+  "cat": "开发信 / Outreach",
+  "en": "Subject: {产品} supplier for {国家} importers — {公司}\n\nHi {姓名},\n\nThis is {公司} — we supply Muslim prayer pillows, gift boxes and 3C accessories to importers across the Middle East and Southeast Asia.\n\nWhy buyers choose us:\n- Stable Ramadan stock, no out-of-stock in peak season\n- FOB Ningbo, 30% deposit / 70% before shipment\n- OEM &amp; custom embroidery available\n\nCould I send you our best-seller catalog and a sample quote?\n\nBest,\n{公司}",
+  "cn": "首封冷开发信要点：一句话亮明身份+核心品类；用 3 条差异化（斋月库存稳、付款友好、可定制）降低信任门槛；结尾给一个低门槛动作（发目录/报价），不要直接要订单。"
+ },
+ {
+  "n": 1,
+  "title": "展会后跟进开发信 / Post-trade-show follow-up",
+  "cat": "开发信 / Outreach",
+  "en": "Subject: Great meeting you at {展会} — {产品} catalog attached\n\nHi {姓名},\n\nIt was a pleasure talking with you at {展会}. As promised, here is our latest {产品} catalog with FOB prices.\n\nBuyers from {国家} especially like our Ramadan gift sets. MOQ starts at 300 pcs, 20-day lead time.\n\nShall we schedule a short call next week to discuss your Q4 plan?\n\nBest,\n{公司}",
+  "cn": "展会跟进要点：用「见过面」建立连接，立刻兑现展会上的承诺（发目录）；点出对方市场偏好增强相关性；用「下周短会」推动到下一步，别让热度冷却。"
+ },
+ {
+  "n": 2,
+  "title": "老客户转介绍开发信 / Warm intro from a partner",
+  "cat": "开发信 / Outreach",
+  "en": "Subject: {推荐人} suggested I contact you — {产品} for {国家}\n\nHi {姓名},\n\n{推荐人} (our happy client in {国家}) recommended I reach out. We have supplied them with {产品} for 3 years with zero quality claims.\n\nI believe we can support your business too. May I share our line sheet and a reference price?\n\nBest,\n{公司}",
+  "cn": "转介绍开发信要点：借老客户背书降低戒备；给出具体合作年限/零客诉等可信证据；动作轻（发资料），不急着要下单。"
+ },
+ {
+  "n": 3,
+  "title": "LinkedIn / 社媒开发信 / Social outreach",
+  "cat": "开发信 / Outreach",
+  "en": "Subject: {产品} sourcing idea for {国家}\n\nHi {姓名},\n\nI came across your profile and saw you distribute gifts/accessories in {国家}. We help brands like yours private-label {产品} with fast 15-day sampling.\n\nWould a quick look at our portfolio help your next season plan?\n\nBest,\n{公司}",
+  "cn": "社媒开发信要点：先证明你做过功课（知道他卖什么、在哪卖）；主打「快打样/私牌」痛点；用「看一眼作品集」这种零压力动作开场。"
+ },
+ {
+  "n": 4,
+  "title": "收到询盘首复 / First reply to inquiry",
+  "cat": "询盘回复 / Inquiry",
+  "en": "Subject: Re: Your inquiry about {产品} — {公司}\n\nHi {姓名},\n\nThanks for your interest in our {产品}! Glad to help.\n\nTo quote accurately, could you confirm:\n1) Target market &amp; quantity per order\n2) Preferred material / spec\n3) Need OEM logo or neutral packing\n\nI will send a tailored quote within 24h once confirmed.\n\nBest,\n{公司}",
+  "cn": "询盘首复要点：先感谢+表意愿；不要立刻瞎报价，先问清数量/规格/包装三要素，避免来回折腾；承诺24h内出精准报价，建立专业感。"
+ },
+ {
+  "n": 5,
+  "title": "问清参数再报价 / Clarify specs before quote",
+  "cat": "询盘回复 / Inquiry",
+  "en": "Subject: A few details to quote your {产品} correctly\n\nHi {姓名},\n\nBefore quoting, may I confirm:\n- Size / color / print: ______\n- Certification needed (CE, LFGB, Halal?): ______\n- Packing: color box or bulk: ______\n- Destination port: ______\n\nThis helps us match the exact cost. Looking forward!\n\nBest,\n{公司}",
+  "cn": "参数确认要点：用清单式提问降低客户思考成本；认证/港口等影响价格的项必须问；清晰=专业，也避免后续改价伤信任。"
+ },
+ {
+  "n": 6,
+  "title": "询盘转样品/目录 / Route to sample or catalog",
+  "cat": "询盘回复 / Inquiry",
+  "en": "Subject: Catalog + sample plan for your {产品} inquiry\n\nHi {姓名},\n\nHere is our {产品} catalog (attached). For a real feel of quality, I suggest a sample set — $XX including express, deductible from your first order.\n\nWant me to prepare the sample invoice?\n\nBest,\n{公司}",
+  "cn": "询盘转样品要点：先给目录满足即时需求；顺势用「样品可抵大货」降低付费阻力；把目录→样品→订单串成一条顺滑路径。"
+ },
+ {
+  "n": 7,
+  "title": "久未回复的二次跟进 / Nudge a silent inquiry",
+  "cat": "询盘回复 / Inquiry",
+  "en": "Subject: Following up on {产品} quote — {公司}\n\nHi {姓名},\n\nJust circling back on my last email about {产品}. Did the specs/price work for your plan?\n\nIf timing isn't right now, no worries — I can hold the current FOB price for 7 days. Happy to adjust MOQ or terms if needed.\n\nBest,\n{公司}",
+  "cn": "沉默询盘跟进要点：轻量提醒，不施压；用「价格保留7天」制造温和稀缺；主动提出可让步（MOQ/条款），给台阶下。"
+ },
+ {
+  "n": 8,
+  "title": "正式报价 / Formal quotation",
+  "cat": "报价 / Quotation",
+  "en": "Subject: Quotation — {产品} for {公司}\n\nHi {姓名},\n\nThanks for your interest. Quotation as below:\n- Item: {产品}\n- Unit price: $X FOB Ningbo\n- MOQ: 500 pcs\n- Lead time: 20 days after deposit\n- Payment: 30% deposit, 70% before shipment\n\nAttached PI for your review. Ready to start on receipt of deposit.\n\nBest,\n{公司}",
+  "cn": "正式报价要点：一次性给全价格/MOQ/交期/付款四要素+PI；结构清晰像报价单；结尾明确「收到定金即可排产」，推动成交。"
+ },
+ {
+  "n": 9,
+  "title": "阶梯报价（量大优惠）/ Tiered pricing",
+  "cat": "报价 / Quotation",
+  "en": "Subject: Volume pricing for {产品} — better rate at scale\n\nHi {姓名},\n\nOur tiered FOB price for {产品}:\n- 500-1,000 pcs: $X\n- 1,001-5,000 pcs: $X-0.3\n- 5,000+ pcs: $X-0.6\n\nThe more you consolidate, the better your margin. Which tier fits your first order?\n\nBest,\n{公司}",
+  "cn": "阶梯报价要点：用数量换单价，引导客户把单做厚；明确每档价差，让客户自己算账；结尾问「哪一档适合首单」，推动决策。"
+ },
+ {
+  "n": 10,
+  "title": "报价有效期提醒 / Quote validity reminder",
+  "cat": "报价 / Quotation",
+  "en": "Subject: {产品} quote valid until {日期} — {公司}\n\nHi {姓名},\n\nA quick note: our quote for {产品} (FOB $X) is valid until {日期}, as raw material costs may shift before Ramadan.\n\nLock the price now and we secure your slot. Need a revised PI?\n\nBest,\n{公司}",
+  "cn": "报价有效期要点：给截止日+理由（原料波动/斋月），制造合理紧迫；「现在锁价=保交期保价」，把催单包装成帮客户省钱。"
+ },
+ {
+  "n": 11,
+  "title": "客户嫌贵 — 价值锚定 / Handle too expensive",
+  "cat": "报价 / Quotation",
+  "en": "Subject: Why {产品} pricing protects your margin\n\nHi {姓名},\n\nI understand price matters. Compared with cheaper options, our {产品} uses {材质/工艺} that cuts your return rate and repeat-complaint cost — lower total cost, not just unit price.\n\nHappy to offer a mixed trial order so you can compare quality side by side.\n\nBest,\n{公司}",
+  "cn": "嫌贵应对要点：不盲目降价，转谈总拥有成本（退换货/客诉更低）；用「混批试单」让客户自己比出质量差；守住底价也守住利润。"
+ },
+ {
+  "n": 12,
+  "title": "寄样前确认 / Confirm before sending sample",
+  "cat": "样品 / Sample",
+  "en": "Subject: Sample arrangement for {产品}\n\nHi {姓名},\n\nHappy to send {产品} samples. To ship correctly, please confirm:\n- Full address &amp; phone (for DHL/FedEx)\n- Sample cost: $XX (deductible from first order)\n- Any specific color/spec to include\n\nI will issue the sample invoice once confirmed.\n\nBest,\n{公司}",
+  "cn": "寄样前确认要点：先要准地址+电话避免退件；明示样品费可抵大货，降低付费抵触；确认规格再发，避免发错白花钱。"
+ },
+ {
+  "n": 13,
+  "title": "样品已寄出 / Sample shipped",
+  "cat": "样品 / Sample",
+  "en": "Subject: Your {产品} sample — tracking &amp; next step\n\nHi {姓名},\n\nYour {产品} sample shipped on {日期}. Tracking: {单号}.\n\nMay I know:\n1) Did the quality / embroidery meet your expectation?\n2) Shall we prepare a bulk quotation (MOQ 500)?\n\nWe can lock Ramadan stock for you if you confirm this week.\n\nBest,\n{公司}",
+  "cn": "样品寄出要点：给单号+物流节点；用两个问题引导反馈（质量如何+要不要大货报价）；「本周确认锁库存」软性催单。"
+ },
+ {
+  "n": 14,
+  "title": "样品费抵扣说明 / Sample cost deductible",
+  "cat": "样品 / Sample",
+  "en": "Subject: Your $XX sample fee credited to first order\n\nHi {姓名},\n\nGood news — the $XX you paid for {产品} samples will be fully deducted from your first bulk order (MOQ 500).\n\nNo extra cost to try us. Ready when you are — shall I prepare the PI?\n\nBest,\n{公司}",
+  "cn": "样品费抵扣要点：明确「全额抵首单」，把已付费变成首单优惠，消除损失感；顺势请付PI推进成交。"
+ },
+ {
+  "n": 15,
+  "title": "样品反馈收集 / Collect sample feedback",
+  "cat": "样品 / Sample",
+  "en": "Subject: How did the {产品} sample perform?\n\nHi {姓名},\n\nA few days after delivery — how is the {产品} sample received by your team / buyers?\n\nAny tweak on color, fabric or print we should apply to the bulk run? Your feedback directly shapes production.\n\nBest,\n{公司}",
+  "cn": "样品反馈收集要点：主动在到样后跟进，体现重视；问具体可改项（色/料/版），把反馈转化为大货改进，提升成交率。"
+ },
+ {
+  "n": 16,
+  "title": "确认订单细节（PI前核对）/ Verify order before PI",
+  "cat": "订单 / Order",
+  "en": "Subject: Let's confirm {产品} order details\n\nHi {姓名},\n\nBefore issuing PI, please double-check:\n- Qty &amp; SKU: ______\n- Unit price: $X FOB ______\n- Delivery: ______ days after deposit\n- Packing: ______\n\nOnce confirmed I'll send the PI for signature. Helps avoid costly changes later.\n\nBest,\n{公司}",
+  "cn": "PI前核对要点：把数量/SKU/价/交期/包装列清让客户确认，签字前纠错成本最低；体现严谨，也保护自己不被改单扯皮。"
+ },
+ {
+  "n": 17,
+  "title": "订单确认回执 / Order confirmation",
+  "cat": "订单 / Order",
+  "en": "Subject: Order confirmed — {产品} / PO {单号}\n\nHi {姓名},\n\nConfirmed receipt of your PO {单号} for {产品}. Summary:\n- Qty: ______ / Total: $______\n- Deposit 30% ($______) received\n- ETD: {日期}\n\nProduction started. I'll send a mid-production update.\n\nBest,\n{公司}",
+  "cn": "订单确认回执要点：复述关键数字（数量/金额/定金/ETD）让双方对齐；明确「已开工+会中期汇报」，建立确定感。"
+ },
+ {
+  "n": 18,
+  "title": "生产进度中期汇报 / Mid-production update",
+  "cat": "订单 / Order",
+  "en": "Subject: {产品} production update — 50% done\n\nHi {姓名},\n\nYour {产品} order is 50% through production, on schedule for ETD {日期}.\n\nAttached: workshop photos. We are now doing in-line QC on embroidery &amp; color fastness.\n\nNext update at finishing stage.\n\nBest,\n{公司}",
+  "cn": "中期汇报要点：给完成百分比+ETA不变承诺；附车间照+在制品控项，增加透明度；定期更新让客户安心、减少催问。"
+ },
+ {
+  "n": 19,
+  "title": "订单完成待发货 / Order finished, ready to ship",
+  "cat": "订单 / Order",
+  "en": "Subject: {产品} order finished — ready for booking\n\nHi {姓名},\n\nGreat news: your {产品} order passed final QC and is packed, ready to ship.\n\nPlease arrange the 70% balance so we can book space. ETD can be {日期} upon balance received.\n\nBest,\n{公司}",
+  "cn": "待发货通知要点：宣布「过终检、已包好」，制造完成确定感；把付尾款与订舱挂钩，自然推进回款。"
+ },
+ {
+  "n": 20,
+  "title": "发货通知 / Shipment advice",
+  "cat": "出货 / Shipment",
+  "en": "Subject: {产品} shipped — B/L &amp; details inside\n\nHi {姓名},\n\nYour {产品} order shipped on {日期}.\n- Vessel: {船名} / ETD {港口} {日期}\n- ETA: {日期}\n- B/L no.: {单号}\n\nAttached: B/L, commercial invoice, packing list. Track via {链接}.\n\nBest,\n{公司}",
+  "cn": "发货通知要点：给船名/ETD/ETA/提单号四要素+三单（提单/发票/箱单）；附查询链接，客户自助跟踪，减少追问。"
+ },
+ {
+  "n": 21,
+  "title": "装柜照片/装箱单发送 / Loading photos &amp; packing list",
+  "cat": "出货 / Shipment",
+  "en": "Subject: {产品} loading photos + packing list\n\nHi {姓名},\n\nAttached: container loading photos and final packing list for {产品}.\n- Containers: ______ / Seal no.: {单号}\n- Total cartons: ______ / Gross weight: ______ kg\n\nEverything matches the PI. Vessel departs as scheduled.\n\nBest,\n{公司}",
+  "cn": "装柜照+箱单要点：发装柜照+封条号+总箱数+毛重，证明「按PI装齐」；让客户提前对单，到港清关更顺。"
+ },
+ {
+  "n": 22,
+  "title": "延迟出货致歉 / Delay apology",
+  "cat": "出货 / Shipment",
+  "en": "Subject: Important — {产品} shipment delay\n\nHi {姓名},\n\nI owe you transparency: your {产品} shipment is delayed to {新日期} due to {原因}.\n\nWe've added overtime to recover. As a goodwill, {补偿方案}. I'm truly sorry for the impact on your plan.\n\nBest,\n{公司}",
+  "cn": "延迟致歉要点：第一时间坦白+新日期+原因；给补偿方案（折扣/免部分运费）显诚意；道歉要具体，不甩锅。"
+ },
+ {
+  "n": 23,
+  "title": "到港提醒+清关协助 / Arrival notice &amp; customs help",
+  "cat": "出货 / Shipment",
+  "en": "Subject: {产品} arriving {日期} — clearance checklist\n\nHi {姓名},\n\nYour {产品} arrives {港口} around {日期}.\nPlease prepare:\n- Original B/L / telex release\n- Commercial invoice &amp; packing list\n- Any certificate required by {国家}\n\nNeed a certificate of origin? I can issue it today.\n\nBest,\n{公司}",
+  "cn": "到港提醒要点：给预计到港日+清关文件清单；主动提出可办原产地证，帮客户扫清清关障碍，减少滞港。"
+ },
+ {
+  "n": 24,
+  "title": "首催（尾款到期提醒）/ First gentle reminder",
+  "cat": "催款 / Collection",
+  "en": "Subject: Friendly reminder — balance for {产品} due\n\nHi {姓名},\n\nHope the {产品} arrived well. A quick note: the 70% balance ($______) was due on {日期}.\n\nOnce received, I'll release the original B/L / telex release. Thank you for your prompt settlement!\n\nBest,\n{公司}",
+  "cn": "首催要点：以「货已到、请结尾款放单」为理由，礼貌不急躁；绑定提单释放动作，给明确交代。"
+ },
+ {
+  "n": 25,
+  "title": "逾期温和二次催 / Second nudge on overdue",
+  "cat": "催款 / Collection",
+  "en": "Subject: Re: Balance due for {产品} — {公司}\n\nHi {姓名},\n\nFollowing up again on the $______ balance for {产品}, now {N} days overdue.\n\nCould you share the payment date? If the B/L is needed urgently, I can arrange telex release upon proof of remittance.\n\nBest,\n{公司}",
+  "cn": "二次催要点：点明逾期天数+金额；提供「凭汇款底单电放」的灵活方案降低对方阻力；语气仍合作不敌对。"
+ },
+ {
+  "n": 26,
+  "title": "严重逾期最后通牒 / Final notice",
+  "cat": "催款 / Collection",
+  "en": "Subject: FINAL NOTICE — outstanding $______ for {产品}\n\nHi {姓名},\n\nDespite previous reminders, the $______ balance remains unpaid {N} days after goods arrival.\n\nPlease settle by {日期}, or we must pause further cooperation and pursue collection. I truly hope it won't come to that.\n\nBest,\n{公司}",
+  "cn": "最后通牒要点：明确「最终期限+后果（暂停合作/追收）」；语气严肃但留余地（「希望不至如此」）；仅在前两封无效后使用。"
+ },
+ {
+  "n": 27,
+  "title": "分期/放宽付款协商 / Negotiate payment terms",
+  "cat": "催款 / Collection",
+  "en": "Subject: Payment plan for {产品} balance\n\nHi {姓名},\n\nI understand cash flow can be tight. To keep things smooth, I can accept the $______ balance in two parts: 50% by {日期A}, 50% by {日期B}.\n\nPlease confirm and I'll send the revised agreement.\n\nBest,\n{公司}",
+  "cn": "分期协商要点：主动给分期方案显弹性，保住关系也保住回款；要对方确认+签补充协议，避免口头承诺落空。"
+ },
+ {
+  "n": 28,
+  "title": "收到客诉致歉+方案 / Apology &amp; solution",
+  "cat": "售后 / After-sales",
+  "en": "Subject: Sorry about the {产品} issue — here's our fix\n\nHi {姓名},\n\nReally sorry to hear about the {问题} with {产品}. This is not the quality we stand for.\n\nOur solution: {补发/折扣/退款}. Please send photos of the defect so we can root-cause and prevent recurrence.\n\nBest,\n{公司}",
+  "cn": "客诉处理要点：先共情道歉，不辩解；给出具体补救（补发/折扣/退款）；要缺陷照片既为取证也为杜绝再发，转危为机。"
+ },
+ {
+  "n": 29,
+  "title": "质量问题补发/折扣 / Defect remedy",
+  "cat": "售后 / After-sales",
+  "en": "Subject: Remedy for {产品} quality issue\n\nHi {姓名},\n\nFor the {问题} in {产品}, we'll:\n- Ship FREE replacement of {数量} pcs with your next order, OR\n- Credit $______ to your account\n\nYour choice. We'll also tighten QC on that process immediately.\n\nBest,\n{公司}",
+  "cn": "质量补救要点：给二选一（免费补发/账户抵扣），把决定权给客户显尊重；同步说明已加严该工序QC，重建信心。"
+ },
+ {
+  "n": 30,
+  "title": "退货/退款流程 / Return &amp; refund process",
+  "cat": "售后 / After-sales",
+  "en": "Subject: Return/refund steps for {产品}\n\nHi {姓名},\n\nTo process your {产品} return:\n1) Send photos + invoice number\n2) We issue return label / approve destruction\n3) Refund $______ within 7 days of confirmation\n\nHappy to walk you through it.\n\nBest,\n{公司}",
+  "cn": "退换流程要点：把步骤编号化降低客户操作成本；明确退款时限（确认后7天）建立确定感；主动表示可协助，减少摩擦。"
+ },
+ {
+  "n": 31,
+  "title": "售后回访+改进反馈 / Follow-up &amp; improvement",
+  "cat": "售后 / After-sales",
+  "en": "Subject: How is the {产品} selling? + 1 quick question\n\nHi {姓名},\n\nA few weeks post-delivery — how is {产品} performing with your buyers?\n\nOne thing we're improving: {改进点}. Your input last time directly shaped it. Anything else to tweak?\n\nBest,\n{公司}",
+  "cn": "售后回访要点：交付后主动问动销，体现长期主义；点出「你的反馈改了产品」，让客户有参与感，为复购埋线。"
+ },
+ {
+  "n": 32,
+  "title": "节假日问候（非宗教）/ Seasonal greeting",
+  "cat": "其他 / Other",
+  "en": "Subject: Happy {节日} from {公司}\n\nHi {姓名},\n\nWishing you and your team a joyful {节日}!\n\nThank you for your trust this year. We'll be on a short break {日期区间} but reachable by email. Talk soon.\n\nBest,\n{公司}",
+  "cn": "节日问候要点：选中性节日（元旦/国庆）避免宗教敏感；简短祝福+感谢+值班说明，维系温度不越界。"
+ },
+ {
+  "n": 33,
+  "title": "公司资质/认证说明 / Certificates &amp; credentials",
+  "cat": "其他 / Other",
+  "en": "Subject: Our certifications for {产品} — {公司}\n\nHi {姓名},\n\nTo support your compliance, we hold:\n- ISO 9001 / BSCI\n- {CE / LFGB / Halal} as needed\n- Third-party inspection (SGS/BV) welcome\n\nHappy to send copies or arrange a factory audit.\n\nBest,\n{公司}",
+  "cn": "资质说明要点：列出认证+可第三方验厂，用证据消除合规顾虑；主动「可发副本/可审厂」，降低大客户决策风险。"
+ },
+ {
+  "n": 34,
+  "title": "展会邀请 / Trade show invitation",
+  "cat": "其他 / Other",
+  "en": "Subject: Visit us at {展会} — Booth {展位}\n\nHi {姓名},\n\nWe'll exhibit at {展会} ({日期}, {城市}). Booth {展位} — come see our new {产品} line and Ramadan collection.\n\nI'd love to meet in person. Shall I reserve a time slot?\n\nBest,\n{公司}",
+  "cn": "展会邀请要点：给展会展位+时间+城市，降低见面门槛；指明「新品/斋月系列」给看展理由；主动约时段显重视。"
+ },
+ {
+  "n": 35,
+  "title": "市场资讯分享（增值）/ Market insight share",
+  "cat": "其他 / Other",
+  "en": "Subject: {国家} {品类} trend you may find useful\n\nHi {姓名},\n\nSharing a quick read: {国家} demand for {品类} is up X% this season, with buyers favoring {趋势}.\n\nMight inform your next assortment. Happy to brainstorm matching products.\n\nBest,\n{公司}",
+  "cn": "资讯分享要点：发与客户市场相关的趋势数据，做「顾问」而非只推销；结尾「可帮选品」，把价值转化为商机。"
+ },
+ {
+  "n": 36,
+  "title": "发送PI待签 / Send PI for signature",
+  "cat": "PI确认 / PI",
+  "en": "Subject: Proforma Invoice {单号} for {产品} — please sign\n\nHi {姓名},\n\nAttached is PI {单号} for your {产品} order:\n- Total: $______ / Deposit 30%: $______\n- Lead time: {日期} after deposit\n\nKindly sign &amp; return, then arrange the deposit to lock production.\n\nBest,\n{公司}",
+  "cn": "发PI要点：附件PI+复述总额/定金/交期；明确要求「签字回传+付定金」两步走，流程清晰不拖沓。"
+ },
+ {
+  "n": 37,
+  "title": "PI修改后重发 / Revised PI",
+  "cat": "PI确认 / PI",
+  "en": "Subject: Revised PI {单号} — {产品} updated\n\nHi {姓名},\n\nPer your request, revised PI {单号} attached with:\n- Qty: ______ (was ______)\n- Unit price: $______\n- New total: $______\n\nPlease confirm so we can proceed.\n\nBest,\n{公司}",
+  "cn": "PI改版要点：列出「改了什么（数量/价/总额）」的对比，让客户一眼看清变更；确认后即推进，避免反复。"
+ },
+ {
+  "n": 38,
+  "title": "催签PI（临近排产）/ Push to sign PI",
+  "cat": "PI确认 / PI",
+  "en": "Subject: PI {单号} signature — production slot closing\n\nHi {姓名},\n\nTo keep your {产品} in our production plan, please sign PI {单号} and send the 30% deposit by {日期}.\n\nAfter that we reserve materials. A day later may shift your ETD.\n\nBest,\n{公司}",
+  "cn": "催签PI要点：把「签字+定金」与「保留产能/物料」绑定，制造合理紧迫；「晚一天可能延交期」点明代价。"
+ },
+ {
+  "n": 39,
+  "title": "PI已签+请付定金 / PI signed, request deposit",
+  "cat": "PI确认 / PI",
+  "en": "Subject: PI {单号} received — please arrange deposit\n\nHi {姓名},\n\nGot your signed PI {单号}, thank you! Please arrange the 30% deposit ($______) at your earliest.\n\nOn receipt we issue the deposit invoice and start production immediately.\n\nBest,\n{公司}",
+  "cn": "PI已签跟进要点：确认收到签字PI并表示感谢；立刻引导付定金，并承诺「到账即开工」，给明确正向反馈。"
+ },
+ {
+  "n": 40,
+  "title": "客户要求改数量/规格确认 / Confirm qty/spec change",
+  "cat": "订单变更 / Order change",
+  "en": "Subject: Change request for PO {单号} — {产品}\n\nHi {姓名},\n\nNoted your request to change {产品} to {新数量/规格}. Before we apply:\n- Current stage: {已生产比例}\n- If changeable: new total $______, ETD {新日期}\n- If started, a {改单费} may apply\n\nShall I proceed?\n\nBest,\n{公司}",
+  "cn": "改单确认要点：先告知当前生产进度，判断能否改；说明改后金额/交期或可能改单费；让客户知情后决策，避免事后扯皮。"
+ },
+ {
+  "n": 41,
+  "title": "改交期协商 / Renegotiate delivery date",
+  "cat": "订单变更 / Order change",
+  "en": "Subject: New ETD for PO {单号} — {产品}\n\nHi {姓名},\n\nYou asked to move {产品} ETD to {新日期}. Feasible — production will shift accordingly, new ETD {新日期}, no extra cost.\n\nPlease confirm in writing so we update the plan and PI.\n\nBest,\n{公司}",
+  "cn": "改交期要点：确认可行+新日期+是否加费；要求书面确认再改PI，留痕防赖账。"
+ },
+ {
+  "n": 42,
+  "title": "取消部分订单 / Cancel part of order",
+  "cat": "订单变更 / Order change",
+  "en": "Subject: Partial cancellation of PO {单号} — {产品}\n\nHi {姓名},\n\nRegarding your request to cancel {数量} pcs of {产品}:\n- Unproduced portion: fully cancellable\n- Already-made portion: can ship separately or hold 30 days\n\nHow would you like to handle the made units?\n\nBest,\n{公司}",
+  "cn": "部分取消要点：区分「未产/已产」分别处理，已产的可分批发或暂存；把已产部分的处置决定权交给客户，减少损失。"
+ },
+ {
+  "n": 43,
+  "title": "涨价/跌价后改单条款 / Reprice on cost move",
+  "cat": "订单变更 / Order change",
+  "en": "Subject: Price update for PO {单号} — {产品}\n\nHi {姓名},\n\nRaw material moved {方向} since PI {单号}. For the unchanged balance, new unit price $______ (was $______).\n\nOptions: (a) accept new price, or (b) keep old price by confirming &amp; depositing within {日期}.\n\nBest,\n{公司}",
+  "cn": "涨跌价改单要点：说明成本变动原因+新单价；给客户二选一（接受新价 / 期限内按旧价付定锁定），把被动涨价变主动选择。"
+ },
+ {
+  "n": 44,
+  "title": "确认包装方式 / Confirm packing method",
+  "cat": "包装唛头 / Packing",
+  "en": "Subject: Packaging for {产品} — please confirm\n\nHi {姓名},\n\nFor {产品}, default packing: {彩盒/中性袋/散装}. Please confirm or choose:\n- Gift box (MOQ +X days)\n- Neutral packing (no logo)\n- Custom mailer box\n\nThis affects both cost and lead time.\n\nBest,\n{公司}",
+  "cn": "包装确认要点：给出默认+可选方案（彩盒/中性/定制），点明各自对成本交期影响；让客户按渠道选，避免到时投诉。"
+ },
+ {
+  "n": 45,
+  "title": "唛头内容确认 / Confirm shipping marks",
+  "cat": "包装唛头 / Packing",
+  "en": "Subject: Shipping marks for {产品} — need your artwork\n\nHi {姓名},\n\nPlease provide the carton shipping marks for {产品}: brand, model, qty/carton, country of origin, and any warning icons.\n\nSend your AI/PDF file and we'll print exactly as approved.\n\nBest,\n{公司}",
+  "cn": "唛头确认要点：清单式索要唛头要素（品牌/型号/箱规/原产地/警示）；要客户给矢量文件，按「已确认稿」印刷，杜绝错印。"
+ },
+ {
+  "n": 46,
+  "title": "条码/标签要求 / Barcode &amp; label requirement",
+  "cat": "包装唛头 / Packing",
+  "en": "Subject: Barcode &amp; label spec for {产品}\n\nHi {姓名},\n\nFor {国家} retail, please confirm label needs:\n- Barcode type (EAN-13 / UPC)\n- Language on label (EN / {国家} lang)\n- Compliance marks (CE, recycling)\n\nWe'll apply before cartoning.\n\nBest,\n{公司}",
+  "cn": "条码标签要点：按目标国确认条码类型/语种/合规标识；标签在装箱前贴，避免到港被拒；体现专业合规。"
+ },
+ {
+  "n": 47,
+  "title": "特殊包装（礼品/防压）/ Special packing",
+  "cat": "包装唛头 / Packing",
+  "en": "Subject: Protective packing for {产品} (gift)\n\nHi {姓名},\n\nSince {产品} is gift-grade, we'll add: inner EPE sleeve, double carton, FRAGILE marks, and desiccant for humidity.\n\nSlight +$X/ctn but protects your brand at shelf. OK to proceed?\n\nBest,\n{公司}",
+  "cn": "特殊包装要点：针对礼品/易损主动加防护（内衬/双箱/易碎标/干燥剂）；说明加价但护品牌，让客户觉得值。"
+ },
+ {
+  "n": 48,
+  "title": "申请第三方验货排期 / Book 3rd-party inspection",
+  "cat": "验货 / Inspection",
+  "en": "Subject: Pre-shipment inspection for {产品} — {日期}\n\nHi {姓名},\n\nWe've booked SGS/BV inspection for {产品} on {日期} at our factory.\n\nScope: qty, workmanship, function, packing vs PI. Report within 48h. If fail, we rework free before loading.\n\nBest,\n{公司}",
+  "cn": "第三方验货要点：主动约期+明确验货范围（数/工/功/包 vs PI）；承诺48h出报告、不合格免费返工，给客户质量确定性。"
+ },
+ {
+  "n": 49,
+  "title": "验货前自检清单发送 / Self-check list before QC",
+  "cat": "验货 / Inspection",
+  "en": "Subject: {产品} self-inspection checklist (pre-QC)\n\nHi {姓名},\n\nBefore official QC, our inline checks on {产品}:\n- Qty / color / style vs PI\n- No loose threads / stains\n- Size tolerance plus/minus 1cm\n- Marks &amp; labels correct\n\nPhotos attached. Confident it passes.\n\nBest,\n{公司}",
+  "cn": "验货前自检要点：用清单展示已自查项，附照增强可信；传递「我们有把握通过」，减少客户疑心。"
+ },
+ {
+  "n": 50,
+  "title": "验货不合格整改通知 / Fail &amp; rework notice",
+  "cat": "验货 / Inspection",
+  "en": "Subject: {产品} inspection result — rework plan\n\nHi {姓名},\n\nInspection found {缺陷} on {产品} (defect rate X%). We'll:\n- 100% re-screen the affected batch\n- Rework free, ETD shifts to {新日期}\n- Share corrected photos before loading\n\nSorry for the slip; it won't ship unchecked.\n\nBest,\n{公司}",
+  "cn": "验货不合格要点：坦白缺陷率+整改（全检/免费返工/新ETD/发整改照）；道歉并承诺「不带病出货」，把危机变信任。"
+ },
+ {
+  "n": 51,
+  "title": "验货通过放行 / Pass &amp; release",
+  "cat": "验货 / Inspection",
+  "en": "Subject: {产品} passed inspection — ready to load\n\nHi {姓名},\n\nGood news: {产品} passed {机构} inspection (AQL X, zero critical). Report attached.\n\nWe'll load per plan and send the loading report. Original B/L follows after balance.\n\nBest,\n{公司}",
+  "cn": "验货通过要点：宣布通过+标准（AQL等级/零严重缺陷）+附报告；衔接装柜与放单，给客户放行确定感。"
+ },
+ {
+  "n": 52,
+  "title": "委托货代订舱 / Booking request to forwarder",
+  "cat": "订舱 / Booking",
+  "en": "Subject: Booking request — {产品}, {柜型}, ETD {日期}\n\nHi {货代},\n\nPlease book space for {产品}:\n- 1x20GP / 40HQ, ______ cbm, ______ kg\n- POL {起运港} / POD {目的港}\n- Cargo ready {日期}, prefer vessel ETD {日期}\n\nQuote freight + surcharges. Need SI cut-off time.\n\nBest,\n{公司}",
+  "cn": "订舱委托要点：给柜型/体积/重量/起目的港/货好日/期望船期+要运费报价与截单时间；信息齐货代才能准确订舱。"
+ },
+ {
+  "n": 53,
+  "title": "确认订舱放舱通知 / Booking confirmed",
+  "cat": "订舱 / Booking",
+  "en": "Subject: Booking confirmed — {船名} / {单号}\n\nHi {公司},\n\nSpace booked:\n- Vessel: {船名} / Voyage {航次}\n- ETD {起运港} {日期} / ETA {日期}\n- Cut-off: {日期}\n\nPlease send SI and VGM in time. Draft B/L to follow.\n\nBest,\n{货代}",
+  "cn": "放舱通知要点：确认船名/航次/ETD/ETA/截关日；提醒按时交补料(SI)与VGM；这是订舱闭环关键节点。"
+ },
+ {
+  "n": 54,
+  "title": "改配船期 / Change vessel",
+  "cat": "订舱 / Booking",
+  "en": "Subject: Re-booking — {产品} to later sailing\n\nHi {货代},\n\nCargo not ready, please move {产品} to next sailing ETD {新日期}.\n\nKeep same POD. Any freight difference? Send updated SO. Cut-off now {新日期}.\n\nBest,\n{公司}",
+  "cn": "改船期要点：说明原因（货未好）+新期望船期+同目的港；问运费差额并要新订舱单(SO)，保持信息同步。"
+ },
+ {
+  "n": 55,
+  "title": "拼箱/整柜说明 / LCL vs FCL note",
+  "cat": "订舱 / Booking",
+  "en": "Subject: LCL or FCL for {产品}?\n\nHi {货代},\n\nFor {产品} ({体积} cbm): is FCL 20GP cheaper than LCL now? If volume grows, we may top up to full container.\n\nAdvise best cost option and transit time.\n\nBest,\n{公司}",
+  "cn": "拼整柜选择要点：让货代比对LCL与FCL成本与时效；预留「可凑整柜」的空间，为后续降本留口子。"
+ },
+ {
+  "n": 56,
+  "title": "发送提单/发票/箱单 / Send B/L, invoice, packing list",
+  "cat": "单据 / Documents",
+  "en": "Subject: Shipping documents for {产品} — {单号}\n\nHi {姓名},\n\nAttached for {产品}:\n- Bill of Lading {单号}\n- Commercial Invoice\n- Packing List\n- (Certificate of Origin if needed)\n\nFor telex release, balance must be settled. Let me know.\n\nBest,\n{公司}",
+  "cn": "单据发送要点：一次给齐提单/发票/箱单(+产地证)；说明电放需付清尾款，把放单与回款挂钩。"
+ },
+ {
+  "n": 57,
+  "title": "原产地证(CO)办理 / Certificate of Origin",
+  "cat": "单据 / Documents",
+  "en": "Subject: Certificate of Origin for {产品}\n\nHi {姓名},\n\nTo help your duty rate in {国家}, we can issue FORM E / CO. Need:\n- HS code\n- Invoice value\n- Consignee details\n\nLead time 2-3 days after shipment. Confirm?\n\nBest,\n{公司}",
+  "cn": "产地证要点：说明办证可降关税的好处+所需资料（HS码/发票额/收货人）；给办理时效，主动帮客户省清关税。"
+ },
+ {
+  "n": 58,
+  "title": "单据不符点处理 / Discrepancy handling",
+  "cat": "单据 / Documents",
+  "en": "Subject: LC discrepancy on {产品} — quick fix\n\nHi {姓名},\n\nBank flagged {不符点} on {产品} docs. To avoid rejection:\n- Option A: amend LC (your bank, 2-3 days)\n- Option B: accept with tolerance (fee)\n\nWhich do you prefer? I'll adjust docs meanwhile.\n\nBest,\n{公司}",
+  "cn": "不符点处理要点：列出不符点+两选项（改证/接受不符交费）；边改单边等客户决定，缩短 LC 交单周期。"
+ },
+ {
+  "n": 59,
+  "title": "电放/正本提单选择 / Telex vs original B/L",
+  "cat": "单据 / Documents",
+  "en": "Subject: B/L type for {产品} — telex or original?\n\nHi {姓名},\n\nFor {产品}, choose:\n- Telex release: faster, no paper B/L, needs balance paid\n- Original B/L: slower, safer for new partners\n\nDefault telex if balance settled. Your call.\n\nBest,\n{公司}",
+  "cn": "提单方式要点：对比电放（快/需付清）与正本（慢/新客更稳）；默认电放但尊重客户选择，平衡效率与风险。"
+ },
+ {
+  "n": 60,
+  "title": "新品发布预告 / New product teaser",
+  "cat": "新产品 / New product",
+  "en": "Subject: New {产品} just launched — early look for you\n\nHi {姓名},\n\nWe just launched our new {产品} line — {卖点}. First batch ready {日期}.\n\nAs a valued partner, you get first pick before public release. Want the lookbook?\n\nBest,\n{公司}",
+  "cn": "新品预告要点：宣布上新+核心卖点+首批时间；给老客「公开发售前优先选货」特权，制造专属感促关注。"
+ },
+ {
+  "n": 61,
+  "title": "老客优先看样邀请 / VIP sample preview",
+  "cat": "新产品 / New product",
+  "en": "Subject: Exclusive sample preview — new {产品}\n\nHi {姓名},\n\nBefore anyone else, I'd love your read on our new {产品}. Samples ready next week.\n\nYour market insight shaped past best-sellers — keen to hear yours first.\n\nBest,\n{公司}",
+  "cn": "老客看样要点：强调「比别人早」的专属+借其过往选品眼光；用「想先听你的」激发参与与忠诚度。"
+ },
+ {
+  "n": 62,
+  "title": "新品目录发送 / Send new catalog",
+  "cat": "新产品 / New product",
+  "en": "Subject: 2026 {产品} catalog — fresh designs inside\n\nHi {姓名},\n\nAttached: our 2026 {产品} catalog with FOB prices and MOQs.\n\nHot this season: {爆款}. Happy to quote any combination or do a mixed trial order.\n\nBest,\n{公司}",
+  "cn": "新品目录要点：发带价的年度目录+点名本季爆款；鼓励组合报价或混批试单，降低首单门槛。"
+ },
+ {
+  "n": 63,
+  "title": "联名/定制开发邀约 / Co-development invite",
+  "cat": "新产品 / New product",
+  "en": "Subject: Let's co-develop a {产品} for {国家}\n\nHi {姓名},\n\nYour buyers know {国家} best. Want to co-design an exclusive {产品} — your color/logo, our production?\n\nLower MOQ for joint projects, shared margin. Open to a brainstorm call?\n\nBest,\n{公司}",
+  "cn": "定制开发邀约要点：用「你最懂当地市场」捧客户；提联名定制（其设计/我生产、低MOQ、共分利）；邀头脑风暴，升级合作深度。"
+ },
+ {
+  "n": 64,
+  "title": "季度回访 / Quarterly check-in",
+  "cat": "客户维护 / Retention",
+  "en": "Subject: Quarterly catch-up — how's {产品} doing?\n\nHi {姓名},\n\nQuarterly note: hope {产品} is moving well. Any stock running low we should prep?\n\nAlso — any new SKU or market you'd like us to develop for next season?\n\nBest,\n{公司}",
+  "cn": "季度回访要点：定期问候+问库存是否要补+征询下季新需求；把例行回访变成复购与新品线索入口。"
+ },
+ {
+  "n": 65,
+  "title": "复购提醒 / Reorder reminder",
+  "cat": "客户维护 / Retention",
+  "en": "Subject: Time to reorder {产品}?\n\nHi {姓名},\n\nBased on last order, your {产品} stock may be running low around {日期}.\n\nReordering now avoids a stockout gap. As a returning partner, same FOB, priority slot reserved.\n\nBest,\n{公司}",
+  "cn": "复购提醒要点：用「按上次节奏预计某日断货」算准时机；强调老客同价+优先排产，降低复购决策成本。"
+ },
+ {
+  "n": 66,
+  "title": "客户满意度调查 / Satisfaction survey",
+  "cat": "客户维护 / Retention",
+  "en": "Subject: 2-minute feedback — help us serve you better\n\nHi {姓名},\n\nWe'd love 2 minutes: how are we doing on {产品} quality, lead time, and service?\n\nReply with 1-5 or free text. Your input directly shapes our improvements.\n\nBest,\n{公司}",
+  "cn": "满意度调查要点：极短（2分钟/1-5分）降低填写门槛；承诺「反馈直接改进」，让客户感到被重视。"
+ },
+ {
+  "n": 67,
+  "title": "专属折扣/老客权益 / Loyalty perks",
+  "cat": "客户维护 / Retention",
+  "en": "Subject: A thank-you perk for your loyalty\n\nHi {姓名},\n\nFor being with us {N} years, here's a loyalty perk: {折扣/免运费/免费升级包装} on your next {产品} order.\n\nJust mention this email when ordering. Grateful for your trust!\n\nBest,\n{公司}",
+  "cn": "老客权益要点：用合作年限包装专属福利（折扣/免运/升级包装）；「下单提此邮件即享」降低使用门槛，强化黏性。"
+ },
+ {
+  "n": 68,
+  "title": "运费询价 / Freight quote request",
+  "cat": "货代对接 / Forwarder",
+  "en": "Subject: Freight quote — {起运港} to {目的港}, {柜型}\n\nHi {货代},\n\nPlease quote for {产品}:\n- Route: {起运港} to {目的港}\n- 1x {柜型}, ______ cbm / ______ kg\n- Incoterms: FOB / CIF\n- Need ETD this {周次}\n\nOcean + air options if possible. Thanks!\n\nBest,\n{公司}",
+  "cn": "运费询价要点：给航线/柜型/体积重/贸易术语/期望船期；要海空对比，便于按时效成本选方案。"
+ },
+ {
+  "n": 69,
+  "title": "委托运输+资料提供 / Entrust shipment &amp; docs",
+  "cat": "货代对接 / Forwarder",
+  "en": "Subject: Shipment instruction — {产品}, SO {单号}\n\nHi {货代},\n\nPlease handle {产品} per SO {单号}:\n- Pickup from factory {日期}\n- SI &amp; VGM by {日期}\n- Notify party: {姓名/公司}\n- Docs to {邮箱}\n\nConfirm receipt and ETD.\n\nBest,\n{公司}",
+  "cn": "委托运输要点：凭订舱单(SO)下发指令，给提货日/补料截期/通知方/单据寄送；确认收到与ETD，闭环委托。"
+ },
+ {
+  "n": 70,
+  "title": "跟踪物流节点 / Track shipment milestones",
+  "cat": "货代对接 / Forwarder",
+  "en": "Subject: Status check — {产品}, B/L {单号}\n\nHi {货代},\n\nWhere is {产品} now? Need:\n- Vessel departed? ETD/ATA\n- Transshipment status\n- ETA {目的港}\n\nClient is asking. Appreciate a quick update.\n\nBest,\n{公司}",
+  "cn": "物流跟踪要点：向货代要关键节点（是否离港/中转/到港）；说明「客户在问」，促使快速回复，便于对客户交代。"
+ },
+ {
+  "n": 71,
+  "title": "异常（甩柜/延误）处理 / Handle exception",
+  "cat": "货代对接 / Forwarder",
+  "en": "Subject: URGENT — {产品} rolled / delayed, need solution\n\nHi {货代},\n\n{产品} was rolled or delayed (reason: {原因}). Client ETA slips to {新日期}.\n\nPlease offer: (a) catch next sailing, or (b) air bridge partial. Share cost &amp; ETA for each.\n\nBest,\n{公司}",
+  "cn": "异常处要点：甩柜/延误时立刻要货代给两套方案（赶下一水/部分空运）及各自成本ETA；快速决策最小化对客户的交期冲击。"
+ },
+ {
+  "n": 72,
+  "title": "催开证 / Push to open LC",
+  "cat": "信用证 / LC",
+  "en": "Subject: Please open L/C for {产品} — PO {单号}\n\nHi {姓名},\n\nPer terms, please open the L/C for {产品} (PO {单号}) at your bank.\n\nWe suggest wording per our PI to avoid discrepancies. Share the L/C draft first so we can pre-check.\n\nBest,\n{公司}",
+  "cn": "催开证要点：按约请客户开证，建议条款照PI写以减少不符点；先要信用证草稿预审，从源头控风险。"
+ },
+ {
+  "n": 73,
+  "title": "信用证条款审核 / Review LC terms",
+  "cat": "信用证 / LC",
+  "en": "Subject: L/C review for {产品} — 3 points to adjust\n\nHi {姓名},\n\nReviewed your L/C draft for {产品}. Kindly amend:\n1) Latest shipment {新日期} (was too tight)\n2) Partial shipment: allowed\n3) Docs within 21 days after B/L\n\nAmend before issuance saves later fees.\n\nBest,\n{公司}",
+  "cn": "审证要点：逐条指出需修改项（船期过紧/分批/交单期）并给建议值；「开证前改省改证费」，替客户省钱也降己方风险。"
+ },
+ {
+  "n": 74,
+  "title": "不符点改证 / Amend after discrepancy",
+  "cat": "信用证 / LC",
+  "en": "Subject: L/C amendment needed — {产品}\n\nHi {姓名},\n\nBank found {不符点} vs L/C for {产品}. Please amend via your bank:\n- Correct: {正确内容}\n- New expiry: {日期}\n\nWe'll re-prepare docs to match. ETA slips only if delayed.\n\nBest,\n{公司}",
+  "cn": "不符点改证要点：指明不符点与正确内容+新效期；同步重做单据匹配，控制交单节奏，避免拒付。"
+ },
+ {
+  "n": 75,
+  "title": "交单后催赎单 / Urge payment under LC",
+  "cat": "信用证 / LC",
+  "en": "Subject: Documents presented — please take up L/C, {产品}\n\nHi {姓名},\n\nFull set docs for {产品} presented to bank under L/C {单号} on {日期}.\n\nPlease accept/paid by {日期} per UCP600. Once settled we release B/L. Thank you.\n\nBest,\n{公司}",
+  "cn": "催赎单要点：通知已交单（日期/信用证号）+依UCP600请按期兑付；绑定放单，推动开证行/申请人付款。"
+ }
+]

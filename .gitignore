@@ -1,0 +1,15 @@
+# 系统文件
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 本地临时与敏感文件（防误提交密钥）
+.env
+.env.*
+*.token
+*.local

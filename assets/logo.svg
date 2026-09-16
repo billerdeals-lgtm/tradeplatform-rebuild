@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- FT Compass 品牌图标：翡翠绿圆角方 + 白罗盘环 + 琥珀罗盘指针 -->
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#0b6e4f"/>
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#ffffff" stroke-width="4"/>
+  <circle cx="32" cy="32" r="2.5" fill="#ffffff"/>
+  <polygon points="32,16 37,29 32,26 27,29" fill="#ffc53d"/>
+  <polygon points="32,48 27,35 32,38 37,35" fill="#ffffff" opacity="0.85"/>
+</svg>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 待办工作台</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
+  main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-3); margin-bottom:var(--sp-6); }
+  .stat { padding:var(--sp-4); text-align:center; }
+  .stat b { display:block; font-size:26px; margin-bottom:2px; }
+  .stat span { font-size:12px; color:var(--text-2); }
+  .toolbar { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-4); }
+  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar .grow { flex:1; min-width:160px; }
+  .todo { display:flex; align-items:flex-start; gap:var(--sp-3); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); }
+  .todo.done { opacity:.5; }
+  .todo .body { flex:1; }
+  .todo .title { font-weight:600; font-size:15px; }
+  .todo .meta { font-size:12px; color:var(--text-2); margin-top:2px; display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; }
+  .todo .row2 { margin-top:var(--sp-2); display:none; }
+  .todo.open .row2 { display:block; }
+  .ai-reason { font-size:12px; color:var(--text-2); margin-top:2px; }
+  .iconbtn { background:none; border:1px solid var(--border); border-radius:var(--r-sm); padding:4px 8px; cursor:pointer; font-size:12px; color:var(--text-2); }
+  .iconbtn:hover { border-color:var(--brand-500); color:var(--brand-700); }
+  .checkbox { width:18px; height:18px; margin-top:2px; accent-color:var(--brand-700); cursor:pointer; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:560px; width:92%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
+  .dlg-b { padding:var(--sp-4); }
+  .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
+  .dlg-b input, .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
+  .focus-card { margin-bottom:var(--sp-4); }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="FT Compass">
+  <h1>待办工作台 <span style="font-size:12px;opacity:.7;font-weight:400">AI 驱动 · 数据全在本机</span></h1>
+  <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
+</header>
+<main>
+  <!-- 统计卡 -->
+  <div class="stats">
+    <div class="ft-card stat"><b style="color:var(--brand-700)" id="stOpen">0</b><span>未完成待办</span></div>
+    <div class="ft-card stat"><b style="color:var(--warn)" id="stToday">0</b><span>今日到期</span></div>
+    <div class="ft-card stat"><b style="color:var(--danger)" id="stOver">0</b><span>已逾期</span></div>
+    <div class="ft-card stat"><b style="color:var(--text-3)" id="stDone">0</b><span>已完成</span></div>
+  </div>
+
+  <!-- AI 今日简报落点 -->
+  <div id="focusWrap"></div>
+
+  <!-- 工具栏 -->
+  <div class="toolbar">
+    <button class="ft-btn-primary" onclick="openAdd()">＋ 新建待办</button>
+    <button class="ft-btn-ai" id="btnPlan" onclick="aiPlan()">🧭 AI 排序：今天先做谁</button>
+    <button class="iconbtn" onclick="importFromLeads()">↘ 从线索评分导入 nextAction</button>
+    <span style="flex:1"></span>
+    <input class="grow" id="q" placeholder="搜索待办/关联客户…" oninput="render()">
+    <select id="fFilter" onchange="render()">
+      <option value="">全部</option>
+      <option value="over">逾期</option>
+      <option value="today">今日到期</option>
+      <option value="open">未完成</option>
+      <option value="done">已完成</option>
+    </select>
+  </div>
+
+  <!-- 待办列表 -->
+  <div id="list"></div>
+</main>
+
+<!-- 新建/编辑待办 -->
+<dialog id="dlgEdit">
+  <div class="dlg-h"><span id="dlgTitle">新建待办</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
+  <div class="dlg-b">
+    <label>事项 *</label><input id="f_title" placeholder="例如：给 Omar 发样品报价跟进">
+    <label>关联线索（可选）</label><select id="f_lead"></select>
+    <label>到期日</label><input id="f_due" type="date">
+    <label>备注</label><textarea id="f_note" rows="2" placeholder="补充上下文…"></textarea>
+    <div style="margin-top:var(--sp-4);text-align:right">
+      <button class="ft-btn-primary" onclick="saveEdit()">保存</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- AI 设置 -->
+<dialog id="dlgSettings">
+  <div class="dlg-h"><span>AI 设置（Agnes 2.5 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+  <div class="dlg-b" id="agPanel"></div>
+</dialog>
+
+<!-- AI 输出弹窗 -->
+<dialog id="dlgAI">
+  <div class="dlg-h"><span id="aiTitle">AI 输出</span><button class="iconbtn" onclick="dlgAI.close()">✕</button></div>
+  <div class="dlg-b">
+    <div class="ft-ai-output" id="aiBody" style="white-space:pre-wrap;font-size:14px;line-height:1.7">生成中…</div>
+    <div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);justify-content:flex-end" id="aiActions"></div>
+  </div>
+</dialog>
+
+<script src="../agnes-ai.js"></script>
+<script src="../js/datastore.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   FT Compass 待办工作台 v0.1（矩阵 #2 模块）
+   数据：DataStore(todos/leads) · AI：AgnesAI（琥珀色=AI 输出）
+   ============================================================ */
+var editingId = null;
+
+/* ---------- 工具 ---------- */
+function $(id){ return document.getElementById(id); }
+function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
+  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+
+/* ---------- 渲染 ---------- */
+function dueState(t){
+  if (t.done) return null;
+  if (!t.due) return null;
+  if (t.due < todayStr()) return 'over';
+  if (t.due === todayStr()) return 'today';
+  return null;
+}
+function leadsMap(){ var m={}; DataStore.list('leads').forEach(function(l){ m[l.id]=l; }); return m; }
+
+function render(){
+  var q = $('q').value.trim().toLowerCase();
+  var f = $('fFilter').value;
+  var leads = leadsMap();
+  var todos = DataStore.list('todos');
+
+  // AI 优先级字段存在且未完成 → 排前；其余按到期日升序
+  todos.sort(function(a,b){
+    var pa = (!a.done && a.aiPriority) ? a.aiPriority : 999;
+    var pb = (!b.done && b.aiPriority) ? b.aiPriority : 999;
+    if (pa !== pb) return pa - pb;
+    return (a.due||'9999') < (b.due||'9999') ? -1 : 1;
+  });
+
+  var st = {open:0, today:0, over:0, done:0};
+  var html = '';
+  todos.forEach(function(t){
+    if (t.done) st.done++;
+    else {
+      st.open++;
+      var ds = dueState(t);
+      if (ds==='today') st.today++;
+      if (ds==='over') st.over++;
+    }
+    // 筛选 + 搜索
+    if (f==='done' && !t.done) return;
+    if (f!=='done' && t.done) return;
+    if (f==='over' && dueState(t)!=='over') return;
+    if (f==='today' && dueState(t)!=='today') return;
+    var text = (t.title+' '+(t.leadName||'')+' '+(t.note||'')).toLowerCase();
+    if (q && text.indexOf(q)<0) return;
+
+    var lead = t.leadId ? leads[t.leadId] : null;
+    var ds = dueState(t);
+    var dueHtml = t.due ? '<span class="ft-tag" style="background:'+(ds==='over'?'var(--danger-bg);color:var(--danger)':ds==='today'?'var(--warn-bg);color:var(--warn)':'var(--bg-inset);color:var(--text-2)')+'">📅 '+esc(t.due)+(ds==='over'?' 逾期':ds==='today'?' 今天':'')+'</span>' : '';
+    var aiHtml = t.aiPriority ? '<span class="ft-tag" style="background:var(--accent-100);color:#8a6100">AI #'+t.aiPriority+'</span>' : '';
+    html += '<div class="ft-card todo '+(t.done?'done':'')+'">'
+      + '<input type="checkbox" class="checkbox" '+(t.done?'checked':'')+' onchange="toggleDone(\''+t.id+'\')">'
+      + '<div class="body" onclick="this.parentElement.classList.toggle(\'open\')">'
+      +   '<div class="title">'+(t.done?'<s>':'')+esc(t.title)+(t.done?'</s>':'')+'</div>'
+      +   '<div class="meta">'+aiHtml+dueHtml
+      +     (t.leadName?'<span class="ft-tag" style="background:var(--brand-100);color:var(--brand-700)">👤 '+esc(t.leadName)+'</span>':'')
+      +     (t.note?'<span>'+esc(t.note)+'</span>':'')
+      +   '</div>'
+      +   (t.aiReason?'<div class="ai-reason">🧭 '+esc(t.aiReason)+'</div>':'')
+      +   '<div class="row2">'
+      +     '<button class="iconbtn" onclick="event.stopPropagation();openEdit(\''+t.id+'\')">✎ 编辑</button>'
+      +     '<button class="iconbtn" onclick="event.stopPropagation();delTodo(\''+t.id+'\')">🗑 删除</button>'
+      +     (lead?'<button class="ft-btn-ai" style="padding:4px 12px;font-size:12px" onclick="event.stopPropagation();aiFollow(\''+t.id+'\')">✨ AI 生成跟进话术</button>':'')
+      +     (lead&&lead.whatsapp?'<button class="iconbtn" onclick="event.stopPropagation();sendWa(\''+t.leadId+'\')">💬 WhatsApp</button>':'')
+      +   '</div>'
+      + '</div></div>';
+  });
+  $('list').innerHTML = html || '<div class="empty">还没有待办。点「＋ 新建待办」，或先去线索工作台给线索 AI 评分，再点「从线索评分导入 nextAction」。</div>';
+  $('stOpen').textContent=st.open; $('stToday').textContent=st.today;
+  $('stOver').textContent=st.over; $('stDone').textContent=st.done;
+}
+
+/* ---------- 新建/编辑 ---------- */
+function fillLeadSelect(selectedId){
+  var opts = '<option value="">（不关联）</option>';
+  DataStore.list('leads').forEach(function(l){
+    opts += '<option value="'+l.id+'"'+(l.id===selectedId?' selected':'')+'>'+esc(l.name)+'（'+esc(l.country||'')+'）</option>';
+  });
+  $('f_lead').innerHTML = opts;
+}
+function openAdd(){ editingId=null; $('dlgTitle').textContent='新建待办';
+  $('f_title').value=''; $('f_due').value=''; $('f_note').value=''; fillLeadSelect(''); dlgEdit.showModal(); }
+function openEdit(id){ var t=DataStore.get('todos',id); if(!t) return; editingId=id;
+  $('dlgTitle').textContent='编辑待办'; $('f_title').value=t.title||'';
+  $('f_due').value=t.due||''; $('f_note').value=t.note||''; fillLeadSelect(t.leadId||''); dlgEdit.showModal(); }
+function saveEdit(){
+  var title=$('f_title').value.trim(); if(!title){ toast('请填写事项'); return; }
+  var leadId=$('f_lead').value;
+  var lead = leadId ? DataStore.get('leads',leadId) : null;
+  var patch = { title:title, due:$('f_due').value||'', note:$('f_note').value.trim(),
+    leadId:leadId||'', leadName:lead?lead.name:'' };
+  if (editingId) DataStore.update('todos',editingId,patch);
+  else DataStore.add('todos',patch);
+  dlgEdit.close(); render(); toast('已保存');
+}
+function toggleDone(id){ var t=DataStore.get('todos',id); DataStore.update('todos',id,{done:!t.done}); render(); }
+function delTodo(id){ DataStore.remove('todos',id); render(); toast('已删除'); }
+
+/* ---------- AI 1：今日优先级排序（矩阵 #2 核心） ---------- */
+async function aiPlan(){
+  var todos = DataStore.list('todos').filter(function(t){ return !t.done; });
+  if (!todos.length){ toast('没有未完成的待办'); return; }
+  var leads = DataStore.list('leads');
+  $('btnPlan').textContent='⏳ AI 排序中…'; $('btnPlan').disabled=true;
+  try {
+    var res = await AgnesAI.genDailyPlan(todos, leads);
+    // 落库：rank/why 写成一等字段（DataStore.saveAIResult 白名单校验）
+    var hit = 0;
+    (res.plan||[]).forEach(function(p){
+      if (p.id && DataStore.get('todos',p.id)){
+        DataStore.saveAIResult('todos', p.id, { aiPriority:p.rank, aiReason:p.why, aiGenerated:'plan' });
+        hit++;
+      }
+    });
+    showAI('🧭 今日工作计划', '【今天最重要的一件事】\n'+(res.focus||'—')+'\n\n'
+      +'已按 AI 优先级重排待办列表（琥珀色 AI #n 标签）。\n'
+      +(res.plan||[]).map(function(p){return '#'+p.rank+' '+p.why;}).join('\n'));
+    if (!hit) showAI('🧭 今日工作计划', (res.focus||'AI 未返回可匹配的待办 ID')+'\n\n'+JSON.stringify(res).slice(0,300));
+    else { render(); $('focusWrap').innerHTML =
+      '<div class="ft-card focus-card ft-ai-output"><b>🧭 今日重点：</b>'+esc(res.focus||'')+'</div>'; }
+  } catch(e){ showAI('🧭 AI 排序失败', e.message); }
+  $('btnPlan').textContent='🧭 AI 排序：今天先做谁'; $('btnPlan').disabled=false;
+}
+
+/* ---------- AI 2：跟进话术（联动触达四通道） ---------- */
+async function aiFollow(todoId){
+  var t = DataStore.get('todos',todoId); if(!t||!t.leadId) return;
+  var lead = DataStore.get('leads',t.leadId); if(!lead) return;
+  showAI('✨ 跟进话术生成中（'+lead.name+'）','生成中…');
+  try {
+    var txt = await AgnesAI.genOutreach(lead, t.title.indexOf('回复')>=0?'跟进回复':'跟进邮件', null);
+    $('aiBody').textContent = txt;
+    $('aiActions').innerHTML =
+      '<button class="iconbtn" onclick="copyText()">📋 复制</button>'
+      +(lead.whatsapp?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+String(lead.whatsapp).replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(txt.split('【中文要点】')[0])+'">💬 WhatsApp 发送</a>':'')
+      +(lead.email?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(txt.split('【中文要点】')[0])+'">✉ Gmail</a>':'');
+    // 落点：把话术记进触达历史（outreach 模块数据源）
+    DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'ai_followup', todoId:todoId, content:txt });
+  } catch(e){ $('aiBody').textContent = '生成失败：'+e.message; $('aiActions').innerHTML=''; }
+}
+function copyText(){ navigator.clipboard.writeText($('aiBody').textContent).then(function(){toast('已复制');}); }
+function sendWa(leadId){ var l=DataStore.get('leads',leadId); if(l&&l.whatsapp)
+  window.open('https://wa.me/'+String(l.whatsapp).replace(/[^0-9]/g,''),'_blank'); }
+
+/* ---------- 线索评分 → 待办导入（跨模块联动） ---------- */
+function importFromLeads(){
+  var leads = DataStore.list('leads');
+  var todos = DataStore.list('todos');
+  var imported = 0;
+  leads.forEach(function(l){
+    if (l.nextAction && !todos.some(function(t){ return t.leadId===l.id && t.title===l.nextAction; })){
+      DataStore.add('todos', {
+        title:l.nextAction, leadId:l.id, leadName:l.name,
+        note:'来自线索 AI 评分（'+(l.score||'?')+'分：'+(l.scoreReason||'')+'）',
+        due: todayStr(), aiGenerated:'lead_score'
+      });
+      imported++;
+    }
+  });
+  render();
+  toast(imported ? '已从线索评分导入 '+imported+' 条待办（标今天到期）' : '没有可导入的线索 nextAction（先去线索工作台做 AI 评分）');
+}
+
+/* ---------- AI 输出弹窗 ---------- */
+function showAI(title, body){
+  $('aiTitle').textContent = title;
+  $('aiBody').textContent = body;
+  $('aiActions').innerHTML = '<button class="iconbtn" onclick="copyText()">📋 复制</button>';
+  dlgAI.showModal();
+}
+
+/* ---------- 初始化 ---------- */
+$('agPanel').innerHTML = AgnesAI.settingsHTML();
+render();
+</script>
+</body>
+</html>

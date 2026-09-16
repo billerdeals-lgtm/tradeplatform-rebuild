@@ -1,0 +1,60 @@
+/* ============================================================
+   FT Compass · Design Tokens v1.0
+   视觉体系独立自研，不参考原版 tradeplatform 的任何样式。
+   主色翡翠绿 #0b6e4f / 点缀琥珀 #ffc53d / 米白纸面底 #faf9f5
+   ============================================================ */
+
+:root {
+  /* ---- 品牌色 ---- */
+  --brand-900: #084c38;      /* 深翡翠：侧边栏/页头 */
+  --brand-700: #0b6e4f;      /* 主色：主按钮/链接/选中态 */
+  --brand-500: #17936c;      /* hover/次强调 */
+  --brand-100: #dff2ea;      /* 浅底：标签/选中底 */
+  --accent-500: #ffc53d;     /* 琥珀点缀：AI 专属色！所有 AI 入口/输出用琥珀，一眼识别 */
+  --accent-100: #fff3d6;     /* AI 输出卡片浅底 */
+
+  /* ---- 中性色（米白纸面风）---- */
+  --bg-page: #faf9f5;        /* 页面底 */
+  --bg-card: #ffffff;        /* 卡片底 */
+  --bg-inset: #f3f1ea;       /* 内嵌区/表头底 */
+  --border: #e4e0d4;         /* 常规边框 */
+  --border-strong: #cfc9b8;
+
+  /* ---- 文字 ---- */
+  --text-1: #1f2933;         /* 主文字 */
+  --text-2: #52606d;         /* 次文字 */
+  --text-3: #9aa5b1;         /* 占位/禁用 */
+
+  /* ---- 语义色 ---- */
+  --ok: #17936c;  --ok-bg: #dff2ea;       /* 成功/高分 */
+  --warn: #d97706; --warn-bg: #fdf0d5;    /* 中分/临期 */
+  --danger: #c2410c; --danger-bg: #fbe4d5; /* 逾期/低分 */
+  --info: #2563eb; --info-bg: #dbeafe;
+
+  /* ---- AI 专属规范 ----
+     所有 AI 生成内容容器：--accent-100 底 + 3px 琥珀左条
+     所有 AI 触发按钮：琥珀底深字，区别于常规绿色主按钮 */
+  --ai-card-bg: var(--accent-100);
+  --ai-card-border: 3px solid var(--accent-500);
+  --ai-btn-bg: var(--accent-500);
+  --ai-btn-text: #4a3200;
+
+  /* ---- 字体 ---- */
+  --font-sans: -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", Consolas, monospace;
+
+  /* ---- 圆角/阴影/间距 ---- */
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
+  --shadow-card: 0 1px 3px rgba(31, 41, 51, .08);
+  --shadow-pop: 0 8px 24px rgba(31, 41, 51, .16);
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-6: 24px; --sp-8: 32px;
+}
+
+/* ---- 常用基类 ---- */
+.ft-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-card); }
+.ft-btn-primary { background: var(--brand-700); color: #fff; border: 0; border-radius: var(--r-sm); padding: 8px 18px; cursor: pointer; }
+.ft-btn-primary:hover { background: var(--brand-500); }
+.ft-btn-ai { background: var(--ai-btn-bg); color: var(--ai-btn-text); border: 0; border-radius: var(--r-sm); padding: 8px 18px; cursor: pointer; font-weight: 600; }
+.ft-btn-ai:hover { filter: brightness(1.06); }
+.ft-ai-output { background: var(--ai-card-bg); border-left: var(--ai-card-border); border-radius: var(--r-sm); padding: var(--sp-3) var(--sp-4); }
+.ft-tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
