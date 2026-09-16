@@ -11,18 +11,23 @@
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
   header img { width:34px; height:34px; }
   header h1 { font-size:18px; margin:0; flex:1; }
-  main { max-width:820px; margin:0 auto; padding:var(--sp-6); }
-  .grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3) var(--sp-4); }
+  main { max-width:760px; margin:0 auto; padding:var(--sp-6) var(--sp-4) 80px; }
+  .intro { font-size:13px; color:var(--text-2); line-height:1.8; margin-bottom:var(--sp-6); }
+  section { margin-bottom:var(--sp-7); }
+  section > h2 { font-size:14px; color:var(--text-2); font-weight:600; letter-spacing:.05em; margin:0 0 var(--sp-4); padding-bottom:var(--sp-2); border-bottom:1px solid var(--border); }
+  .grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4) var(--sp-6); }
   .full { grid-column:1/-1; }
-  label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 4px; }
-  label b { color:var(--brand-700); }
-  input, textarea { width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
-  input:focus, textarea:focus { outline:2px solid var(--brand-100); border-color:var(--brand-700); }
-  textarea { resize:vertical; min-height:70px; }
-  .card { padding:var(--sp-5); margin-bottom:var(--sp-4); }
-  .card h2 { font-size:15px; margin:0 0 var(--sp-2); color:var(--brand-700); }
-  .hint { font-size:12.5px; color:var(--text-2); line-height:1.7; margin-top:var(--sp-1); }
-  .btnrow { display:flex; gap:var(--sp-2); margin-top:var(--sp-4); align-items:center; flex-wrap:wrap; }
+  label { display:block; font-size:12.5px; color:var(--text-3); margin-bottom:5px; }
+  input, textarea {
+    width:100%; box-sizing:border-box; padding:10px 2px; border:0; border-bottom:1.5px solid var(--border-strong);
+    font-size:14.5px; font-family:var(--font-sans); background:transparent; color:var(--text-1); transition:border-color .15s;
+  }
+  input:focus, textarea:focus { outline:none; border-bottom-color:var(--brand-700); }
+  textarea { resize:vertical; min-height:56px; line-height:1.6; }
+  ::placeholder { color:var(--text-3); opacity:.55; }
+  .sellrow { display:flex; gap:var(--sp-4); align-items:flex-end; }
+  .sellrow textarea { flex:1; }
+  .btnrow { display:flex; gap:var(--sp-3); margin-top:var(--sp-6); align-items:center; }
   .saved { color:var(--ok); font-size:13px; display:none; }
   .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
 </style>
@@ -33,42 +38,40 @@
   <h1>我的资料</h1>
 </header>
 <main>
-  <div class="hint" style="margin-bottom:var(--sp-4)">
-    这里是<b>全应用 AI 个性化的数据源</b>：开发信署名、跟进话术、报价备注、单证卖方信息都会自动引用以下内容——填得越全，AI 生成越像"你"。
-  </div>
+  <div class="intro">全应用 AI 个性化的数据源：开发信署名、跟进话术、报价备注会自动引用以下内容——填得越全，AI 生成越像"你"。所有字段可选。</div>
 
-  <div class="ft-card card">
-    <h2>👤 发信人署名</h2>
+  <section>
+    <h2>发信人署名</h2>
     <div class="grid">
-      <div><label>我的称呼（英文信里用）<b>*</b></label><input id="p_name" placeholder="Wei"></div>
-      <div><label>职位</label><input id="p_role" placeholder="Sales Manager"></div>
-      <div class="full"><label>公司名（英文）</label><input id="p_company" placeholder="Xingtai Yunwei Import and Export Co., Ltd"></div>
-      <div><label>WhatsApp（含国家码）</label><input id="p_wa" placeholder="+8613800000000"></div>
-      <div><label>邮箱</label><input id="p_email" placeholder="wei@xxx.com"></div>
+      <div><label>我的称呼（英文信里用）</label><input id="p_name"></div>
+      <div><label>职位</label><input id="p_role"></div>
+      <div class="full"><label>公司名（英文）</label><input id="p_company"></div>
+      <div><label>WhatsApp</label><input id="p_wa"></div>
+      <div><label>邮箱</label><input id="p_email"></div>
     </div>
-  </div>
+  </section>
 
-  <div class="ft-card card">
-    <h2>🏭 业务底盘</h2>
+  <section>
+    <h2>业务底盘</h2>
     <div class="grid">
-      <div class="full"><label>主营产品（一行一个或逗号分隔）</label><textarea id="p_products" placeholder="豆腐猫砂 / 膨润土猫砂 / 宠物冻干零食…"></textarea></div>
+      <div class="full"><label>主营产品</label><textarea id="p_products"></textarea></div>
       <div class="full">
-        <label>核心卖点（一句话，AI 写信必引用）</label>
-        <div style="display:flex; gap:var(--sp-2); align-items:flex-start">
-          <textarea id="p_selling" placeholder="工厂直供、低 MOQ、免费样品、7 天快交付" style="flex:1"></textarea>
+        <label>核心卖点（AI 写信必引用）</label>
+        <div class="sellrow">
+          <textarea id="p_selling"></textarea>
           <button class="ft-btn-ai" onclick="aiPolish()" title="AI 润色卖点">✨ 润色</button>
         </div>
         <div id="polish_out" class="ft-ai-output"></div>
       </div>
-      <div><label>起运港（英文）</label><input id="p_port" placeholder="Qingdao / Tianjin"></div>
-      <div><label>常用付款方式</label><input id="p_payment" placeholder="30% TT deposit, 70% before shipment"></div>
-      <div><label>MOQ 政策</label><input id="p_moq" placeholder="1 ton / 可混装"></div>
-      <div><label>公司网站</label><input id="p_site" placeholder="https://…"></div>
+      <div><label>起运港</label><input id="p_port"></div>
+      <div><label>常用付款方式</label><input id="p_payment"></div>
+      <div><label>MOQ 政策</label><input id="p_moq"></div>
+      <div><label>公司网站</label><input id="p_site"></div>
     </div>
-  </div>
+  </section>
 
   <div class="btnrow">
-    <button class="ft-btn-primary" onclick="save()">💾 保存资料</button>
+    <button class="ft-btn-primary" onclick="save()">保存资料</button>
     <span class="saved" id="saved">✓ 已保存，各模块即刻生效</span>
   </div>
 </main>
