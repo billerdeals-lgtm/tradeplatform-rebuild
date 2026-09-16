@@ -27,34 +27,36 @@
   .qbox:focus { outline:2px solid var(--brand-100); }
   .acts { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); align-items:center; flex-wrap:wrap; }
   .status { font-size:13px; color:var(--text-2); }
-  .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
-  .ai-badge { display:inline-block; font-size:11.5px; padding:2px 10px; border-radius:999px; margin-right:6px; }
-  .ai-buyer { background:var(--accent-100); color:#8a5a00; }
-  .ai-noise { background:var(--bg-inset); color:var(--text-3); }
-  .ai-maybe { background:var(--info-bg); color:var(--info); }
-  .ai-why { font-size:12.5px; color:#8a5a00; margin-top:4px; }
+  .ft-ai-output { white-space:pre-wrap; font-size:13px; max-height:180px; overflow:auto; margin-top:var(--sp-3); display:none; }
   .hist { font-size:12.5px; color:var(--text-3); margin-top:var(--sp-4); }
   .hist span { display:inline-block; background:var(--bg-inset); border-radius:999px; padding:3px 12px; margin:3px 6px 3px 0; cursor:pointer; }
   .hist span:hover { background:var(--brand-100); }
   .stats { display:flex; gap:var(--sp-8); margin:var(--sp-6) 0 var(--sp-5); padding:0 var(--sp-2); }
   .stat b { display:block; font-size:24px; font-weight:600; }
   .stat span { font-size:12px; color:var(--text-3); }
-  .res { background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-3); }
-  .res h3 { font-size:14.5px; margin:0 0 3px; }
-  .res h3 a { color:var(--brand-700); text-decoration:none; }
-  .res h3 a:hover { text-decoration:underline; }
-  .res .u { font-size:12px; color:var(--text-3); word-break:break-all; margin-bottom:3px; }
-  .res .s { font-size:13px; color:var(--text-2); line-height:1.6; }
-  .res .acts { margin-top:8px; }
-  .res .acts button { font-size:12px; padding:4px 14px; }
+  /* 联系人卡 */
+  .lead { background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-3); }
+  .lead .top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .lead .name { font-weight:600; font-size:14.5px; }
+  .lead .src { font-size:12px; color:var(--text-3); word-break:break-all; }
+  .lead .src a { color:var(--text-3); }
+  .contacts { display:flex; flex-direction:column; gap:2px; margin-top:6px; }
+  .contacts a { font-size:13.5px; color:var(--brand-700); text-decoration:none; word-break:break-all; }
+  .contacts a:hover { text-decoration:underline; }
+  .contacts .c-ico { display:inline-block; width:22px; color:var(--text-3); font-size:12px; }
+  .nocontact { font-size:12.5px; color:var(--text-3); margin-top:6px; }
+  .ai-why { font-size:12.5px; color:#8a5a00; margin-top:4px; }
+  .ai-badge { display:inline-block; font-size:11.5px; padding:2px 10px; border-radius:999px; }
+  .ai-buyer { background:var(--accent-100); color:#8a5a00; }
+  .ai-noise { background:var(--bg-inset); color:var(--text-3); }
+  .ai-maybe { background:var(--info-bg); color:var(--info); }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
-  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:420px; width:92%; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:440px; width:92%; }
   dialog::backdrop { background:rgba(31,41,51,.4); }
   dialog h3 { margin:0 0 var(--sp-3); font-size:15px; color:var(--brand-700); }
   dialog label { margin-top:var(--sp-2); }
-  dialog input { background:var(--bg-inset); border-radius:var(--r-sm); padding:9px 12px; }
-  dialog input:focus { border-bottom:0; }
-  .btnrow { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); }
+  dialog input { background:var(--bg-inset); border-radius:var(--r-sm); padding:9px 12px; border:0; }
+  .btnrow { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); align-items:center; }
   .ghostbtn { background:none; border:0; cursor:pointer; color:var(--text-2); font-size:13.5px; }
 </style>
 </head>
@@ -94,33 +96,38 @@
   <input id="k_query" class="qbox" placeholder="搜索词自动生成，也可直接手写">
   <div class="acts">
     <button class="ft-btn-primary" onclick="doSearch()">搜索</button>
-    <button class="ft-btn-ai" onclick="aiSearch()">🧭 AI 智能搜</button>
-    <button class="ghostbtn" onclick="aiExpand()">✨ AI 扩展搜索词</button>
+    <button class="ft-btn-ai" onclick="aiSearch()">🧭 AI 智能挖客户</button>
     <span class="status" id="st"></span>
   </div>
-  <div id="ai_out" class="ft-ai-output"></div>
+  <div id="ai_out" class="ft-ai-output ft-ai-output-card"></div>
   <div class="hist" id="hist"></div>
 
   <div class="stats">
     <div class="stat"><b id="stN">0</b><span>本次结果</span></div>
+    <div class="stat"><b id="stContact">0</b><span>有联系方式</span></div>
     <div class="stat"><b id="stConv">0</b><span>已转线索</span></div>
-    <div class="stat"><b id="stTotal">0</b><span>线索总量</span></div>
     <div class="stat"><b id="stHist">0</b><span>历史搜索</span></div>
   </div>
 
+  <div class="acts" id="bulkRow" style="display:none; margin-top:0">
+    <button class="ft-btn-ai" onclick="bulkImport()">⬇ 一键导入全部有联系方式的</button>
+    <span class="status" id="bulkSt"></span>
+  </div>
+
   <div id="results">
-    <div class="empty">输入条件开始搜索 · 结果可一键转为线索进入 Pipeline</div>
+    <div class="empty">填条件后点「AI 智能挖客户」：AI 规划搜索 → 多引擎抓取 → 甄别买家 → 逐站挖联系方式 → 有联系方式的直接导入线索</div>
   </div>
 </main>
 
 <!-- 转线索弹窗 -->
 <dialog id="dlgLead">
-  <h3>转为线索</h3>
+  <h3>导入线索</h3>
   <label>客户名 / 公司名</label><input id="c_name">
   <label>国家</label><input id="c_country">
-  <label>邮箱（从摘要自动识别，需核对）</label><input id="c_email">
+  <label>邮箱</label><input id="c_email">
   <label>WhatsApp / 电话</label><input id="c_wa">
-  <label>备注（来源页自动记录）</label><input id="c_note">
+  <label>联系人（可选）</label><input id="c_person">
+  <label>备注（来源 + AI 判断自动记录）</label><input id="c_note">
   <div class="btnrow">
     <button class="ft-btn-primary" onclick="convSave()">保存到线索 Pipeline</button>
     <button class="ghostbtn" onclick="dlgLead.close()">取消</button>
@@ -130,25 +137,27 @@
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
 <script>
-/* 找客户：Bing 搜索经公共 CORS 代理（与原版同思路、自研实现）
-   AI 落点：关键词扩展；结果一键转线索（leads）+ 搜索历史（searches） */
-var S = { results: [], convIds: {}, pending: null };
+/* 找客户 v2：从"搜网页"到"挖联系人"
+   多引擎(Bing/DDG/Yandex) 经公共代理 → AI 甄别买家 → 逐站抓页面挖联系方式 → 有联系方式的导入线索 */
+var S = { results: [], pending: null };
 
-/* ---------- 搜索词拼装 ---------- */
+function v(id) { return document.getElementById(id).value; }
+function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+
+/* ---------- 搜索词拼装（手动搜索用） ---------- */
 function buildQuery() {
   var prod = v('k_prod').trim(), reg = v('k_region'), type = v('k_type');
   if (!prod) return '';
   var q = prod;
   if (type) q += ' ' + type;
   if (reg) q += ' ' + reg;
-  q += ' -site:alibaba.com -site:amazon.com -site:aliexpress.com'; // 排除 C 端噪音
+  q += ' -site:alibaba.com -site:amazon.com -site:aliexpress.com';
   return q;
 }
 ['k_prod','k_region','k_type'].forEach(function(id){
   document.getElementById(id).addEventListener('change', function(){ document.getElementById('k_query').value = buildQuery(); });
 });
-function v(id) { return document.getElementById(id).value; }
-function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 
 /* ---------- 代理链：allorigins → codetabs → jina ---------- */
 var PROXIES = [
@@ -156,35 +165,34 @@ var PROXIES = [
   { name: 'codetabs',   wrap: function(u){ return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }, html: true },
   { name: 'jina',       wrap: function(u){ return 'https://r.jina.ai/' + u; }, html: false }
 ];
-async function fetchThrough(url) {
+async function fetchThrough(url, timeoutMs) {
   for (var i = 0; i < PROXIES.length; i++) {
     var p = PROXIES[i];
     try {
-      var r = await fetch(p.wrap(url), { signal: AbortSignal.timeout(20000) });
-      if (!r.ok) throw new Error(p.name + ' HTTP ' + r.status);
+      var r = await fetch(p.wrap(url), { signal: AbortSignal.timeout(timeoutMs || 20000) });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       var t = await r.text();
-      if (t && t.length > 500) return { body: t, html: p.html, via: p.name };
-      throw new Error(p.name + ' 返回过短');
-    } catch (e) { /* 换下一个代理 */ }
+      if (t && t.length > 400) return { body: t, html: p.html, via: p.name };
+      throw new Error('short');
+    } catch (e) { /* 下一个代理 */ }
   }
-  throw new Error('三个代理全部失败（可能被限流，稍后再试）');
+  throw new Error('all proxies failed');
 }
 
-/* ---------- Bing 结果解析 ---------- */
-function parseBing(body, isHtml) {
+/* ---------- 多引擎搜索 URL 与解析 ---------- */
+var ENGINES = [
+  { name: 'Bing',      url: function(q){ return 'https://www.bing.com/search?q=' + encodeURIComponent(q) + '&count=20'; } },
+  { name: 'DuckDuckGo',url: function(q){ return 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q); } },
+  { name: 'Yandex',    url: function(q){ return 'https://yandex.com/search/?text=' + encodeURIComponent(q); } }
+];
+function parseResults(body, isHtml) {
   var out = [];
-  if (isHtml) {
-    var doc = new DOMParser().parseFromString(body, 'text/html');
-    doc.querySelectorAll('li.b_algo').forEach(function(li) {
-      var a = li.querySelector('h2 a'), cap = li.querySelector('.b_caption p, p');
-      if (a && a.href) out.push({ title: a.textContent.trim(), url: a.href, snippet: cap ? cap.textContent.trim() : '' });
-    });
-  } else {
-    // jina 返回 markdown：[标题](url) 后跟摘要
-    var lines = body.split('\n'), cur = null;
-    lines.forEach(function(l) {
-      var m = l.match(/^#{2,4}\s*\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/) || l.match(/^\[([^\]]{5,80})\]\((https?:\/\/[^\)]+)\)\s*$/);
-      if (m && m[2].indexOf('bing.com') < 0 && m[2].indexOf('microsoft') < 0) {
+  if (!isHtml) {
+    // jina markdown：[标题](url) + 摘要行
+    var cur = null;
+    body.split('\n').forEach(function(l) {
+      var m = l.match(/^#{2,4}\s*\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/) || l.match(/^\[([^\]]{5,90})\]\((https?:\/\/[^\)]+)\)\s*$/);
+      if (m && !/bing\.com|duckduckgo\.com|yandex\.|microsoft|\.css|\.js/i.test(m[2])) {
         if (cur) out.push(cur);
         cur = { title: m[1].trim(), url: m[2], snippet: '' };
       } else if (cur && !cur.snippet && l.trim().length > 30) {
@@ -192,94 +200,107 @@ function parseBing(body, isHtml) {
       }
     });
     if (cur) out.push(cur);
+    return out;
   }
-  return out.filter(function(r){ return r.url.indexOf('bing.com') < 0; });
+  var doc = new DOMParser().parseFromString(body, 'text/html');
+  // Bing
+  doc.querySelectorAll('li.b_algo').forEach(function(li) {
+    var a = li.querySelector('h2 a'), cap = li.querySelector('.b_caption p, p');
+    if (a && a.href) out.push({ title: a.textContent.trim(), url: a.href, snippet: cap ? cap.textContent.trim() : '' });
+  });
+  if (out.length) return out;
+  // DuckDuckGo html 版
+  doc.querySelectorAll('a.result__a').forEach(function(a) {
+    var href = a.href || '', m = href.match(/[?&]uddg=([^&]+)/);
+    if (m) href = decodeURIComponent(m[1]);
+    if (!/^https?:/.test(href)) return;
+    var box = a.closest('.result') || a.parentElement.parentElement;
+    var sn = box ? (box.querySelector('.result__snippet') || {}).textContent || '' : '';
+    out.push({ title: a.textContent.trim(), url: href, snippet: sn.trim().slice(0, 300) });
+  });
+  if (out.length) return out;
+  // Yandex（尽力而为）
+  doc.querySelectorAll('.OrganicTitle-Link, .organic__url, a.link').forEach(function(a) {
+    var href = a.href || '';
+    var m = href.match(/yandex\.com\/search\/.*?url=([^&]+)/) || href.match(/yandex\.com\/clck\/.*?u=([^&]+)/);
+    if (m) { try { href = decodeURIComponent(m[1].replace(/%3A/ig, ':').replace(/%2F/ig, '/')); } catch (e) {} }
+    if (!/^https?:/.test(href) || /yandex\.|\/search/.test(href)) return;
+    var box = a.closest('.serp-item, .organic');
+    var sn = box ? (box.querySelector('.organic__content-wrapper, .OrganicTextContentSpan') || {}).textContent || '' : '';
+    var t = (a.textContent || '').trim();
+    if (t.length > 8) out.push({ title: t.slice(0, 100), url: href, snippet: sn.trim().slice(0, 300) });
+  });
+  return out;
 }
 
-/* ---------- 执行搜索 ---------- */
+/* ---------- 联系方式提取 ---------- */
+function extractContacts(text) {
+  var c = { emails: [], was: [], phones: [], person: '' };
+  if (!text) return c;
+  // 邮箱（滤掉图片/脚本资源）
+  var emBad = /\.(png|jpe?g|gif|webp|svg|css|js|ico|woff2?)\b/i;
+  var ems = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
+  ems.forEach(function(e) { if (!emBad.test(e) && c.emails.indexOf(e.toLowerCase()) < 0 && c.emails.length < 4) c.emails.push(e.toLowerCase()); });
+  // WhatsApp 链接 / 数字
+  var waRe = /(?:wa\.me\/|whatsapp:\/\/send\?phone=|api\.whatsapp\.com\/send\?phone=)(\+?\d[\d\s]{6,16})/gi, m;
+  while ((m = waRe.exec(text)) && c.was.length < 3) {
+    var d = m[1].replace(/\D/g, ''); if (d.length >= 8 && c.was.indexOf(d) < 0) c.was.push(d);
+  }
+  // 国际电话（tel: 链接优先，其次 + 国家码格式）
+  var telRe = /tel:(\+?\d[\d\s().-]{6,17}\d)/gi;
+  while ((m = telRe.exec(text)) && c.phones.length < 3) {
+    var d2 = m[1].replace(/\D/g, ''); if (d2.length >= 8 && c.was.indexOf(d2) < 0 && c.phones.indexOf(d2) < 0) c.phones.push(m[1].replace(/\s+/g, ' ').trim());
+  }
+  var plusRe = /\+\d{1,3}[\s().-]?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}\b/g;
+  while ((m = plusRe.exec(text)) && c.phones.length < 3) {
+    var d3 = m[0].replace(/\D/g, ''); if (d3.length >= 9 && c.was.indexOf(d3) < 0 && c.phones.indexOf(m[0]) < 0) c.phones.push(m[0].trim());
+  }
+  // 联系人名：常见线索（Contact: xxx / 陈述式姓名行）
+  var pm = text.match(/(?:contact\s*(?:person|:)?\s*[:：]\s*)([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,2})/);
+  if (pm) c.person = pm[1].trim();
+  return c;
+}
+
+/* ---------- 抓取一个买家站点，挖联系方式 ---------- */
+async function harvestSite(item, st) {
+  if (item.contacts) return item.contacts;
+  try {
+    var res = await fetchThrough(item.url, 18000);
+    var text = res.body;
+    if (res.html) {
+      var doc = new DOMParser().parseFromString(res.body, 'text/html');
+      doc.querySelectorAll('script,style,noscript').forEach(function(n){ n.remove(); });
+      text = (doc.body ? doc.body.innerText : '') + ' ' + res.body.slice(0, 60000); // innerText + 原始串(抓 mailto/wa.me)
+    }
+    item.contacts = extractContacts(text.slice(0, 120000));
+    // 公司名兜底：<title> 或 og:site_name
+    if (!item.company) {
+      var tm = res.body.match(/<title[^>]*>([^<]{3,80})<\/title>/i);
+      if (tm) item.company = tm[1].replace(/\s*[|\-–—]\s*home.*$/i, '').trim();
+    }
+  } catch (e) { item.contacts = { emails: [], was: [], phones: [], person: '', fail: true }; }
+  return item.contacts;
+}
+
+/* ---------- 手动搜索（摘要级挖联系方式） ---------- */
 async function doSearch() {
   var q = v('k_query').trim() || buildQuery();
   if (!q) { document.getElementById('st').textContent = '请先填产品关键词'; return; }
   var st = document.getElementById('st');
-  st.textContent = '搜索中（自动切换代理）…';
+  st.textContent = '搜索中…';
   try {
-    var res = await fetchThrough('https://www.bing.com/search?q=' + encodeURIComponent(q) + '&count=20');
-    S.results = parseBing(res.body, res.html).slice(0, 15);
-    st.textContent = '经 ' + res.via + ' 返回 ' + S.results.length + ' 条';
+    var res = await fetchThrough(ENGINES[0].url(q));
+    S.results = parseResults(res.body, res.html).slice(0, 15).map(function(r) {
+      return Object.assign(r, extractContacts(r.snippet));
+    });
+    st.textContent = '经 ' + ENGINES[0].name + '/' + res.via + ' 返回 ' + S.results.length + ' 条（摘要级联系方式，点「挖」深挖整站）';
     render();
     DataStore.add('searches', { query: q, via: res.via, n: S.results.length });
     renderHist();
-  } catch (e) { st.textContent = '❌ ' + e.message; }
+  } catch (e) { st.textContent = '❌ 搜索失败：' + e.message; }
 }
 
-/* ---------- 渲染 ---------- */
-function render() {
-  var box = document.getElementById('results');
-  document.getElementById('stN').textContent = S.results.length;
-  document.getElementById('stConv').textContent = Object.keys(S.convIds).length;
-  document.getElementById('stTotal').textContent = DataStore.list('leads').length;
-  document.getElementById('stHist').textContent = DataStore.list('searches').length;
-  if (!S.results.length) { box.innerHTML = '<div class="empty">无结果，换个关键词试试</div>'; return; }
-  // AI 甄别过的：买家在前、噪音沉底（无 verdict 保持原序）
-  var rank = { buyer: 0, maybe: 1, none: 2, noise: 3 };
-  var list = S.results.map(function(r, i) { return { r: r, i: i }; })
-    .sort(function(a, b) { return (rank[(a.r.ai && a.r.ai.verdict) || 'none'] - rank[(b.r.ai && b.r.ai.verdict) || 'none']); });
-  box.innerHTML = list.map(function(it) {
-    var r = it.r, i = it.i, conv = S.convIds[i];
-    var badge = '';
-    if (r.ai && r.ai.verdict === 'buyer') badge = '<span class="ai-badge ai-buyer">🧭 AI 判定：' + esc(r.ai.type || '买家') + '</span>';
-    else if (r.ai && r.ai.verdict === 'maybe') badge = '<span class="ai-badge ai-maybe">🧭 待观察</span>';
-    else if (r.ai && r.ai.verdict === 'noise') badge = '<span class="ai-badge ai-noise">噪音</span>';
-    return '<div class="res"' + (r.ai && r.ai.verdict === 'noise' ? ' style="opacity:.55"' : '') + '>'
-      + '<h3><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a></h3>'
-      + '<div class="u">' + esc(r.url) + '</div>'
-      + badge
-      + (r.ai && r.ai.why ? '<div class="ai-why">' + esc(r.ai.why) + '</div>' : '')
-      + (r.snippet ? '<div class="s">' + esc(r.snippet) + '</div>' : '')
-      + '<div class="acts">' + (conv
-        ? '<span class="ft-tag" style="background:var(--ok-bg);color:var(--ok)">✓ 已转线索：' + esc(conv) + '</span>'
-        : '<button class="ft-btn-primary" onclick="openConv(' + i + ')">转为线索</button>')
-      + '</div></div>';
-  }).join('');
-}
-function renderHist() {
-  var hs = DataStore.list('searches').slice(-8).reverse();
-  document.getElementById('hist').innerHTML = hs.length
-    ? '最近搜索：' + hs.map(function(h){ return '<span onclick="reuse(this)" data-q="' + esc(h.query) + '">' + esc(h.query.slice(0, 46)) + '</span>'; }).join('')
-    : '';
-}
-function reuse(el) { document.getElementById('k_query').value = el.dataset.q; }
-
-/* ---------- 转线索 ---------- */
-function openConv(i) {
-  S.pending = S.results[i];
-  var r = S.pending;
-  var host = ''; try { host = new URL(r.url).hostname.replace('www.',''); } catch(e){}
-  document.getElementById('c_name').value = r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60);
-  document.getElementById('c_country').value = '';
-  // 从摘要里捞邮箱/电话
-  var em = (r.snippet.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/) || [''])[0];
-  var ph = (r.snippet.match(/\+\d{2}[\d\s-]{7,14}/) || [''])[0].trim();
-  document.getElementById('c_email').value = em;
-  document.getElementById('c_wa').value = ph;
-  document.getElementById('c_note').value = '找客户搜索命中：' + host
-    + (S.pending.ai && S.pending.ai.verdict === 'buyer' ? '（AI 判定：' + (S.pending.ai.type || '买家') + '，' + (S.pending.ai.why || '') + '）' : '')
-    + (r.snippet ? ' · ' + r.snippet.slice(0, 80) : '');
-  dlgLead.showModal();
-}
-function convSave() {
-  if (!S.pending) return;
-  var name = v('c_name'); if (!name) { alert('客户名必填'); return; }
-  var lead = DataStore.add('leads', {
-    name: name, country: v('c_country'), market: v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '',
-    stage: '待开发', wa: v('c_wa'), email: v('c_email'), product: v('k_prod'),
-    amount: 0, last: new Date().toISOString().slice(0,10), note: v('c_note'), source: 'search'
-  });
-  S.convIds[S.results.indexOf(S.pending)] = name;
-  dlgLead.close(); render();
-}
-
-/* ---------- 🧭 AI 智能搜：生词 → 自动多轮搜索 → 去重 → AI 甄别买家 ---------- */
+/* ---------- 🧭 AI 智能挖客户：全管线 ---------- */
 async function aiSearch() {
   var prod = v('k_prod').trim();
   if (!prod) { alert('先填产品关键词'); return; }
@@ -287,77 +308,198 @@ async function aiSearch() {
   var market = v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '全球';
   var ctype = document.getElementById('k_type').selectedOptions[0].text;
   try {
-    // 第 1 步：AI 生成搜索策略（多组词，覆盖不同客户类型表述）
-    st.textContent = '🧭 AI 生成搜索策略…'; box.style.display = 'block'; box.textContent = 'AI 正在规划搜索词…';
+    /* 1. AI 生成两类搜索词：买家词 + 联系方式收割词 */
+    st.textContent = '🧭 AI 生成搜索策略…'; box.style.display = 'block'; box.textContent = 'AI 规划搜索词中…';
     var rawQ = await AgnesAI.ask(
-      '我要在 Bing 找外贸 B2B 买家网站。产品：' + prod + '；目标市场：' + market + '；优先客户类型：' + ctype + '。'
-      + '输出 JSON：{"queries":["英文搜索词1","英文搜索词2",...]}，要求：5 条；每条自带不同的客户类型表述（distributor/wholesaler/importer/agent/buying house 等）；'
-      + '每条都带 -site:amazon.com -site:alibaba.com 排除 C 端；覆盖不同用词习惯；不要解释。', { json: true, maxTokens: 500, temperature: 0.4 });
+      '我要在搜索引擎挖外贸 B2B 买家的联系方式（邮箱/WhatsApp）。产品：' + prod + '；市场：' + market + '；优先客户类型：' + ctype + '。'
+      + '输出 JSON：{"queries":["买家搜索词x4",...],"harvest":["收割词x2",...]}。'
+      + 'queries：英文买家搜索词，覆盖 distributor/wholesaler/importer/agent，带 -site:alibaba.com -site:amazon.com；'
+      + 'harvest：直击联系方式的搜索词，套用这类模式（把产品词换进去）："产品词" distributor ("@gmail.com" OR "@outlook.com" OR "@yahoo.com")、产品词 supplier whatsapp contact、产品词 importer "tel:" contact；不要解释。', { json: true, maxTokens: 600, temperature: 0.4 });
     var qRes = AgnesAI.parseLoose(rawQ) || {};
-    var queries = (Array.isArray(qRes.queries) ? qRes.queries : []).filter(function(q){ return typeof q === 'string' && q.length > 5; });
-    if (!queries.length) throw new Error('AI 未返回可用搜索词（原始返回片段：' + String(rawQ).slice(0, 120) + '）');
-    box.textContent = 'AI 给出 ' + queries.length + ' 组搜索词：\n' + queries.map(function(q){ return '· ' + q; }).join('\n');
+    var queries = (Array.isArray(qRes.queries) ? qRes.queries : []).filter(function(q){ return typeof q === 'string' && q.length > 5; }).slice(0, 3);
+    var harvest = (Array.isArray(qRes.harvest) ? qRes.harvest : []).filter(function(q){ return typeof q === 'string' && q.length > 5; }).slice(0, 2);
+    if (!queries.length && !harvest.length) throw new Error('AI 未返回可用搜索词（片段：' + String(rawQ).slice(0, 120) + '）');
+    box.textContent = '买家词：\n· ' + queries.join('\n· ') + '\n\n联系方式收割词：\n· ' + harvest.join('\n· ');
 
-    // 第 2 步：逐个自动搜索（最多 4 组，控次数控时间），按 URL 去重合并
-    var seen = {}, merged = [];
-    for (var qi = 0; qi < Math.min(queries.length, 4); qi++) {
-      st.textContent = '🧭 自动搜索 ' + (qi + 1) + '/' + Math.min(queries.length, 4) + '…';
+    /* 2. 多引擎轮换自动搜索：买家词用 Bing/DDG，收割词换 DDG/Yandex */
+    var seen = {}, merged = [], plan = [];
+    queries.forEach(function(q, i){ plan.push({ q: q, eng: ENGINES[i % 2] }); });
+    harvest.forEach(function(q, i){ plan.push({ q: q, eng: ENGINES[(i + 1) % 2 + 1] }); });
+    for (var pi = 0; pi < plan.length; pi++) {
+      var p = plan[pi];
+      st.textContent = '🧭 ' + p.eng.name + ' 搜索 ' + (pi + 1) + '/' + plan.length + '…';
       try {
-        var res = await fetchThrough('https://www.bing.com/search?q=' + encodeURIComponent(queries[qi]) + '&count=15');
-        parseBing(res.body, res.html).forEach(function(r) {
-          var key = r.url.replace(/[#?].*$/, '').replace(/\/$/, '').toLowerCase();
-          if (!seen[key]) { seen[key] = 1; merged.push(r); }
+        var res = await fetchThrough(p.eng.url(p.q), 22000);
+        parseResults(res.body, res.html).forEach(function(r) {
+          var key = hostOf(r.url);
+          if (!key || seen[key]) return;
+          seen[key] = 1;
+          Object.assign(r, extractContacts((r.title + ' ' + r.snippet))); // 摘要级先挖一遍
+          merged.push(r);
         });
-      } catch (e) { /* 单组失败不影响整体 */ }
+      } catch (e) { /* 单组失败跳过 */ }
     }
-    if (!merged.length) throw new Error('各组搜索均无结果（代理可能限流，稍后再试）');
-    S.results = merged.slice(0, 24);
-    st.textContent = '去重后 ' + S.results.length + ' 条，AI 甄别中…';
-    box.textContent += '\n\n共抓到 ' + merged.length + ' 条，去重 ' + S.results.length + ' 条，正在让 AI 甄别哪些是真买家…';
+    if (!merged.length) throw new Error('各组搜索均无结果（引擎可能限流，稍后再试）');
+    S.results = merged.slice(0, 20);
+    box.textContent += '\n\n共 ' + merged.length + ' 条（去重后）。开始 AI 甄别 + 逐站挖联系方式…';
 
-    // 第 3 步：AI 批量甄别（标题+域名+摘要 → buyer/maybe/noise）
+    /* 3. AI 批量甄别 buyer/maybe/noise（决定深挖优先级） */
+    st.textContent = '🧭 AI 甄别买家…';
     var digest = S.results.map(function(r, i) {
-      var host = ''; try { host = new URL(r.url).hostname; } catch (e) {}
-      return i + '| ' + r.title.slice(0, 70) + ' | ' + host + ' | ' + (r.snippet || '').slice(0, 90);
+      return i + '| ' + r.title.slice(0, 70) + ' | ' + hostOf(r.url) + ' | ' + (r.snippet || '').slice(0, 80);
     }).join('\n');
-    var vRes = AgnesAI.parseLoose(await AgnesAI.ask(
-      '以下是外贸客户搜索结果（序号|标题|域名|摘要）。逐条判断是不是值得联系的 B2B 买家/渠道商网站。'
+    var rawV = await AgnesAI.ask(
+      '以下是外贸客户搜索结果（序号|标题|域名|摘要）。逐条判断是否值得深挖联系方式的 B2B 买家/渠道商。'
       + '输出 JSON：{"results":[{"i":序号,"verdict":"buyer|maybe|noise","type":"importer/distributor/wholesaler/brand/…","why":"≤15字中文理由"}]}。'
-      + '规则：B2B 公司官网=buyer；B2B 平台店铺页/目录黄页/新闻/招聘/C 端零售=noise；介于两者（如行业名录里的公司页）=maybe。\n' + digest,
-      { json: true, maxTokens: 1200, temperature: 0.2 })) || {};
+      + '规则：B2B 公司官网=buyer；平台店铺页/黄页目录/新闻/C端零售=noise；其余=maybe。\n' + digest,
+      { json: true, maxTokens: 1200, temperature: 0.2 });
+    var vRes = AgnesAI.parseLoose(rawV) || {};
     ((vRes && vRes.results) || []).forEach(function(vv) {
       var idx = parseInt(vv.i, 10);
       if (S.results[idx] && /^(buyer|maybe|noise)$/.test(vv.verdict)) {
         S.results[idx].ai = { verdict: vv.verdict, type: vv.type || '', why: vv.why || '' };
       }
     });
-    var nBuyer = S.results.filter(function(r){ return r.ai && r.ai.verdict === 'buyer'; }).length;
-    st.textContent = '完成：' + S.results.length + ' 条中 AI 判定 ' + nBuyer + ' 条买家，已置顶';
-    render();
-    DataStore.add('searches', { query: '🧭 ' + prod + '（' + market + '）AI 智能搜', via: 'ai-pipeline', n: S.results.length, buyers: nBuyer });
+
+    /* 4. 逐站深挖联系方式：优先 buyer，其次 maybe，最多 8 站 */
+    var digList = S.results.filter(function(r){ return r.ai && r.ai.verdict !== 'noise'; })
+      .concat(S.results.filter(function(r){ return !r.ai; }))
+      .slice(0, 8);
+    for (var di = 0; di < digList.length; di++) {
+      st.textContent = '🧭 挖联系方式 ' + (di + 1) + '/' + digList.length + '（' + hostOf(digList[di].url) + '）…';
+      await harvestSite(digList[di], st);
+      render(); // 边挖边出结果
+    }
+    var nC = S.results.filter(hasContact).length;
+    st.textContent = '完成：' + S.results.length + ' 条，其中 ' + nC + ' 条有联系方式';
+    DataStore.add('searches', { query: '🧭 ' + prod + '（' + market + '）AI 智能挖', via: 'ai-pipeline', n: S.results.length, contacts: nC });
     renderHist();
   } catch (e) {
     st.textContent = '❌ ' + e.message;
     box.style.display = 'block';
-    box.textContent = 'AI 智能搜中断：' + e.message;
+    box.textContent = 'AI 智能挖中断：' + e.message;
   }
 }
 
-/* ---------- AI 扩展搜索词 ---------- */
-async function aiExpand() {
-  var prod = v('k_prod').trim();
-  if (!prod) { alert('先填产品关键词'); return; }
-  var box = document.getElementById('ai_out');
-  box.style.display = 'block'; box.textContent = 'AI 扩展搜索词中…';
-  try {
-    var txt = await AgnesAI.ask('我在用 Bing 搜外贸 B2B 客户（批发商/进口商/经销商网站）。产品：' + prod
-      + '，市场：' + (v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '全球')
-      + '。给我 6 条英文 Bing 搜索词，每行一条、不要编号不要解释，覆盖不同客户类型和表述习惯（如 distributor/wholesale/agent/buying house），每条都带排除 C 端的 -site:amazon.com。', { maxTokens: 400 });
-    box.textContent = txt;
-  } catch (e) { box.textContent = '❌ ' + e.message; }
+/* ---------- 渲染（联系人制） ---------- */
+function hasContact(r) { return r.contacts && ((r.contacts.emails && r.contacts.emails.length) || (r.contacts.was && r.contacts.was.length) || (r.contacts.phones && r.contacts.phones.length)); }
+function render() {
+  var box = document.getElementById('results');
+  var nC = S.results.filter(hasContact).length;
+  document.getElementById('stN').textContent = S.results.length;
+  document.getElementById('stContact').textContent = nC;
+  document.getElementById('stConv').textContent = Object.keys(S.convIds || {}).length;
+  document.getElementById('stHist').textContent = DataStore.list('searches').length;
+  document.getElementById('bulkRow').style.display = nC ? 'flex' : 'none';
+  if (!S.results.length) { box.innerHTML = '<div class="empty">暂无结果</div>'; return; }
+  // 排序：有联系方式 > 买家 > 待观察 > 其余 > 噪音
+  function score(r) {
+    if (hasContact(r)) return (r.ai && r.ai.verdict === 'buyer') ? 0 : 1;
+    if (r.ai) return r.ai.verdict === 'buyer' ? 2 : r.ai.verdict === 'maybe' ? 3 : 5;
+    return 4;
+  }
+  var list = S.results.map(function(r, i){ return { r: r, i: i }; }).sort(function(a, b){ return score(a.r) - score(b.r); });
+  box.innerHTML = list.map(function(it) {
+    var r = it.r, i = it.i, conv = (S.convIds || {})[i];
+    var badge = '';
+    if (r.ai && r.ai.verdict === 'buyer') badge = '<span class="ai-badge ai-buyer">🧭 ' + esc(r.ai.type || '买家') + '</span>';
+    else if (r.ai && r.ai.verdict === 'maybe') badge = '<span class="ai-badge ai-maybe">待观察</span>';
+    else if (r.ai && r.ai.verdict === 'noise') badge = '<span class="ai-badge ai-noise">噪音</span>';
+    var cls = '';
+    if (r.contacts && r.contacts.fail) cls = ' style="opacity:.5"';
+    var contacts = '';
+    if (hasContact(r)) {
+      var lines = [];
+      (r.contacts.emails || []).forEach(function(e){ lines.push('<a href="mailto:' + esc(e) + '"><span class="c-ico">✉</span>' + esc(e) + '</a>'); });
+      (r.contacts.was || []).forEach(function(w){ lines.push('<a href="https://wa.me/' + esc(w) + '" target="_blank" rel="noopener"><span class="c-ico">🟢</span>WhatsApp +' + esc(w) + '</a>'); });
+      (r.contacts.phones || []).forEach(function(pp){ lines.push('<a href="tel:' + esc(pp.replace(/\s/g,'')) + '"><span class="c-ico">☎</span>' + esc(pp) + '</a>'); });
+      contacts = '<div class="contacts">' + lines.join('') + '</div>';
+    } else if (r.contacts && r.contacts.fail) {
+      contacts = '<div class="nocontact">该站抓取失败（可能反爬），可打开链接人工看</div>';
+    } else {
+      contacts = '<div class="nocontact">暂无联系方式 <button class="ghostbtn" style="font-size:12px;padding:2px 8px" onclick="digOne(' + i + ')">⛏ 深挖整站</button></div>';
+    }
+    return '<div class="lead"' + cls + '>'
+      + '<div class="top"><span class="name">' + esc(r.company || r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60)) + '</span>'
+      + badge
+      + (conv ? '<span class="ft-tag" style="background:var(--ok-bg);color:var(--ok)">✓ 已导入</span>' : '')
+      + '<span class="src" style="margin-left:auto"><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(hostOf(r.url)) + '</a></span></div>'
+      + (r.ai && r.ai.why ? '<div class="ai-why">' + esc(r.ai.why) + '</div>' : '')
+      + contacts
+      + '<div class="acts" style="margin-top:8px">'
+      + (conv ? '' : '<button class="ft-btn-primary" style="font-size:12.5px;padding:5px 16px" onclick="openConv(' + i + ')">→ 导入线索</button>')
+      + '</div></div>';
+  }).join('');
+}
+function renderHist() {
+  var hs = DataStore.list('searches').slice(-8).reverse();
+  document.getElementById('hist').innerHTML = hs.length
+    ? '最近：' + hs.map(function(h){ return '<span onclick="reuse(this)" data-q="' + esc(h.query.replace(/^🧭 /,'')) + '">' + esc(h.query.slice(0, 44)) + '</span>'; }).join('')
+    : '';
+}
+function reuse(el) { document.getElementById('k_query').value = el.dataset.q; }
+async function digOne(i) {
+  var st = document.getElementById('st');
+  st.textContent = '⛏ 深挖 ' + hostOf(S.results[i].url) + '…';
+  await harvestSite(S.results[i], st);
+  st.textContent = hasContact(S.results[i]) ? '挖到联系方式 ✓' : '该站未挖到联系方式';
+  render();
+}
+
+/* ---------- 导入线索 ---------- */
+function openConv(i) {
+  S.pending = i;
+  var r = S.results[i];
+  document.getElementById('c_name').value = r.company || r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60);
+  document.getElementById('c_country').value = v('k_region') ? '' : '';
+  document.getElementById('c_email').value = (r.contacts && r.contacts.emails[0]) || '';
+  document.getElementById('c_wa').value = (r.contacts && (r.contacts.was[0] ? '+' + r.contacts.was[0] : r.contacts.phones[0])) || '';
+  document.getElementById('c_person').value = (r.contacts && r.contacts.person) || '';
+  document.getElementById('c_note').value = '来源：' + hostOf(r.url)
+    + (r.ai ? '（AI：' + (r.ai.type || r.ai.verdict) + (r.ai.why ? '，' + r.ai.why : '') + '）' : '');
+  dlgLead.showModal();
+}
+function convSave() {
+  if (S.pending == null) return;
+  var r = S.results[S.pending];
+  var name = v('c_name'); if (!name) { alert('客户名必填'); return; }
+  var contact = v('c_email') || v('c_wa');
+  if (!contact) { alert('至少要有邮箱或电话才能导入线索（你的线索规则）'); return; }
+  DataStore.add('leads', {
+    name: name, country: v('c_country'), person: v('c_person'),
+    market: v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '',
+    stage: '待开发', wa: v('c_wa'), email: v('c_email'), product: v('k_prod'),
+    amount: 0, last: new Date().toISOString().slice(0, 10), note: v('c_note'), source: 'ai_search'
+  });
+  S.convIds = S.convIds || {}; S.convIds[S.pending] = name;
+  dlgLead.close(); render();
+}
+/* 一键导入全部有联系方式的 */
+async function bulkImport() {
+  var bs = document.getElementById('bulkSt');
+  var n = 0;
+  for (var i = 0; i < S.results.length; i++) {
+    var r = S.results[i];
+    if (!hasContact(r)) continue;
+    if ((S.convIds || {})[i]) continue;
+    DataStore.add('leads', {
+      name: r.company || r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60),
+      country: '', person: (r.contacts && r.contacts.person) || '',
+      market: v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '',
+      stage: '待开发',
+      wa: (r.contacts.was[0] ? '+' + r.contacts.was[0] : (r.contacts.phones[0] || '')),
+      email: (r.contacts.emails[0] || ''), product: v('k_prod'),
+      amount: 0, last: new Date().toISOString().slice(0, 10),
+      note: '来源：' + hostOf(r.url) + (r.ai ? '（AI：' + (r.ai.type || r.ai.verdict) + '）' : ''), source: 'ai_search'
+    });
+    S.convIds = S.convIds || {}; S.convIds[i] = 'bulk'; n++;
+    render();
+  }
+  bs.textContent = '已导入 ' + n + ' 条到线索 Pipeline ✓';
 }
 renderHist();
-document.getElementById('stTotal').textContent = DataStore.list('leads').length;
+document.getElementById('stTotal2') && 0;
+document.getElementById('stHist').textContent = DataStore.list('searches').length;
 </script>
 </body>
 </html>
