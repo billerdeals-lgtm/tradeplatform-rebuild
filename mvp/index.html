@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23fff' stroke-width='3.5'/%3E%3Cpath d='M32 15 L38 32 L32 49 L26 32 Z' fill='%23ffc53d'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%230b6e4f'/%3E%3C/svg%3E">
+<title>FT Compass · 外贸线索工作台 MVP</title>
+<script src="../agnes-ai.js"></script>
+<style>
+  /* FT Compass 视觉体系：翡翠绿 #0b6e4f / 琥珀 #ffc53d / 米白 #faf9f5 —— 不与原版同风格 */
+  * { box-sizing: border-box; margin: 0; }
+  body { font: 15px/1.7 system-ui, "Microsoft YaHei", sans-serif; background: #faf9f5; color: #22301f; }
+  header { background: #0b6e4f; color: #fff; padding: 12px 22px; display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 50; }
+  header .logo { width: 38px; height: 38px; border-radius: 9px; background: #ffffff22; display: flex; align-items: center; justify-content: center; }
+  header h1 { font-size: 17px; font-weight: 600; flex: 1; }
+  header .hbtn { background: #ffffff22; border: 0; color: #fff; padding: 7px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 70px; }
+
+  .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+  .toolbar input, .toolbar select { padding: 9px 12px; border: 1px solid #d5d2c4; border-radius: 9px; font-size: 14px; background: #fff; }
+  .toolbar input { flex: 1; min-width: 180px; }
+  .btn { padding: 9px 18px; border: 0; border-radius: 9px; background: #0b6e4f; color: #fff; cursor: pointer; font-size: 14px; }
+  .btn.amber { background: #ffc53d; color: #4a3800; }
+  .btn.ghost { background: #ecefe6; color: #33412e; }
+  .btn.sm { padding: 5px 11px; font-size: 12.5px; border-radius: 7px; }
+  .btn:disabled { opacity: .5; cursor: wait; }
+
+  .stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat { background: #fff; border: 1px solid #e4e2d8; border-radius: 12px; padding: 10px 18px; font-size: 13px; color: #5c6657; }
+  .stat b { display: block; font-size: 20px; color: #0b6e4f; }
+
+  /* 线索卡 */
+  .lead { background: #fff; border: 1px solid #e4e2d8; border-radius: 13px; padding: 14px 18px; margin-bottom: 12px; }
+  .lead .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .lead .name { font-weight: 700; font-size: 16px; }
+  .tag { font-size: 12px; padding: 2px 10px; border-radius: 20px; background: #ecefe6; color: #4c5747; }
+  .tag.s0 { background: #f3e8d7; color: #7a5b1c; } .tag.s1 { background: #dfe9f5; color: #2c5282; }
+  .tag.s2 { background: #e8ddf3; color: #5b3a86; } .tag.s3 { background: #f7ddd8; color: #99412f; }
+  .tag.s4 { background: #d9efe2; color: #1d6b45; }
+  .tag.hi { background: #0b6e4f; color: #fff; } .tag.mid { background: #ffc53d; color: #4a3800; } .tag.lo { background: #e4e2d8; }
+  .lead .meta { color: #77806f; font-size: 13px; margin-top: 4px; }
+  .lead .acts { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
+  .aiout { background: #f2f4ee; border: 1px solid #e0e2d5; border-radius: 10px; padding: 10px 13px; font-size: 13.5px; margin-top: 10px; white-space: pre-wrap; display: none; }
+
+  /* 弹窗 */
+  .mask { position: fixed; inset: 0; background: #22301f66; display: none; align-items: flex-start; justify-content: center; z-index: 100; overflow: auto; padding: 40px 14px; }
+  .mask.show { display: flex; }
+  .modal { background: #fff; border-radius: 14px; padding: 22px 24px; width: 640px; max-width: 96vw; }
+  .modal h3 { font-size: 16px; margin-bottom: 12px; color: #0b6e4f; }
+  .modal label { display: block; font-size: 12.5px; color: #5c6657; margin: 10px 0 4px; }
+  .modal input, .modal select, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid #d5d2c4; border-radius: 9px; font-size: 14px; background: #fcfcfa; }
+  .modal textarea { min-height: 76px; resize: vertical; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+  .mout { background: #f2f4ee; border: 1px solid #e0e2d5; border-radius: 10px; padding: 11px 14px; font-size: 13.5px; white-space: pre-wrap; margin-top: 10px; display: none; max-height: 260px; overflow: auto; }
+  .mrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .cfgbox input, .cfgbox label { font: 14px/1.6 system-ui; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <svg width="26" height="26" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="19" fill="none" stroke="#fff" stroke-width="3.5"/>
+      <path d="M32 13 L38.5 32 L32 51 L25.5 32 Z" fill="#ffc53d"/>
+      <circle cx="32" cy="32" r="3.4" fill="#0b6e4f"/>
+    </svg>
+  </div>
+  <h1>FT Compass · 线索工作台</h1>
+  <button class="hbtn" onclick="openCfg()">⚙ AI 设置</button>
+</header>
+
+<main>
+  <div class="stats">
+    <div class="stat"><b id="stTotal">0</b>线索总数</div>
+    <div class="stat"><b id="stHot">0</b>高分线索(≥70)</div>
+    <div class="stat"><b id="stDue">0</b>3天内待跟进</div>
+    <div class="stat"><b id="stAmt">$0</b>线索预估总额</div>
+  </div>
+
+  <div class="toolbar">
+    <input id="q" placeholder="搜索客户名 / 产品 / 备注…" oninput="render()">
+    <select id="fStage" onchange="render()">
+      <option value="">全部阶段</option><option>待开发</option><option>已联系</option>
+      <option>试样</option><option>报价</option><option>成交</option>
+    </select>
+    <button class="btn" onclick="openEdit()">＋ 添加线索</button>
+    <button class="btn ghost" onclick="exportCsv()">导出 CSV</button>
+  </div>
+
+  <div id="list"></div>
+</main>
+
+<!-- 新增/编辑线索 -->
+<div class="mask" id="mEdit">
+  <div class="modal">
+    <h3 id="editTitle">添加线索</h3>
+    <div class="grid2">
+      <div><label>客户名 *</label><input id="e_name"></div>
+      <div><label>国家</label><input id="e_country" placeholder="Egypt / USA…"></div>
+      <div><label>市场</label><select id="e_market"><option>中东</option><option>东南亚</option><option>欧美</option><option>非洲</option><option>其他</option></select></div>
+      <div><label>阶段</label><select id="e_stage"><option>待开发</option><option>已联系</option><option>试样</option><option>报价</option><option>成交</option></select></div>
+      <div><label>WhatsApp（含国家码）</label><input id="e_wa" placeholder="+2010…"></div>
+      <div><label>邮箱</label><input id="e_email" placeholder="buyer@company.com"></div>
+      <div><label>关注产品</label><input id="e_product" placeholder="prayer pillow"></div>
+      <div><label>预估金额 (USD)</label><input id="e_amount" type="number" value="0"></div>
+    </div>
+    <label>备注</label><textarea id="e_note" placeholder="展会名片 / 等 PI / 嫌贵…"></textarea>
+    <div class="mrow">
+      <button class="btn" onclick="saveEdit()">保存</button>
+      <button class="btn ghost" onclick="hide('mEdit')">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- AI 触达：生成开发信 / 回复草稿 -->
+<div class="mask" id="mTouch">
+  <div class="modal">
+    <h3 id="touchTitle">AI 触达</h3>
+    <div class="mrow" style="margin:0 0 6px">
+      <button class="btn sm ghost" id="tabMail" onclick="touchTab('mail')">✉ 生成开发信</button>
+      <button class="btn sm ghost" id="tabReply" onclick="touchTab('reply')">↩ 客户回复草稿</button>
+    </div>
+    <div id="paneMail">
+      <label>场景</label>
+      <select id="t_scene"><option>首封冷开发信</option><option>询盘首复</option><option>样品跟进</option><option>报价跟进</option><option>久未回复二次跟进</option></select>
+      <label>我的署名信息（一句话即可）</label>
+      <input id="t_me" placeholder="Wei, Xingtai Yunwei, 工厂直供/低MOQ/免费样品">
+    </div>
+    <div id="paneReply" style="display:none">
+      <label>粘贴客户原话（WhatsApp/邮件）</label>
+      <textarea id="t_cw" placeholder="Hi, the price is too high…"></textarea>
+    </div>
+    <div class="mrow"><button class="btn" id="btnGen" onclick="genTouch()">AI 生成</button></div>
+    <div class="mout" id="t_out"></div>
+    <div class="mrow" id="t_sendRow" style="display:none">
+      <button class="btn sm amber" onclick="sendWa()">WhatsApp 发送</button>
+      <button class="btn sm amber" onclick="sendGmail()">Gmail 发送</button>
+      <button class="btn sm amber" onclick="sendOutlook()">Outlook 发送</button>
+      <button class="btn sm ghost" onclick="copyOut()">复制全文</button>
+    </div>
+    <div class="mrow"><button class="btn ghost" onclick="hide('mTouch')">关闭</button></div>
+  </div>
+</div>
+
+<!-- AI 设置（复用 AgnesAI 面板） -->
+<div class="mask" id="mCfg">
+  <div class="modal cfgbox">
+    <h3>AI 设置（Agnes 2.5 Flash）</h3>
+    <div id="cfgHolder"></div>
+    <div class="mrow"><button class="btn ghost" onclick="hide('mCfg')">关闭</button></div>
+  </div>
+</div>
+
+<script>
+/* ================= FT Compass MVP v0.1 =================
+ * 模块：线索 Pipeline + 统计 + CSV 导出 + Agnes AI（评分/开发信/回复草稿）
+ * 数据：localStorage 'ftc_leads_v1'，纯本机，无后端
+ * ======================================================= */
+
+var STAGES = ['待开发', '已联系', '试样', '报价', '成交'];
+var LS = 'ftc_leads_v1';
+var S = { leads: [], editId: null, touchId: null, touchMode: 'mail', lastOut: '' };
+
+function load() {
+  try { S.leads = JSON.parse(localStorage.getItem(LS) || 'null') || []; } catch (e) { S.leads = []; }
+  if (!S.leads.length) { // 首次运行放 2 条示例（可删），字段与蓝图数据模型一致
+    S.leads = [
+      { id: uid(), name: 'Omar', country: 'Egypt', market: '中东', stage: '报价', wa: '+20101234567', email: '', product: 'prayer pillow blue', amount: 2400, last: iso(-4), note: '等PI（示例，可删）' },
+      { id: uid(), name: 'John', country: 'USA', market: '欧美', stage: '待开发', wa: '', email: 'john@importer.com', product: 'gift box', amount: 0, last: iso(-35), note: '展会名片（示例，可删）' }
+    ];
+    save();
+  }
+}
+function save() { localStorage.setItem(LS, JSON.stringify(S.leads)); }
+function uid() { return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
+function iso(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function show(id) { document.getElementById(id).classList.add('show'); }
+function hide(id) { document.getElementById(id).classList.remove('show'); }
+
+/* ---------- 渲染 ---------- */
+function render() {
+  var q = (document.getElementById('q').value || '').toLowerCase();
+  var fs = document.getElementById('fStage').value;
+  var list = S.leads.filter(function (l) {
+    if (fs && l.stage !== fs) return false;
+    if (!q) return true;
+    return (l.name + l.product + l.note + l.country).toLowerCase().indexOf(q) >= 0;
+  }).slice().sort(function (a, b) { return (b._score || 0) - (a._score || 0); }); // 有评分的高分在前
+
+  document.getElementById('stTotal').textContent = S.leads.length;
+  document.getElementById('stHot').textContent = S.leads.filter(function (l) { return (l._score || 0) >= 70; }).length;
+  document.getElementById('stDue').textContent = S.leads.filter(function (l) { return l.last && l.last <= iso(3); }).length;
+  document.getElementById('stAmt').textContent = '$' + S.leads.reduce(function (s, l) { return s + (+l.amount || 0); }, 0).toLocaleString();
+
+  var h = list.length ? '' : '<div class="lead" style="text-align:center;color:#8a937f">没有线索，点右上「＋ 添加线索」开始</div>';
+  list.forEach(function (l) {
+    var si = STAGES.indexOf(l.stage);
+    var scoreTag = l._score != null ? '<span class="tag ' + (l._score >= 70 ? 'hi' : l._score >= 40 ? 'mid' : 'lo') + '">AI ' + l._score + '</span>' : '';
+    h += '<div class="lead"><div class="top">'
+      + '<span class="name">' + esc(l.name) + '</span>'
+      + '<span class="tag s' + si + '">' + esc(l.stage) + '</span>' + scoreTag
+      + '<span style="flex:1"></span>'
+      + '<button class="btn sm amber" onclick="aiScore(\'' + l.id + '\',this)">⚡ AI 评分</button>'
+      + '<button class="btn sm" onclick="openTouch(\'' + l.id + '\')">✉ AI 触达</button>'
+      + '<button class="btn sm ghost" onclick="openEdit(\'' + l.id + '\')">编辑</button>'
+      + '<button class="btn sm ghost" onclick="delLead(\'' + l.id + '\')">删除</button>'
+      + '</div><div class="meta">'
+      + esc(l.country || '—') + ' · ' + esc(l.market || '') + ' · 产品: ' + esc(l.product || '—')
+      + ' · 预估 $' + (+l.amount || 0)
+      + ' · 最后联系 ' + esc(l.last || '—')
+      + (l.wa ? ' · WA ' + esc(l.wa) : '') + (l.email ? ' · ' + esc(l.email) : '')
+      + (l.note ? ' · 📝 ' + esc(l.note) : '')
+      + '</div><div class="aiout" id="ai_' + l.id + '"></div></div>';
+  });
+  document.getElementById('list').innerHTML = h;
+}
+
+/* ---------- 新增/编辑/删除 ---------- */
+function openEdit(id) {
+  S.editId = id || null;
+  var l = id ? S.leads.find(function (x) { return x.id === id; }) : {};
+  document.getElementById('editTitle').textContent = id ? '编辑线索' : '添加线索';
+  ['name', 'country', 'wa', 'email', 'product', 'note'].forEach(function (k) {
+    document.getElementById('e_' + k).value = l[k] || '';
+  });
+  document.getElementById('e_market').value = l.market || '中东';
+  document.getElementById('e_stage').value = l.stage || '待开发';
+  document.getElementById('e_amount').value = l.amount || 0;
+  show('mEdit');
+}
+function saveEdit() {
+  var name = document.getElementById('e_name').value.trim();
+  if (!name) { alert('客户名必填'); return; }
+  var obj = {
+    name: name,
+    country: v('e_country'), market: v('e_market'), stage: v('e_stage'),
+    wa: v('e_wa'), email: v('e_email'), product: v('e_product'),
+    amount: +v('e_amount') || 0, note: v('e_note')
+  };
+  if (S.editId) {
+    var l = S.leads.find(function (x) { return x.id === S.editId; });
+    Object.assign(l, obj); // 编辑不清除已有 AI 评分
+  } else {
+    obj.id = uid(); obj.last = iso(0); obj._score = null;
+    S.leads.push(obj);
+  }
+  save(); hide('mEdit'); render();
+}
+function delLead(id) {
+  if (!confirm('删除这条线索？（不可恢复）')) return;
+  S.leads = S.leads.filter(function (x) { return x.id !== id; });
+  save(); render();
+}
+function v(id) { return document.getElementById(id).value.trim(); }
+
+/* ---------- AI：评分 ---------- */
+async function aiScore(id, btn) {
+  var l = S.leads.find(function (x) { return x.id === id; });
+  var box = document.getElementById('ai_' + id);
+  btn.disabled = true; box.style.display = 'block';
+  box.textContent = 'AI 评分中…';
+  try {
+    var r = await AgnesAI.scoreLead(l);
+    l._score = r.score; l._next = r.next_action; save();
+    box.innerHTML = '<b>AI ' + r.score + ' 分（' + esc(r.tier) + '）</b> — ' + esc(r.reason)
+      + '\n下一步: ' + esc(r.next_action) + (r.channel ? '\n建议渠道: ' + esc(r.channel) : '');
+    render(); // 重排序（高分在前）
+  } catch (e) { box.textContent = '❌ ' + e.message; }
+  btn.disabled = false;
+}
+
+/* ---------- AI：触达（开发信 / 回复草稿） ---------- */
+function openTouch(id) {
+  S.touchId = id; S.touchMode = 'mail';
+  var l = S.leads.find(function (x) { return x.id === id; });
+  document.getElementById('touchTitle').textContent = 'AI 触达：' + l.name + '（' + (l.country || '') + '）';
+  document.getElementById('t_out').style.display = 'none';
+  document.getElementById('t_sendRow').style.display = 'none';
+  touchTab('mail');
+  show('mTouch');
+}
+function touchTab(mode) {
+  S.touchMode = mode;
+  document.getElementById('paneMail').style.display = mode === 'mail' ? '' : 'none';
+  document.getElementById('paneReply').style.display = mode === 'reply' ? '' : 'none';
+}
+async function genTouch() {
+  var l = S.leads.find(function (x) { return x.id === S.touchId; });
+  var btn = document.getElementById('btnGen'), out = document.getElementById('t_out');
+  btn.disabled = true; out.style.display = 'block'; out.textContent = 'AI 生成中…';
+  try {
+    S.lastOut = S.touchMode === 'mail'
+      ? await AgnesAI.genOutreach(l, v('t_scene'), { name: '', company: '', selling: v('t_me') })
+      : await AgnesAI.genReply(l, document.getElementById('t_cw').value);
+    out.textContent = S.lastOut;
+    document.getElementById('t_sendRow').style.display = 'flex';
+  } catch (e) { out.textContent = '❌ ' + e.message; }
+  btn.disabled = false;
+}
+/* 四通道发送：WhatsApp / Gmail / Outlook / 复制（正文取 AI 输出全文） */
+function subjBody() {
+  var body = S.lastOut.replace(/【中文要点】[\s\S]*$/, ''); // 发送时剥掉中文备注段
+  return { su: 'Re: ' + (S.leads.find(function (x) { return x.id === S.touchId; }).product || 'cooperation'), bd: body };
+}
+function sendWa() {
+  var l = S.leads.find(function (x) { return x.id === S.touchId; });
+  if (!l.wa) { alert('该线索没有 WhatsApp 号，编辑线索补上'); return; }
+  window.open('https://wa.me/' + l.wa.replace(/[^\d]/g, '') + '?text=' + encodeURIComponent(S.lastOut), '_blank');
+}
+function sendGmail() {
+  var l = S.leads.find(function (x) { return x.id === S.touchId; });
+  if (!l.email) { alert('该线索没有邮箱，编辑线索补上'); return; }
+  var sb = subjBody();
+  window.open('https://mail.google.com/mail/?view=cm&to=' + encodeURIComponent(l.email)
+    + '&su=' + encodeURIComponent(sb.su) + '&body=' + encodeURIComponent(sb.bd), '_blank');
+}
+function sendOutlook() {
+  var l = S.leads.find(function (x) { return x.id === S.touchId; });
+  if (!l.email) { alert('该线索没有邮箱，编辑线索补上'); return; }
+  var sb = subjBody();
+  window.open('https://outlook.live.com/mail/0/compose?to=' + encodeURIComponent(l.email)
+    + '&subject=' + encodeURIComponent(sb.su) + '&body=' + encodeURIComponent(sb.bd), '_blank');
+}
+function copyOut() {
+  navigator.clipboard.writeText(S.lastOut).then(function () { alert('已复制全文'); });
+}
+
+/* ---------- AI 设置 ---------- */
+function openCfg() {
+  document.getElementById('cfgHolder').innerHTML = AgnesAI.settingsHTML();
+  show('mCfg');
+}
+
+/* ---------- CSV 导出 ---------- */
+function exportCsv() {
+  if (!S.leads.length) { alert('没有数据'); return; }
+  var rows = [['客户名', '国家', '市场', '阶段', 'WhatsApp', '邮箱', '产品', '预估USD', '最后联系', 'AI评分', '备注']];
+  S.leads.forEach(function (l) {
+    rows.push([l.name, l.country, l.market, l.stage, l.wa, l.email, l.product, l.amount, l.last, l._score == null ? '' : l._score, l.note]);
+  });
+  var csv = '\ufeff' + rows.map(function (r) {
+    return r.map(function (c) { return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('\r\n');
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'ftcompass_leads_' + iso(0) + '.csv'; a.click();
+}
+
+load(); render();
+</script>
+</body>
+</html>

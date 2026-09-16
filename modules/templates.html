@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 话术库</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
+  main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
+  .toolbar { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-4); align-items:center; }
+  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar .grow { flex:1; min-width:160px; }
+  .tpl { padding:var(--sp-4); margin-bottom:var(--sp-3); }
+  .tpl .hd { display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2); flex-wrap:wrap; }
+  .tpl .hd b { font-size:15px; flex:1; min-width:200px; }
+  .use { font-size:11px; color:var(--text-3); }
+  pre { background:var(--bg-inset); border:1px solid var(--border); border-radius:var(--r-sm); padding:var(--sp-3); white-space:pre-wrap; word-break:break-word; font-size:13px; line-height:1.65; margin:0 0 var(--sp-2); font-family:inherit; }
+  pre.en { background:var(--bg-card); }
+  .lbl { font-size:12px; color:var(--text-3); font-weight:600; margin:var(--sp-2) 0 var(--sp-1); }
+  .acts { display:flex; gap:var(--sp-2); flex-wrap:wrap; }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:600px; width:92%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
+  .dlg-b { padding:var(--sp-4); }
+  .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
+  .dlg-b select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; }
+  .ai-out { white-space:pre-wrap; font-size:14px; line-height:1.7; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="FT Compass">
+  <h1>话术库 <span style="font-size:12px;opacity:.7;font-weight:400">19 类 · 76 封 · 模板打底 + AI 改写双引擎</span></h1>
+  <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
+</header>
+<main>
+  <div class="toolbar">
+    <input class="grow" id="q" placeholder="搜索标题/分类/正文（支持中英文）…" oninput="render()">
+    <select id="fCat" onchange="render()"><option value="">全部分类</option></select>
+    <select id="fSort" onchange="render()">
+      <option value="n">按环节顺序</option>
+      <option value="hot">按使用热度</option>
+    </select>
+  </div>
+  <div id="list"></div>
+</main>
+
+<!-- AI 改写弹窗 -->
+<dialog id="dlgAI">
+  <div class="dlg-h"><span id="aiTitle">AI 改写</span><button class="iconbtn" onclick="dlgAI.close()">✕</button></div>
+  <div class="dlg-b">
+    <label>套用到哪条线索（改写时自动注入国家/产品/阶段上下文）</label>
+    <select id="aiLead"></select>
+    <label>附加要求（可选，留空按标准改写）</label>
+    <input id="aiHint" placeholder="例如：更口语、强调可定制、提到斋月备货…">
+    <div style="margin-top:var(--sp-3)">
+      <button class="ft-btn-ai" id="btnRewrite" onclick="doRewrite()">✨ 开始 AI 改写</button>
+    </div>
+    <div class="ft-ai-output ai-out" id="aiBody" style="display:none;margin-top:var(--sp-3)"></div>
+    <div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);justify-content:flex-end" id="aiActions"></div>
+  </div>
+</dialog>
+
+<!-- AI 设置 -->
+<dialog id="dlgSettings">
+  <div class="dlg-h"><span>AI 设置（Agnes 2.5 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+  <div class="dlg-b" id="agPanel"></div>
+</dialog>
+
+<script src="../agnes-ai.js"></script>
+<script src="../js/datastore.js"></script>
+<script src="../js/templates_data.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   FT Compass 话术库 v0.1（矩阵 #4 模块）
+   双引擎：模板打底（秒出，不依赖 AI）+ AI 个性化改写（琥珀卡）
+   ============================================================ */
+var rewriting = null; // 当前改写的模板
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
+  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+function usage(){ try{ return JSON.parse(localStorage.getItem('ftc_tpl_usage')||'{}'); }catch(e){ return {}; } }
+function bumpUse(n){ var u=usage(); u[n]=(u[n]||0)+1; localStorage.setItem('ftc_tpl_usage',JSON.stringify(u)); }
+function copyText(s){ navigator.clipboard.writeText(s).then(function(){toast('已复制');}); }
+
+/* ---------- 渲染 ---------- */
+function render(){
+  var q=$('q').value.trim().toLowerCase(), cat=$('fCat').value, sort=$('fSort').value;
+  var u=usage();
+  var arr = TEMPLATES.filter(function(t){
+    if (cat && t.cat!==cat) return false;
+    if (!q) return true;
+    return (t.title+' '+t.cat+' '+t.en+' '+t.cn).toLowerCase().indexOf(q)>=0;
+  });
+  if (sort==='hot') arr.sort(function(a,b){ return (u[b.n]||0)-(u[a.n]||0) || a.n-b.n; });
+  var html = arr.map(function(t){
+    var hot = u[t.n] ? '<span class="use">🔥 已用 '+u[t.n]+' 次</span>' : '';
+    return '<div class="ft-card tpl">'
+      + '<div class="hd"><b>'+esc(t.title)+'</b>'
+      + '<span class="ft-tag" style="background:var(--brand-100);color:var(--brand-700)">'+esc(t.cat)+'</span>'+hot+'</div>'
+      + '<div class="lbl">英文正文（占位符：{公司} {姓名} {产品} {国家} {日期} {单号} {港口}）</div>'
+      + '<pre class="en" id="en'+t.n+'">'+esc(t.en)+'</pre>'
+      + '<div class="lbl">中文要点</div>'
+      + '<pre>'+esc(t.cn)+'</pre>'
+      + '<div class="acts">'
+      + '<button class="iconbtn" onclick="copyText(document.getElementById(\'en'+t.n+'\').textContent)">📋 复制英文</button>'
+      + '<button class="ft-btn-ai" style="padding:5px 14px;font-size:12px" onclick="openRewrite('+t.n+')">✨ AI 改写</button>'
+      + '</div></div>';
+  }).join('');
+  $('list').innerHTML = html || '<div class="empty">没有匹配的话术，换个关键词试试</div>';
+}
+
+/* ---------- AI 改写（矩阵：模板打底 + AI 个性化） ---------- */
+function openRewrite(n){
+  rewriting = TEMPLATES.find(function(t){ return t.n===n; });
+  $('aiTitle').textContent = '✨ AI 改写：' + rewriting.title;
+  $('aiBody').style.display='none'; $('aiBody').textContent='';
+  $('aiActions').innerHTML=''; $('aiHint').value='';
+  // 线索下拉：默认选 AI 评分最高的
+  var leads = DataStore.list('leads').slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  var opts = '<option value="">（不关联线索，只按模板通用改写）</option>';
+  leads.forEach(function(l){
+    opts += '<option value="'+l.id+'">'+esc(l.name)+'（'+esc(l.country||'')+' · '+esc(l.stage||'')+' · '+(l.score!=null?'AI '+l.score+'分':'未评分')+'）</option>';
+  });
+  $('aiLead').innerHTML = opts;
+  dlgAI.showModal();
+}
+async function doRewrite(){
+  if (!rewriting) return;
+  var lead = DataStore.get('leads', $('aiLead').value);
+  var hint = $('aiHint').value.trim();
+  var p = '下面是一封外贸邮件模板：\n【模板标题】'+rewriting.title+'\n【英文正文】\n'+rewriting.en+'\n';
+  if (lead){
+    p += '请把它个性化改写给这位客户：姓名='+lead.name+'，国家='+(lead.country||'?')
+      +'，市场='+(lead.market||'?')+'，关注产品='+(lead.product||'?')
+      +'，当前阶段='+(lead.stage||'?')+'，备注='+(lead.note||'无')+'。\n'
+      +'把 {姓名}{公司}{产品}{国家} 等占位符替换成真实内容（不确定的用合理表述），保留模板的营销结构。';
+  } else {
+    p += '请对模板做轻度润色改写，保持结构和占位符不变，让表达更自然。';
+  }
+  if (hint) p += '\n附加要求：'+hint+'。';
+  p += '\n输出：英文正文（150 词内），末尾另起一行【中文要点】说明这版改写动了什么。';
+  $('btnRewrite').disabled=true; $('btnRewrite').textContent='⏳ 改写中…';
+  try {
+    var txt = await AgnesAI.chat([
+      {role:'system', content:'你是资深外贸 B2B 销售教练。回答用英文正文+中文要点，务实不套话。'},
+      {role:'user', content:p}
+    ], {temperature:0.75, maxTokens:800});
+    $('aiBody').textContent = txt; $('aiBody').style.display='block';
+    var sendBody = txt.split('【中文要点】')[0];
+    var acts = '<button class="iconbtn" onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>alert(\'已复制\'))" data-t="'+esc(sendBody)+'">📋 复制</button>';
+    if (lead && lead.whatsapp) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+String(lead.whatsapp).replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(sendBody)+'">💬 WhatsApp</a>';
+    if (lead && lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(sendBody)+'">✉ Gmail</a>';
+    $('aiActions').innerHTML = acts;
+    bumpUse(rewriting.n);
+    // 落库：触达历史（与待办模块同源，outreach 模块数据源）
+    if (lead) DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'ai_rewrite', tplN:rewriting.n, tplTitle:rewriting.title, content:txt });
+    render();
+  } catch(e){ $('aiBody').textContent='改写失败：'+e.message; $('aiBody').style.display='block'; }
+  $('btnRewrite').disabled=false; $('btnRewrite').textContent='✨ 开始 AI 改写';
+}
+
+/* ---------- 初始化 ---------- */
+(function(){
+  var cats = []; TEMPLATES.forEach(function(t){ if(cats.indexOf(t.cat)<0) cats.push(t.cat); });
+  $('fCat').innerHTML += cats.map(function(c){ return '<option value="'+esc(c)+'">'+esc(c)+'</option>'; }).join('');
+  $('agPanel').innerHTML = AgnesAI.settingsHTML();
+  render();
+})();
+</script>
+</body>
+</html>

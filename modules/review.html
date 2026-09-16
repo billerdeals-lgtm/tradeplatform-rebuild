@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 复盘增长</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
+  main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
+  h2 { font-size:16px; margin:var(--sp-6) 0 var(--sp-3); }
+  /* 漏斗 */
+  .funnel { display:flex; gap:var(--sp-2); align-items:flex-end; flex-wrap:wrap; }
+  .fstage { flex:1; min-width:100px; text-align:center; }
+  .fstage .bar { background:var(--brand-700); color:#fff; border-radius:var(--r-sm) var(--r-sm) 0 0; padding:8px 4px; font-weight:700; font-size:18px; }
+  .fstage .lbl { font-size:12px; color:var(--text-2); background:var(--bg-inset); border-radius:0 0 var(--r-sm) var(--r-sm); padding:6px 4px; }
+  .fstage .amt { font-size:11px; color:var(--text-3); margin-top:3px; }
+  /* 指标行 */
+  .kpis { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-3); margin-bottom:var(--sp-4); }
+  .kpi { padding:var(--sp-3); text-align:center; }
+  .kpi b { display:block; font-size:22px; }
+  .kpi span { font-size:12px; color:var(--text-2); }
+  .ai-review { font-size:14px; line-height:1.9; }
+  .hist { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); }
+  .hist .when { font-size:12px; color:var(--text-3); }
+  .hist .sum { font-size:13px; margin-top:4px; }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:560px; width:92%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
+  .dlg-b { padding:var(--sp-4); }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="">
+  <h1>复盘增长 <span style="font-size:12px;opacity:.7;font-weight:400">漏斗真实统计 · AI 三发现三动作一砍掉</span></h1>
+  <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
+</header>
+<main>
+  <h2>📊 本期漏斗（截至今天）</h2>
+  <div class="ft-card" style="padding:var(--sp-4)">
+    <div class="funnel" id="funnel"></div>
+  </div>
+
+  <h2>📈 关键指标</h2>
+  <div class="kpis">
+    <div class="ft-card kpi"><b id="kTouch" style="color:var(--brand-700)">0</b><span>触达次数（累计）</span></div>
+    <div class="ft-card kpi"><b id="kTodo" style="color:var(--warn)">0%</b><span>待办完成率</span></div>
+    <div class="ft-card kpi"><b id="kOver" style="color:var(--danger)">0</b><span>逾期未清</span></div>
+    <div class="ft-card kpi"><b id="kAmt" style="color:var(--accent-500)">$0</b><span>成交阶段金额</span></div>
+  </div>
+
+  <div class="ft-card" style="padding:var(--sp-4);display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-4)">
+    <div style="flex:1"><b>🧭 AI 本期复盘</b>
+      <div style="font-size:12px;color:var(--text-2)">基于上方真实数据推理：三个发现 + 三个动作 + 一个该砍掉的</div></div>
+    <button class="ft-btn-ai" id="btnReview" onclick="aiReview()">✨ 生成本期复盘</button>
+  </div>
+  <div id="reviewWrap"></div>
+
+  <h2>🗂 历史复盘</h2>
+  <div id="hist"></div>
+</main>
+
+<dialog id="dlgSettings">
+  <div class="dlg-h"><span>AI 设置（Agnes 2.5 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+  <div class="dlg-b" id="agPanel"></div>
+</dialog>
+
+<script src="../agnes-ai.js"></script>
+<script src="../js/datastore.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   FT Compass 复盘模块 v0.1（矩阵 #8 模块）
+   数据全部来自 DataStore 真实统计，AI 只做推理不做编造
+   ============================================================ */
+var STAGES = ['待开发','已联系','试样','报价','成交'];
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
+  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+/* ---------- 真实统计 ---------- */
+function stats(){
+  var leads = DataStore.list('leads'), todos = DataStore.list('todos'), outreach = DataStore.list('outreach');
+  var byStage = {}, amtByStage = {};
+  STAGES.forEach(function(s){ byStage[s]=0; amtByStage[s]=0; });
+  leads.forEach(function(l){ if(l.stage in byStage){ byStage[l.stage]++; amtByStage[l.stage]+= (+l.amount||0); } });
+  var ts = todayStr(), done=0, open=0, over=0;
+  todos.forEach(function(t){
+    if (t.done){ done++; return; }
+    open++; if (t.due && t.due<ts) over++;
+  });
+  return {
+    leads:leads.length, byStage:byStage, amtByStage:amtByStage,
+    touch:outreach.length,
+    todoTotal:todos.length, todoDone:done, todoOpen:open, todoOver:over,
+    todoRate: todos.length? Math.round(done*100/todos.length) : 0,
+    wonAmt: amtByStage['成交'],
+    scored: leads.filter(function(l){return l.score!=null;}).length
+  };
+}
+function renderStats(){
+  var st = stats();
+  var max = Math.max.apply(null, STAGES.map(function(s){ return st.byStage[s]; })) || 1;
+  $('funnel').innerHTML = STAGES.map(function(s){
+    var h = Math.max(34, Math.round(st.byStage[s]/max*90));
+    return '<div class="fstage"><div class="bar" style="height:'+h+'px;display:flex;align-items:center;justify-content:center">'+st.byStage[s]+'</div>'
+      + '<div class="lbl">'+s+'</div><div class="amt">$'+st.amtByStage[s].toLocaleString()+'</div></div>';
+  }).join('');
+  $('kTouch').textContent = st.touch;
+  $('kTodo').textContent = st.todoRate+'%';
+  $('kOver').textContent = st.todoOver;
+  $('kAmt').textContent = '$'+st.wonAmt.toLocaleString();
+  return st;
+}
+
+/* ---------- AI 复盘（矩阵：原版假洞察 → 真推理） ---------- */
+async function aiReview(){
+  var st = renderStats();
+  var btn=$('btnReview'); btn.disabled=true; btn.textContent='⏳ 复盘推理中…';
+  try {
+    var payload = {
+      线索总数: st.leads, 已AI评分: st.scored, 各阶段线索数: st.byStage, 各阶段金额: st.amtByStage,
+      触达次数: st.touch, 待办总数: st.todoTotal, 已完成: st.todoDone, 完成率: st.todoRate+'%', 逾期: st.todoOver
+    };
+    var txt = await AgnesAI.genReviewInsight(payload);
+    var html = txt.replace(/\n/g,'<br>');
+    $('reviewWrap').innerHTML = '<div class="ft-card ft-ai-output ai-review" style="padding:var(--sp-4)">'+html+'</div>';
+    DataStore.add('reviews', { period: todayStr(), stats: payload, summary: txt });
+    renderHist();
+  } catch(e){ toast('复盘失败：'+e.message.slice(0,80)); }
+  btn.disabled=false; btn.textContent='✨ 生成本期复盘';
+}
+
+/* ---------- 历史复盘 ---------- */
+function renderHist(){
+  var rs = DataStore.list('reviews').slice().reverse();
+  $('hist').innerHTML = rs.length ? rs.map(function(r){
+    var oneLine = (r.summary||'').split('\n').filter(Boolean)[0] || '';
+    return '<div class="ft-card hist"><div class="when">'+esc(r.period)
+      + ' · 线索 '+r.stats.leads+' · 触达 '+r.stats.touch+' · 完成率 '+r.stats.todoRate+'</div>'
+      + '<div class="sum">'+esc(oneLine.slice(0,80))+(oneLine.length>80?'…':'')+'</div>'
+      + '<div style="margin-top:6px"><button class="iconbtn" onclick="this.closest(\'.hist\').querySelector(\'.full\').style.display=this.closest(\'.hist\').querySelector(\'.full\').style.display===\'none\'?\'block\':\'none\'">展开全文</button>'
+      + '<button class="iconbtn" onclick="DataStore.remove(\'reviews\',\''+r.id+'\');renderHist()">🗑</button></div>'
+      + '<div class="ft-ai-output full" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.8;white-space:pre-wrap">'+esc(r.summary)+'</div></div>';
+  }).join('') : '<div class="empty">还没有复盘记录，点上方「生成本期复盘」开始</div>';
+}
+
+$('agPanel').innerHTML = AgnesAI.settingsHTML();
+renderStats(); renderHist();
+</script>
+</body>
+</html>

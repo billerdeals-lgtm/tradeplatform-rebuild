@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 节假日问候</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
+  main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
+  h2 { font-size:16px; margin:var(--sp-6) 0 var(--sp-3); }
+  .toolbar { display:flex; gap:var(--sp-2); margin-bottom:var(--sp-4); align-items:center; }
+  .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; }
+  .hday { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); }
+  .hday .row1 { display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap; }
+  .hday .name { font-weight:700; font-size:15px; }
+  .hday .dstr { font-size:12px; color:var(--text-2); }
+  .hday .note { font-size:12.5px; color:var(--text-2); margin-top:4px; }
+  .hday .leadmatch { font-size:12px; color:var(--brand-700); margin-top:4px; }
+  .hday .greeted { font-size:11px; color:var(--text-3); }
+  .trade { background:var(--warn-bg); color:var(--warn); font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:560px; width:92%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
+  .dlg-b { padding:var(--sp-4); }
+  .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
+  .dlg-b select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; }
+  .ai-out { white-space:pre-wrap; font-size:14px; line-height:1.7; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="">
+  <h1>复购 · 节假日问候 <span style="font-size:12px;opacity:.7;font-weight:400">节日不缺席，关系不掉线</span></h1>
+  <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
+</header>
+<main>
+  <h2>📅 即将到来的节日（未来 60 天）</h2>
+  <div class="toolbar">
+    <span style="font-size:12px;color:var(--text-2)">匹配我的市场：</span>
+    <select id="fMarket" onchange="render()">
+      <option value="">全部市场</option>
+      <option>中东</option><option>东南亚</option><option>欧美</option><option>非洲</option><option>其他</option>
+    </select>
+  </div>
+  <div id="list"></div>
+
+  <h2>🔔 备货提醒</h2>
+  <div id="trade"></div>
+</main>
+
+<!-- 问候生成 -->
+<dialog id="dlgGreet">
+  <div class="dlg-h"><span id="gTitle">🧭 生成节日问候</span><button class="iconbtn" onclick="dlgGreet.close()">✕</button></div>
+  <div class="dlg-b">
+    <label>选客户（已按节日涉及市场过滤）</label>
+    <select id="gLead"></select>
+    <div style="margin-top:var(--sp-3)">
+      <button class="ft-btn-ai" id="btnGreet" onclick="doGreet()">✨ AI 生成问候语</button>
+    </div>
+    <div class="ft-ai-output ai-out" id="gOut" style="display:none;margin-top:var(--sp-3)"></div>
+    <div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);justify-content:flex-end" id="gActions"></div>
+  </div>
+</dialog>
+
+<!-- AI 设置 -->
+<dialog id="dlgSettings">
+  <div class="dlg-h"><span>AI 设置（Agnes 2.5 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+  <div class="dlg-b" id="agPanel"></div>
+</dialog>
+
+<script src="../agnes-ai.js"></script>
+<script src="../js/datastore.js"></script>
+<script src="../js/holidays_data.js"></script>
+<script>
+'use strict';
+/* ============================================================
+   FT Compass 节假日问候 v0.1（矩阵 #12 模块）
+   数据集自研维护；AI 问候经 genHolidayGreet，落 outreach 防重复
+   ============================================================ */
+var currentHoliday = null;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
+  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+function dstr(y,m,d){ return y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0'); }
+function daysAway(h){
+  var now = new Date(); now.setHours(0,0,0,0);
+  var dt = new Date(h.y, h.m-1, h.d);
+  return Math.round((dt-now)/86400000);
+}
+function codeOf(lead){ return COUNTRY_CODE[(lead.country||'').trim()] || (COUNTRY_CODE[lead.country]||''); }
+function marketOf(lead){ return MARKET_OF_CODE[codeOf(lead)] || lead.market || ''; }
+function holidayMatches(h, lead){
+  if (h.countries === 'ALL') return true;
+  var code = codeOf(lead);
+  return h.countries.indexOf(code) >= 0 || h.countries === 'ALL';
+}
+/* 该节是否已向该客户问候过（outreach 有 type=holiday 且同节日） */
+function greeted(leadId, h){
+  return DataStore.list('outreach').some(function(o){
+    return o.type==='holiday' && o.leadId===leadId && o.holiday===h.name && o.hdate===dstr(h.y,h.m,h.d);
+  });
+}
+
+/* ---------- 渲染 ---------- */
+function render(){
+  var fm = $('fMarket').value;
+  var leads = DataStore.list('leads');
+  var upcoming = HOLIDAYS.map(function(h){ h._days = daysAway(h); return h; })
+    .filter(function(h){ return h._days >= -1 && h._days <= 60; })
+    .sort(function(a,b){ return a._days-b._days; });
+  if (!upcoming.length){ $('list').innerHTML='<div class="empty">未来 60 天没有数据集中的节日（可往 holidays_data.js 补充）</div>'; }
+  else {
+    $('list').innerHTML = upcoming.map(function(h){
+      var matched = leads.filter(function(l){ return (!fm || marketOf(l)===fm) && holidayMatches(h,l); });
+      var greetedN = matched.filter(function(l){ return greeted(l.id,h); }).length;
+      var chips = h.countries==='ALL' ? '<span class="ft-tag" style="background:var(--bg-inset)">全部市场</span>'
+        : h.countries.slice(0,6).map(function(c){ return '<span class="ft-tag" style="background:var(--bg-inset)">'+c+'</span>'; }).join('') + (h.countries.length>6?'<span style="font-size:11px;color:var(--text-3)">+'+(h.countries.length-6)+'</span>':'');
+      return '<div class="ft-card hday"><div class="row1">'
+        + '<span class="name">'+esc(h.name)+'</span>'
+        + '<span class="ft-tag" style="background:var(--brand-100);color:var(--brand-700)">'+esc(h.en||'')+(h.approx?'（'+h.approx+'）':'')+'</span>'
+        + '<span class="dstr">📅 '+dstr(h.y,h.m,h.d)+' · '+(h._days===0?'今天':h._days===1?'明天':'还有 '+h._days+' 天')+'</span>'
+        + (h.trade?'<span class="trade">影响备货</span>':'')
+        + '<span style="flex:1"></span>'
+        + '<button class="ft-btn-ai" style="padding:5px 14px;font-size:12px" onclick="openGreet(\''+h.name+'|'+h.y+'-'+h.m+'-'+h.d+'\')">✨ 生成问候</button>'
+        + '</div>'
+        + '<div style="margin-top:6px">'+chips+'</div>'
+        + (h.note?'<div class="note">'+esc(h.note)+'</div>':'')
+        + '<div class="leadmatch">👤 匹配到 '+matched.length+' 条线索'+(matched.length?'（已问候 '+greetedN+' 条）':'')+'</div>'
+        + '</div>';
+    }).join('');
+  }
+  // 备货提醒：未来 75 天内 trade:true 的节日
+  var trades = HOLIDAYS.map(function(h){ h._days = daysAway(h); return h; })
+    .filter(function(h){ return h.trade && h._days >= 0 && h._days <= 75; })
+    .sort(function(a,b){ return a._days-b._days; });
+  $('trade').innerHTML = trades.length ? trades.map(function(h){
+    return '<div class="ft-card" style="padding:12px 16px;margin-bottom:8px;border-left:3px solid var(--warn)">'
+      + '<b>'+esc(h.name)+'</b>（'+dstr(h.y,h.m,h.d)+(h.approx?' '+h.approx:'')+'，'+h._days+' 天后）— '+esc(h.note)+'</div>';
+  }).join('') : '<div style="color:var(--text-3);font-size:13px">未来 75 天没有影响备货的节点</div>';
+}
+
+/* ---------- AI 问候（矩阵落点：outreach + 防重复） ---------- */
+function openGreet(key){
+  var parts = key.split('|');
+  currentHoliday = HOLIDAYS.find(function(h){ return h.name===parts[0] && dstr(h.y,h.m,h.d)===parts[1]; });
+  if (!currentHoliday) return;
+  $('gTitle').textContent = '🧭 生成问候：'+currentHoliday.name;
+  $('gOut').style.display='none'; $('gActions').innerHTML='';
+  var leads = DataStore.list('leads').filter(function(l){
+    return holidayMatches(currentHoliday, l) && !greeted(l.id, currentHoliday);
+  }).sort(function(a,b){ return (b.score||0)-(a.score||0); });
+  if (!leads.length){ toast('这个节日的匹配客户都已问候过（或没有匹配线索）'); return; }
+  var opts = '<option value="">— 选择客户 —</option>' + leads.map(function(l){
+    return '<option value="'+l.id+'">'+esc(l.name)+'（'+esc(l.country||'')+' · '+(l.score!=null?'AI '+l.score:'未评分')+'）</option>';
+  }).join('');
+  $('gLead').innerHTML = opts;
+  dlgGreet.showModal();
+}
+async function doGreet(){
+  var lead = DataStore.get('leads', $('gLead').value);
+  if (!lead){ toast('先选客户'); return; }
+  $('btnGreet').disabled=true; $('btnGreet').textContent='⏳ 生成中…';
+  try {
+    var txt = await AgnesAI.genHolidayGreet(lead, currentHoliday.name + (currentHoliday.en?' ('+currentHoliday.en+')':''));
+    $('gOut').textContent = txt; $('gOut').style.display='block';
+    var send = txt.split('【中文翻译】')[0].split('中文翻译')[0];
+    var acts = '<button class="iconbtn" onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>alert(\'已复制\'))" data-t="'+esc(send)+'">📋 复制</button>';
+    if (lead.whatsapp) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+String(lead.whatsapp).replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(send)+'">💬 WhatsApp 发送</a>';
+    if (lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(send)+'">✉ Gmail</a>';
+    $('gActions').innerHTML = acts;
+    // 落库：防重复打扰 + 复盘触达量统计
+    DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'holiday',
+      holiday:currentHoliday.name, hdate:dstr(currentHoliday.y,currentHoliday.m,currentHoliday.d), content:txt });
+    render();
+  } catch(e){ $('gOut').textContent='生成失败：'+e.message; $('gOut').style.display='block'; }
+  $('btnGreet').disabled=false; $('btnGreet').textContent='✨ AI 生成问候语';
+}
+
+$('agPanel').innerHTML = AgnesAI.settingsHTML();
+render();
+</script>
+</body>
+</html>

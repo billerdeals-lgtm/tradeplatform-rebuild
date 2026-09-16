@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23fff' stroke-width='3.5'/%3E%3Cpath d='M32 15 L38 32 L32 49 L26 32 Z' fill='%23ffc53d'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%230b6e4f'/%3E%3C/svg%3E">
+<title>FT Compass · AI 开发控制台</title>
+<script src="agnes-ai.js"></script>
+<style>
+  /* 独立视觉体系：翡翠绿 + 米白 + 琥珀点缀（与原版蓝底地球风完全区分） */
+  * { box-sizing: border-box; }
+  body { font: 15px/1.75 system-ui, "Microsoft YaHei", sans-serif; max-width: 760px; margin: 0 auto; padding: 28px 20px 60px; background: #faf9f5; color: #22301f; }
+  header { display: flex; align-items: center; gap: 14px; margin-bottom: 6px; }
+  .logo { width: 52px; height: 52px; border-radius: 12px; background: #0b6e4f; display: flex; align-items: center; justify-content: center; flex: none; }
+  h1 { font-size: 21px; margin: 0; letter-spacing: .5px; }
+  .sub { color: #6d7a68; font-size: 13px; margin: 0 0 26px 66px; }
+  section { background: #fff; border: 1px solid #e4e2d8; border-radius: 14px; padding: 18px 22px; margin-bottom: 18px; }
+  h2 { font-size: 15px; margin: 0 0 12px; color: #0b6e4f; display: flex; align-items: center; gap: 8px; }
+  h2::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #ffc53d; }
+  label { display: block; font-size: 12.5px; color: #5c6657; margin: 12px 0 4px; }
+  input, textarea { width: 100%; padding: 10px 12px; border: 1px solid #d5d2c4; border-radius: 9px; font-size: 14px; background: #fcfcfa; }
+  input:focus, textarea:focus { outline: 2px solid #0b6e4f33; border-color: #0b6e4f; }
+  textarea { min-height: 84px; resize: vertical; }
+  .actions { display: flex; gap: 10px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+  button { padding: 9px 22px; border: 0; border-radius: 9px; background: #0b6e4f; color: #fff; cursor: pointer; font-size: 14px; }
+  button:disabled { opacity: .45; cursor: wait; }
+  .status { font-size: 13.5px; }
+  .ok { color: #0b6e4f; } .bad { color: #b4452c; }
+  .out { background: #f2f4ee; border: 1px solid #e0e2d5; color: #2a3626; border-radius: 10px; padding: 12px 15px; font: 13px/1.7 ui-monospace, Consolas, monospace; white-space: pre-wrap; max-height: 300px; overflow: auto; margin-top: 12px; display: none; }
+  .meta { color: #8a937f; font-size: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <!-- 自研品牌图标：罗盘 + 指针（与原版地球+闪电完全不同） -->
+    <svg width="34" height="34" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="19" fill="none" stroke="#fff" stroke-width="3.5"/>
+      <path d="M32 13 L38.5 32 L32 51 L25.5 32 Z" fill="#ffc53d"/>
+      <circle cx="32" cy="32" r="3.4" fill="#0b6e4f"/>
+    </svg>
+  </div>
+  <h1>FT Compass · AI 开发控制台</h1>
+</header>
+<p class="sub">Agnes 2.5 Flash 接入联调。填好配置 → 测连通 → 通了就可以在业务代码里直接调 AgnesAI.*</p>
+
+<section>
+  <h2>配置（本机 localStorage 保存，仅本机可见）</h2>
+  <div id="cfgBox"></div>
+  <div class="actions">
+    <button id="btnPing">测试连通</button>
+    <span class="status" id="pingRes"></span>
+  </div>
+</section>
+
+<section>
+  <h2>通用调试（任意 prompt 直发）</h2>
+  <textarea id="prompt" placeholder="输入任意 prompt 测试模型输出，例如：把这句话翻成外贸英文：最低起订量 500 件，支持免费样品"></textarea>
+  <div class="actions">
+    <button id="btnAsk">发送</button>
+    <span class="meta" id="cntMeta"></span>
+  </div>
+  <div class="out" id="outAsk"></div>
+</section>
+
+<section>
+  <h2>业务函数速查（控制台 / 代码里直接调）</h2>
+  <div class="meta">
+    AgnesAI.scoreLead(lead) — 线索评分 JSON<br>
+    AgnesAI.genOutreach(lead, scene, me) — 个性化开发信<br>
+    AgnesAI.genReply(lead, customerWords) — 客户回复草稿<br>
+    AgnesAI.genObjection(lead, objection) — 异议处理话术<br>
+    AgnesAI.genReviewInsight(stats) — 复盘洞察<br>
+    AgnesAI.genHolidayGreet(lead, festival) — 节日问候<br>
+    AgnesAI.chat(messages, opts) / AgnesAI.ask(prompt, opts) — 底层通用
+  </div>
+</section>
+
+<script>
+  document.getElementById('cfgBox').innerHTML = AgnesAI.settingsHTML();
+  function showCnt() { document.getElementById('cntMeta').textContent = '今日已调用 ' + AgnesAI.todayCount() + ' 次'; }
+  showCnt();
+
+  document.getElementById('btnPing').onclick = async function () {
+    this.disabled = true;
+    var el = document.getElementById('pingRes');
+    el.textContent = '测试中…';
+    var r = await AgnesAI.ping();
+    el.innerHTML = r.ok ? '<span class="ok">✓ 连通正常 · 回复：' + r.reply + '</span>'
+                        : '<span class="bad">✗ ' + r.error + '</span>';
+    this.disabled = false;
+  };
+
+  document.getElementById('btnAsk').onclick = async function () {
+    this.disabled = true;
+    var el = document.getElementById('outAsk');
+    el.style.display = 'block'; el.textContent = 'AI 思考中…';
+    try {
+      var r = await AgnesAI.ask(document.getElementById('prompt').value);
+      el.textContent = r;
+    } catch (e) { el.textContent = '❌ ' + e.message; }
+    showCnt(); this.disabled = false;
+  };
+</script>
+</body>
+</html>
