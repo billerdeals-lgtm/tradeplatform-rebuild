@@ -49,9 +49,12 @@
     <div class="navitem on" data-view="home"><span class="em">🏠</span>工作台</div>
     <div class="navitem" data-view="modules/find.html"><span class="em">🔍</span>找客户</div>
     <div class="navitem" data-view="modules/leads.html"><span class="em">👤</span>线索 Pipeline</div>
+    <div class="navitem" data-view="modules/customer360.html"><span class="em">🎯</span>客户 360°</div>
     <div class="navitem" data-view="modules/todos.html"><span class="em">✅</span>待办任务</div>
     <div class="navitem" data-view="modules/templates.html"><span class="em">🗨</span>话术库</div>
     <div class="navitem" data-view="modules/maillog.html"><span class="em">📧</span>发送记录</div>
+    <div class="navitem" data-view="modules/quotes.html"><span class="em">💰</span>报价管理</div>
+    <div class="navitem" data-view="modules/calculator.html"><span class="em">🧮</span>利润计算器</div>
     <div class="navitem" data-view="modules/docs.html"><span class="em">📄</span>单证中心</div>
     <div class="navitem" data-view="modules/review.html"><span class="em">📊</span>复盘增长</div>
     <div class="navitem" data-view="modules/holidays.html"><span class="em">🎁</span>复购 · 节假日</div>
@@ -75,8 +78,8 @@
     <div class="grid">
       <div class="ft-card stat" onclick="go('modules/leads.html')"><b id="hLeads" style="color:var(--brand-700)">0</b><span>线索总数</span></div>
       <div class="ft-card stat" onclick="go('modules/leads.html')"><b id="hScored" style="color:var(--accent-500)">0</b><span>已 AI 评分</span></div>
-      <div class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn)">0</b><span>未完成待办</span></div>
-      <div class="ft-card stat" onclick="go('modules/todos.html')"><b id="hOver" style="color:var(--danger)">0</b><span>逾期待办</span></div>
+      <div class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok)">0</b><span>报价中</span></div>
+      <div class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn)">0</b><span>待办</span></div>
     </div>
     <div class="brief" id="briefWrap">
       <div class="ft-card" style="padding:var(--sp-4);display:flex;align-items:center;gap:var(--sp-3)">
@@ -86,8 +89,9 @@
     </div>
     <div class="quick">
       <button class="ft-btn-primary" onclick="go('modules/leads.html')">＋ 录入线索</button>
+      <button class="ft-btn-primary" onclick="go('modules/quotes.html')">💰 新建报价</button>
+      <button class="ft-btn-primary" onclick="go('modules/calculator.html')">🧮 利润计算器</button>
       <button class="ft-btn-primary" onclick="go('modules/templates.html')">翻开话术库</button>
-      <button class="ft-btn-primary" onclick="go('modules/docs.html')">做一张 PI</button>
       <button class="ft-btn-ai" onclick="dlgSettings.showModal()">⚙ AI 设置</button>
     </div>
   </div>
@@ -117,16 +121,16 @@ document.querySelectorAll('.navitem').forEach(function(n){
   n.addEventListener('click', function(){ go(n.dataset.view); });
 });
 function refresh(){
-  var leads = DataStore.list('leads'), todos = DataStore.list('todos');
+  var leads = DataStore.list('leads'), todos = DataStore.list('todos'), quotes = DataStore.list('quotes');
   var today = new Date(); var ts = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
-  var over=0, open=0;
+  var open=0;
   todos.forEach(function(t){
-    if (t.done) return; open++;
-    if (t.due && t.due < ts) over++;
+    if (!t.done) open++;
   });
   $('hLeads').textContent=leads.length;
   $('hScored').textContent=leads.filter(function(l){return l.score!=null;}).length;
-  $('hTodos').textContent=open; $('hOver').textContent=over;
+  $('hQuotes').textContent=quotes.filter(function(q){return q.status==='sent'||q.status==='draft';}).length;
+  $('hTodos').textContent=open;
   $('aiCnt').textContent='今日 AI 已用 '+AgnesAI.todayCount()+' 次';
 }
 async function aiBrief(){

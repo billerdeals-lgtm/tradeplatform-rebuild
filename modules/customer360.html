@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 客户 360°</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  main { max-width:1100px; margin:0 auto; padding:var(--sp-4) var(--sp-6) 80px; display:flex; gap:var(--sp-4); align-items:flex-start; }
+  /* 左：客户列表 */
+  .left { width:300px; flex-shrink:0; }
+  .left .ft-card { padding:var(--sp-3); }
+  .search-box { width:100%; box-sizing:border-box; padding:8px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; margin-bottom:var(--sp-3); }
+  .clist { max-height:calc(100vh - 220px); overflow:auto; }
+  .citem { padding:10px 12px; border-radius:var(--r-sm); cursor:pointer; margin-bottom:4px; border-left:3px solid transparent; transition:all .15s; display:flex; align-items:center; gap:10px; }
+  .citem:hover { background:var(--bg-inset); }
+  .citem.on { background:var(--brand-50); border-left-color:var(--brand-600); }
+  .citem .avatar { width:36px; height:36px; border-radius:50%; background:var(--brand-100); color:var(--brand-700); display:flex; align-items:center; justify-content:center; font-weight:600; font-size:14px; flex-shrink:0; }
+  .citem .ci-info { flex:1; min-width:0; }
+  .citem .ci-name { font-weight:600; font-size:13.5px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .citem .ci-sub { font-size:12px; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .citem .ci-badge { font-size:11px; padding:1px 8px; border-radius:999px; flex-shrink:0; }
+  /* 右：详情 */
+  .right { flex:1; min-width:0; }
+  .profile-card { display:flex; gap:var(--sp-4); align-items:flex-start; padding:var(--sp-4); flex-wrap:wrap; }
+  .profile-card .avatar-lg { width:64px; height:64px; border-radius:50%; background:var(--brand-100); color:var(--brand-700); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:24px; flex-shrink:0; }
+  .profile-card .info { flex:1; min-width:200px; }
+  .profile-card .info h2 { margin:0 0 4px; font-size:20px; }
+  .profile-card .info .sub { font-size:13px; color:var(--text-2); }
+  .profile-card .tags { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .profile-card .tag { font-size:11.5px; padding:3px 10px; border-radius:999px; }
+  .tag-stage { background:var(--brand-100); color:var(--brand-700); }
+  .tag-market { background:#dbeafe; color:#1d4ed8; }
+  .tag-type { background:#fef3c7; color:#92400e; }
+  .profile-card .quick-actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .qa-btn { font-size:12.5px; padding:6px 14px; border-radius:var(--r-sm); border:0; cursor:pointer; display:flex; align-items:center; gap:4px; }
+  .qa-btn.whatsapp { background:#25d366; color:#fff; }
+  .qa-btn.email { background:var(--brand-700); color:#fff; }
+  .qa-btn.quote { background:#f59e0b; color:#fff; }
+  .qa-btn.todo { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border); }
+  /* 统计条 */
+  .stats-bar { display:flex; gap:var(--sp-6); padding:0 var(--sp-4) var(--sp-3); }
+  .stat-item b { display:block; font-size:22px; font-weight:600; }
+  .stat-item span { font-size:12px; color:var(--text-3); }
+  /* 标签页 */
+  .tabs { display:flex; border-bottom:1px solid var(--border); padding:0 var(--sp-4); gap:4px; }
+  .tab { padding:10px 16px; font-size:13.5px; color:var(--text-3); cursor:pointer; border-bottom:2px solid transparent; transition:all .15s; }
+  .tab:hover { color:var(--text-1); }
+  .tab.on { color:var(--brand-700); border-bottom-color:var(--brand-700); font-weight:600; }
+  .tab-content { padding:var(--sp-4); display:none; }
+  .tab-content.on { display:block; }
+  /* 时间线 */
+  .timeline { position:relative; padding-left:24px; }
+  .timeline::before { content:''; position:absolute; left:8px; top:0; bottom:0; width:2px; background:var(--border); }
+  .tl-item { position:relative; margin-bottom:var(--sp-4); }
+  .tl-item::before { content:''; position:absolute; left:-20px; top:6px; width:12px; height:12px; border-radius:50%; border:2px solid var(--brand-600); background:#fff; }
+  .tl-item.done::before { background:var(--brand-600); }
+  .tl-item .tl-date { font-size:12px; color:var(--text-3); }
+  .tl-item .tl-title { font-size:13.5px; font-weight:500; margin:2px 0; }
+  .tl-item .tl-desc { font-size:12.5px; color:var(--text-2); }
+  /* 关联项 */
+  .linked-item { display:flex; align-items:center; gap:var(--sp-3); padding:10px 14px; background:var(--bg-inset); border-radius:var(--r-sm); margin-bottom:6px; font-size:13px; }
+  .linked-item .li-icon { font-size:16px; width:24px; text-align:center; }
+  .linked-item .li-info { flex:1; }
+  .linked-item .li-title { font-weight:500; }
+  .linked-item .li-sub { font-size:12px; color:var(--text-3); }
+  .linked-item .li-amount { font-weight:500; color:var(--brand-700); }
+  .empty-tab { text-align:center; color:var(--text-3); padding:var(--sp-6) 0; font-size:13px; }
+  .note-box { background:var(--bg-inset); border-radius:var(--r-sm); padding:var(--sp-3); margin-top:var(--sp-3); }
+  .note-box textarea { width:100%; box-sizing:border-box; border:0; background:transparent; font-size:13px; font-family:var(--font-sans); resize:vertical; min-height:60px; }
+  .note-box textarea:focus { outline:none; }
+  .note-box .note-saved { font-size:12px; color:var(--ok); margin-top:4px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="logo">
+  <h1>客户 360°</h1>
+</header>
+<main>
+  <div class="left">
+    <div class="ft-card">
+      <input class="search-box" id="searchC" placeholder="搜索客户名/国家/产品…" oninput="renderList()">
+      <div class="clist" id="clist"></div>
+    </div>
+  </div>
+  <div class="right">
+    <div id="detailArea">
+      <div style="text-align:center;color:var(--text-3);padding:var(--sp-8) 0">← 从左侧选择客户查看 360° 视图</div>
+    </div>
+  </div>
+</main>
+
+<script src="../js/datastore.js"></script>
+<script src="../agnes-ai.js"></script>
+<script>
+'use strict';
+
+var S = { lead: null };
+
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function renderList() {
+  var q = $('searchC').value.toLowerCase();
+  var leads = DataStore.list('leads').filter(function(l) {
+    if (!q) return true;
+    return (l.name||'').toLowerCase().includes(q) || (l.country||'').toLowerCase().includes(q) || (l.product||'').toLowerCase().includes(q);
+  }).reverse();
+
+  var box = $('clist');
+  if (!leads.length) { box.innerHTML = '<div class="empty-tab">暂无线索数据</div>'; return; }
+  box.innerHTML = leads.map(function(l) {
+    var initials = (l.name||'?').slice(0,1).toUpperCase();
+    var st = l.stage || '待开发';
+    return '<div class="citem" onclick="selectLead(\'' + l.id + '\')">'
+      + '<div class="avatar">' + esc(initials) + '</div>'
+      + '<div class="ci-info"><div class="ci-name">' + esc(l.name) + '</div>'
+      + '<div class="ci-sub">' + esc(l.country||'') + ' · ' + esc(l.product||'') + '</div></div>'
+      + '<span class="ci-badge tag-stage">' + esc(st) + '</span>'
+      + '</div>';
+  }).join('');
+}
+
+function selectLead(id) {
+  S.lead = DataStore.get('leads', id);
+  if (!S.lead) return;
+  renderDetail();
+  // 高亮
+  document.querySelectorAll('.citem').forEach(function(el){ el.classList.remove('on'); });
+  event.currentTarget.classList.add('on');
+}
+
+function renderDetail() {
+  var l = S.lead;
+  if (!l) return;
+  var initials = (l.name||'?').slice(0,1).toUpperCase();
+
+  // 收集关联数据
+  var quotes = DataStore.list('quotes').filter(function(q){ return q.leadId === l.id; });
+  var todos = DataStore.list('todos').filter(function(t){ return t.leadId === l.id; });
+  var docs = DataStore.list('docs').filter(function(d){ return (d.buyer||'').includes(l.name) || (d.leadId === l.id); });
+  var outreach = DataStore.list('outreach').filter(function(o){ return o.leadId === l.id; });
+
+  var totalQuoted = quotes.reduce(function(s,q){ return s + (q.total||0); }, 0);
+  var quoteCurrency = quotes.length ? quotes[0].currency : 'USD';
+
+  var html = '<div class="ft-card profile-card">'
+    + '<div class="avatar-lg">' + esc(initials) + '</div>'
+    + '<div class="info">'
+    +   '<h2>' + esc(l.name) + '</h2>'
+    +   '<div class="sub">' + esc(l.country||'') + (l.market ? ' · ' + esc(l.market) : '') + '</div>'
+    +   '<div class="tags">'
+    +     '<span class="tag tag-stage">' + esc(l.stage||'待开发') + '</span>'
+    +     (l.market ? '<span class="tag tag-market">' + esc(l.market) + '</span>' : '')
+    +     (l.product ? '<span class="tag tag-type">' + esc(l.product) + '</span>' : '')
+    +   '</div>'
+    + '</div>'
+    + '<div class="quick-actions">'
+    +   (l.wa ? '<a class="qa-btn whatsapp" href="https://wa.me/' + esc(l.wa.replace(/\D/g,'')) + '" target="_blank">💬 WhatsApp</a>' : '')
+    +   (l.email ? '<a class="qa-btn email" href="mailto:' + esc(l.email) + '">✉ 邮件</a>' : '')
+    +   '<button class="qa-btn quote" onclick="parent.go && parent.go(\'modules/quotes.html\')">💰 报价</button>'
+    +   '<button class="qa-btn todo" onclick="addTodo()">✅ 加待办</button>'
+    + '</div>'
+    + '</div>';
+
+  // 统计条
+  html += '<div class="ft-card stats-bar">'
+    + '<div class="stat-item"><b>' + quotes.length + '</b><span>报价</span></div>'
+    + '<div class="stat-item"><b>' + docs.length + '</b><span>单证</span></div>'
+    + '<div class="stat-item"><b>' + todos.length + '</b><span>待办</span></div>'
+    + '<div class="stat-item"><b>' + outreach.length + '</b><span>触达</span></div>'
+    + '<div class="stat-item"><b>' + esc(quoteCurrency) + ' ' + totalQuoted.toFixed(2) + '</b><span>累计报价</span></div>'
+    + '</div>';
+
+  // 标签页
+  html += '<div class="ft-card">'
+    + '<div class="tabs">'
+    +   '<div class="tab on" onclick="switchTab(\'timeline\',this)">📅 时间线</div>'
+    +   '<div class="tab" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
+    +   '<div class="tab" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
+    +   '<div class="tab" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
+    +   '<div class="tab" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
+    +   '<div class="tab" onclick="switchTab(\'notes\',this)">📝 备注</div>'
+    + '</div>';
+
+  // 时间线
+  var events = [];
+  if (l.createdAt) events.push({ date: l.createdAt, title: '线索创建', desc: '来源：' + (l.source||''), done: true });
+  quotes.forEach(function(q){
+    events.push({ date: q.createdAt, title: '报价 ' + (q.no||''), desc: q.currency + ' ' + (q.total||0).toFixed(2) + ' — ' + (q.status||'draft'), done: q.status==='accepted' });
+  });
+  outreach.forEach(function(o){
+    events.push({ date: o.createdAt, title: '触达：' + (o.scene||''), desc: (o.content||'').slice(0,80), done: true });
+  });
+  todos.forEach(function(t){
+    events.push({ date: t.createdAt || t.due, title: '待办：' + (t.title||''), desc: t.done ? '✅ 已完成' : (t.due ? '到期：' + t.due : ''), done: t.done });
+  });
+  events.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+
+  html += '<div class="tab-content on" id="tc-timeline">';
+  if (events.length) {
+    html += '<div class="timeline">' + events.slice(0,15).map(function(ev){
+      return '<div class="tl-item' + (ev.done ? ' done' : '') + '">'
+        + '<div class="tl-date">' + esc(ev.date ? new Date(ev.date).toLocaleDateString() : '') + '</div>'
+        + '<div class="tl-title">' + esc(ev.title) + '</div>'
+        + '<div class="tl-desc">' + esc(ev.desc) + '</div>'
+        + '</div>';
+    }).join('') + '</div>';
+  } else { html += '<div class="empty-tab">暂无交互记录</div>'; }
+  html += '</div>';
+
+  // 报价
+  html += '<div class="tab-content" id="tc-quotes">';
+  if (quotes.length) {
+    quotes.forEach(function(q){
+      html += '<div class="linked-item"><span class="li-icon">💰</span><div class="li-info">'
+        + '<div class="li-title">' + esc(q.no||'未编号') + '</div>'
+        + '<div class="li-sub">' + esc(q.date||'') + ' · ' + esc(q.product||'') + ' · ' + esc(q.status||'draft') + '</div>'
+        + '</div><span class="li-amount">' + esc(q.currency||'USD') + ' ' + (q.total||0).toFixed(2) + '</span></div>';
+    });
+  } else { html += '<div class="empty-tab">暂无报价记录</div>'; }
+  html += '</div>';
+
+  // 单证
+  html += '<div class="tab-content" id="tc-docs">';
+  if (docs.length) {
+    docs.forEach(function(d){
+      html += '<div class="linked-item"><span class="li-icon">📄</span><div class="li-info">'
+        + '<div class="li-title">' + esc(d.title||d.type||'单证') + '</div>'
+        + '<div class="li-sub">' + esc(d.date||'') + ' · ' + esc(d.no||'') + '</div>'
+        + '</div></div>';
+    });
+  } else { html += '<div class="empty-tab">暂无单证记录</div>'; }
+  html += '</div>';
+
+  // 待办
+  html += '<div class="tab-content" id="tc-todos">';
+  if (todos.length) {
+    todos.forEach(function(t){
+      html += '<div class="linked-item"><span class="li-icon">' + (t.done ? '✅' : '⬜') + '</span><div class="li-info">'
+        + '<div class="li-title">' + esc(t.title||'') + '</div>'
+        + '<div class="li-sub">' + (t.due ? '到期：' + esc(t.due) : '') + '</div>'
+        + '</div></div>';
+    });
+  } else { html += '<div class="empty-tab">暂无待办</div>'; }
+  html += '</div>';
+
+  // 触达
+  html += '<div class="tab-content" id="tc-outreach">';
+  if (outreach.length) {
+    outreach.forEach(function(o){
+      html += '<div class="linked-item"><span class="li-icon">📧</span><div class="li-info">'
+        + '<div class="li-title">' + esc(o.scene||'触达') + '</div>'
+        + '<div class="li-sub">' + esc((o.content||'').slice(0,100)) + '</div>'
+        + '</div></div>';
+    });
+  } else { html += '<div class="empty-tab">暂无触达记录</div>'; }
+  html += '</div>';
+
+  // 备注
+  html += '<div class="tab-content" id="tc-notes">'
+    + '<div class="note-box"><textarea id="noteArea" placeholder="记录关于这个客户的备注…">' + esc(l.note||'') + '</textarea>'
+    + '<div class="note-saved" id="noteSaved"></div>'
+    + '<button class="btn-sm" style="margin-top:6px;padding:4px 12px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="saveNote()">保存备注</button>'
+    + '</div>'
+    + '<div class="note-box" style="margin-top:var(--sp-3)"><b style="font-size:13px">AI 客户摘要</b>'
+    + '<div id="aiSummary" style="font-size:13px;color:var(--text-2);margin-top:6px">点击下方按钮生成 AI 对该客户的分析摘要</div>'
+    + '<button class="btn-sm" style="margin-top:8px;padding:4px 12px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="aiSummary()">🧠 AI 生成摘要</button>'
+    + '</div>'
+    + '</div>';
+
+  html += '</div>';
+  $('detailArea').innerHTML = html;
+}
+
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-content').forEach(function(tc){ tc.classList.remove('on'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  $('tc-' + name).classList.add('on');
+  el.classList.add('on');
+}
+
+function saveNote() {
+  if (!S.lead) return;
+  var note = $('noteArea').value.trim();
+  DataStore.update('leads', S.lead.id, { note: note });
+  S.lead.note = note;
+  $('noteSaved').textContent = '✓ 已保存';
+  setTimeout(function(){ $('noteSaved').textContent = ''; }, 2000);
+}
+
+function addTodo() {
+  if (!S.lead) return;
+  var title = prompt('待办事项：');
+  if (!title) return;
+  DataStore.add('todos', {
+    title: title, leadId: S.lead.id, leadName: S.lead.name,
+    due: new Date(Date.now() + 86400000).toISOString().slice(0,10),
+    done: false
+  });
+  renderDetail();
+}
+
+async function aiSummary() {
+  var l = S.lead;
+  if (!l) return;
+  var quotes = DataStore.list('quotes').filter(function(q){ return q.leadId === l.id; });
+  var todos = DataStore.list('todos').filter(function(t){ return t.leadId === l.id; });
+  var outreach = DataStore.list('outreach').filter(function(o){ return o.leadId === l.id; });
+  var box = $('aiSummary');
+  box.textContent = '🧠 AI 分析中…';
+  try {
+    var p = '分析以下外贸客户，给出 360° 摘要和跟进建议。\n'
+      + '客户：' + (l.name||'?') + '（' + (l.country||'?') + '，' + (l.market||'?') + '市场）\n'
+      + '产品：' + (l.product||'?') + '\n'
+      + '阶段：' + (l.stage||'?') + '\n'
+      + '邮箱：' + (l.email||'无') + '\n'
+      + 'WhatsApp：' + (l.wa||'无') + '\n'
+      + '报价次数：' + quotes.length + '，累计报价：' + quotes.reduce(function(s,q){return s+(q.total||0);},0) + '\n'
+      + '触达次数：' + outreach.length + '\n'
+      + '待办数：' + todos.length + '（未完成：' + todos.filter(function(t){return !t.done;}).length + '）\n'
+      + '备注：' + (l.note||'无') + '\n\n'
+      + '请给出：\n'
+      + '1) 客户价值评估（一句话）\n'
+      + '2) 当前跟进状态总结\n'
+      + '3) 下一步最佳行动建议（具体可执行）\n'
+      + '用中文，简洁。';
+    var res = await AgnesAI.ask(p, { temperature: 0.4, maxTokens: 600 });
+    box.textContent = res;
+  } catch(e) {
+    box.textContent = '❌ ' + e.message;
+  }
+}
+
+renderList();
+</script>
+</body>
+</html>

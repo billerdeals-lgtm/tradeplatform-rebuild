@@ -11,58 +11,91 @@
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
   header img { width:34px; height:34px; }
   header h1 { font-size:18px; margin:0; flex:1; }
-  main { max-width:920px; margin:0 auto; padding:var(--sp-6) var(--sp-4) 80px; }
-  .row { display:flex; gap:var(--sp-4); flex-wrap:wrap; align-items:flex-end; }
-  .field { flex:1; min-width:170px; }
-  .field.wide { flex:2.2; min-width:240px; }
-  label { display:block; font-size:12.5px; color:var(--text-3); margin-bottom:5px; }
-  input, select {
-    width:100%; box-sizing:border-box; padding:10px 2px; border:0; border-bottom:1.5px solid var(--border-strong);
-    font-size:14.5px; font-family:var(--font-sans); background:transparent; color:var(--text-1); transition:border-color .15s;
+  main { max-width:1000px; margin:0 auto; padding:var(--sp-4) var(--sp-4) 80px; }
+  /* 搜索区 */
+  .search-area { background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:var(--sp-4); margin-bottom:var(--sp-4); }
+  .row { display:flex; gap:var(--sp-3); flex-wrap:wrap; align-items:flex-end; }
+  .field { flex:1; min-width:150px; }
+  .field.wide { flex:2.5; min-width:220px; }
+  .field label { display:block; font-size:12px; color:var(--text-2); margin-bottom:4px; }
+  .field input, .field select {
+    width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid var(--border-strong);
+    border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card);
   }
-  select { cursor:pointer; }
-  input:focus, select:focus { outline:none; border-bottom-color:var(--brand-700); }
-  ::placeholder { color:var(--text-3); opacity:.55; }
-  .qbox { width:100%; font-family:var(--font-mono); font-size:13.5px; color:var(--brand-700); background:var(--bg-inset); border:0; border-radius:var(--r-sm); padding:11px 14px; margin-top:var(--sp-4); }
-  .qbox:focus { outline:2px solid var(--brand-100); }
-  .acts { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); align-items:center; flex-wrap:wrap; }
-  .status { font-size:13px; color:var(--text-2); }
-  .ft-ai-output { white-space:pre-wrap; font-size:13px; max-height:180px; overflow:auto; margin-top:var(--sp-3); display:none; }
-  .hist { font-size:12.5px; color:var(--text-3); margin-top:var(--sp-4); }
-  .hist span { display:inline-block; background:var(--bg-inset); border-radius:999px; padding:3px 12px; margin:3px 6px 3px 0; cursor:pointer; }
-  .hist span:hover { background:var(--brand-100); }
-  .stats { display:flex; gap:var(--sp-8); margin:var(--sp-6) 0 var(--sp-5); padding:0 var(--sp-2); }
-  .stat b { display:block; font-size:24px; font-weight:600; }
-  .stat span { font-size:12px; color:var(--text-3); }
-  /* 联系人卡 */
-  .lead { background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-3); }
-  .lead .top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
-  .lead .name { font-weight:600; font-size:14.5px; }
-  .lead .src { font-size:12px; color:var(--text-3); word-break:break-all; }
-  .lead .src a { color:var(--text-3); }
-  .contacts { display:flex; flex-direction:column; gap:2px; margin-top:6px; }
-  .contacts a { font-size:13.5px; color:var(--brand-700); text-decoration:none; word-break:break-all; }
-  .contacts a:hover { text-decoration:underline; }
-  .contacts .c-ico { display:inline-block; width:22px; color:var(--text-3); font-size:12px; }
-  .nocontact { font-size:12.5px; color:var(--text-3); margin-top:6px; }
-  .ai-why { font-size:12.5px; color:#8a5a00; margin-top:4px; }
-  .ai-badge { display:inline-block; font-size:11.5px; padding:2px 10px; border-radius:999px; }
-  .ai-buyer { background:var(--accent-100); color:#8a5a00; }
-  .ai-noise { background:var(--bg-inset); color:var(--text-3); }
-  .ai-maybe { background:var(--info-bg); color:var(--info); }
-  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:var(--sp-4); }
-  .chip { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-3); background:var(--bg-inset); border-radius:999px; padding:6px 14px; cursor:pointer; user-select:none; transition:all .15s; }
+  .field input:focus, .field select:focus { outline:none; border-color:var(--brand-600); }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:var(--sp-3); }
+  .chip { display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--text-2); background:var(--bg-inset); border-radius:999px; padding:5px 12px; cursor:pointer; user-select:none; transition:all .15s; border:1px solid transparent; }
   .chip input { width:auto; margin:0; accent-color:var(--brand-700); cursor:pointer; }
-  .chip.on { background:var(--brand-100); color:var(--brand-700); }
-  .chan-tag { display:inline-block; font-size:11px; padding:1px 8px; border-radius:6px; background:var(--bg-inset); color:var(--text-2); white-space:nowrap; }
-  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
-  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:440px; width:92%; }
-  dialog::backdrop { background:rgba(31,41,51,.4); }
-  dialog h3 { margin:0 0 var(--sp-3); font-size:15px; color:var(--brand-700); }
-  dialog label { margin-top:var(--sp-2); }
-  dialog input { background:var(--bg-inset); border-radius:var(--r-sm); padding:9px 12px; border:0; }
-  .btnrow { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); align-items:center; }
-  .ghostbtn { background:none; border:0; cursor:pointer; color:var(--text-2); font-size:13.5px; }
+  .chip.on { background:var(--brand-50); color:var(--brand-700); border-color:var(--brand-200); }
+  .acts { display:flex; gap:var(--sp-3); margin-top:var(--sp-3); align-items:center; flex-wrap:wrap; }
+  .btn-main { padding:9px 24px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .btn-ai { background:linear-gradient(135deg,#f59e0b,#f97316); color:#fff; }
+  .btn-ai:hover { background:linear-gradient(135deg,#d97706,#ea580c); }
+  .btn-ai:disabled { opacity:.5; cursor:not-allowed; }
+  .btn-secondary { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border); }
+  .btn-secondary:hover { background:var(--brand-50); }
+  .status { font-size:13px; color:var(--text-2); margin-left:var(--sp-2); }
+  .progress { width:100%; height:5px; background:var(--bg-inset); border-radius:3px; margin-top:var(--sp-3); overflow:hidden; display:none; }
+  .progress-bar { height:100%; background:linear-gradient(90deg,var(--brand-600),#f59e0b); border-radius:3px; transition:width .4s; width:0%; }
+  /* 统计条 */
+  .stats { display:flex; gap:var(--sp-6); margin:var(--sp-3) 0; }
+  .stat { text-align:center; }
+  .stat b { display:block; font-size:22px; font-weight:700; }
+  .stat span { font-size:11.5px; color:var(--text-3); }
+  /* 结果卡片 */
+  .results-header { display:flex; justify-content:space-between; align-items:center; margin:var(--sp-4) 0 var(--sp-2); }
+  .results-header h3 { margin:0; font-size:14px; color:var(--text-2); }
+  .card { background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:0; margin-bottom:var(--sp-3); overflow:hidden; border:1px solid var(--border); transition:box-shadow .2s; }
+  .card:hover { box-shadow:var(--shadow-pop); }
+  .card-body { padding:var(--sp-3) var(--sp-4); }
+  .card-top { display:flex; align-items:flex-start; gap:12px; }
+  .card-avatar { width:42px; height:42px; border-radius:var(--r-sm); background:var(--brand-100); color:var(--brand-700); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:16px; flex-shrink:0; }
+  .card-info { flex:1; min-width:0; }
+  .card-name { font-weight:600; font-size:15px; line-height:1.3; }
+  .card-meta { font-size:12px; color:var(--text-3); margin-top:2px; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .card-badge { font-size:11px; padding:2px 8px; border-radius:999px; }
+  .badge-buyer { background:#fef3c7; color:#92400e; }
+  .badge-maybe { background:#e0f2fe; color:#0369a1; }
+  .badge-verified { background:#d1fae5; color:#065f46; }
+  .card-why { font-size:12.5px; color:#92400e; margin-top:6px; padding:6px 10px; background:#fffbeb; border-radius:var(--r-sm); }
+  .card-contacts { display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; }
+  .card-contacts a { font-size:13px; color:var(--brand-700); text-decoration:none; display:inline-flex; align-items:center; gap:4px; padding:4px 10px; background:var(--bg-inset); border-radius:var(--r-sm); }
+  .card-contacts a:hover { background:var(--brand-50); }
+  .card-nocontact { font-size:12.5px; color:var(--text-3); margin-top:8px; }
+  .card-links { display:flex; gap:8px; margin-left:auto; }
+  .card-links a { font-size:12px; color:var(--text-3); text-decoration:none; }
+  .card-links a:hover { color:var(--brand-700); }
+  .card-footer { display:flex; gap:8px; padding:8px var(--sp-4); background:var(--bg-inset); border-top:1px solid var(--border); }
+  .card-footer .btn-sm { font-size:12px; padding:5px 14px; border-radius:var(--r-sm); border:0; cursor:pointer; }
+  .btn-import { background:var(--brand-700); color:#fff; }
+  .btn-import:hover { background:var(--brand-800); }
+  .btn-dig { background:none; color:var(--text-2); border:1px solid var(--border) !important; }
+  .btn-dig:hover { background:var(--bg-card); }
+  .imported-tag { font-size:11px; color:var(--ok); display:flex; align-items:center; gap:4px; }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; font-size:14px; }
+  .log { font-size:12px; color:var(--text-3); margin-top:var(--sp-3); max-height:100px; overflow:auto; background:var(--bg-inset); border-radius:var(--r-sm); padding:8px 12px; display:none; }
+  .log div { margin-bottom:1px; }
+  .log .ok { color:var(--ok); }
+  .log .fail { color:var(--danger); }
+  /* 导入弹窗 */
+  dialog { border:0; border-radius:var(--r-lg); box-shadow:0 20px 60px rgba(0,0,0,.3); padding:0; max-width:420px; width:90%; overflow:hidden; }
+  dialog::backdrop { background:rgba(0,0,0,.5); backdrop-filter:blur(4px); }
+  .dlg-header { background:var(--brand-900); color:#fff; padding:var(--sp-3) var(--sp-4); display:flex; justify-content:space-between; align-items:center; }
+  .dlg-header h3 { margin:0; font-size:15px; }
+  .dlg-close { background:none; border:0; color:rgba(255,255,255,.7); font-size:20px; cursor:pointer; padding:0 4px; }
+  .dlg-close:hover { color:#fff; }
+  .dlg-body { padding:var(--sp-4); }
+  .dlg-row { margin-bottom:var(--sp-3); }
+  .dlg-row label { display:block; font-size:12px; color:var(--text-2); margin-bottom:4px; }
+  .dlg-row input { width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; }
+  .dlg-row input:focus { outline:none; border-color:var(--brand-600); }
+  .dlg-row textarea { width:100%; box-sizing:border-box; padding:8px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; font-family:var(--font-sans); resize:vertical; min-height:50px; }
+  .dlg-row2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+  .dlg-footer { display:flex; gap:var(--sp-3); padding:0 var(--sp-4) var(--sp-4); }
+  .dlg-footer button { flex:1; padding:10px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
+  .dlg-save { background:var(--brand-700); color:#fff; }
+  .dlg-save:hover { background:var(--brand-800); }
+  .dlg-cancel { background:var(--bg-inset); color:var(--text-2); }
 </style>
 </head>
 <body>
@@ -71,118 +104,115 @@
   <h1>找客户</h1>
 </header>
 <main>
-  <div class="row">
-    <div class="field wide"><label>产品 / 行业关键词（英文）</label><input id="k_prod"></div>
-    <div class="field"><label>目标市场</label>
-      <select id="k_region">
-        <option value="">全球</option>
-        <option value="Southeast Asia">东南亚</option>
-        <option value="Middle East">中东</option>
-        <option value="USA OR Europe">欧美</option>
-        <option value="Africa">非洲</option>
-        <option value="Philippines">菲律宾</option>
-        <option value="Indonesia">印尼</option>
-        <option value="Thailand">泰国</option>
-        <option value="Malaysia">马来西亚</option>
-        <option value="Cambodia">柬埔寨</option>
-        <option value="Saudi Arabia OR UAE">海湾六国</option>
-      </select>
+  <!-- 搜索区 -->
+  <div class="search-area">
+    <div class="row">
+      <div class="field wide"><label>产品 / 行业关键词（英文）</label><input id="k_prod" placeholder="如：LED light, solar panel, washing powder"></div>
+      <div class="field"><label>目标市场</label>
+        <select id="k_region">
+          <option value="">全球</option>
+          <option value="Southeast Asia">东南亚</option>
+          <option value="Middle East">中东</option>
+          <option value="USA">美国</option>
+          <option value="Europe">欧洲</option>
+          <option value="Africa">非洲</option>
+          <option value="Latin America">拉美</option>
+          <option value="Philippines">菲律宾</option>
+          <option value="Indonesia">印尼</option>
+          <option value="Thailand">泰国</option>
+          <option value="Malaysia">马来西亚</option>
+          <option value="Vietnam">越南</option>
+          <option value="Saudi Arabia">沙特</option>
+          <option value="UAE">阿联酋</option>
+        </select>
+      </div>
+      <div class="field"><label>客户类型</label>
+        <select id="k_type">
+          <option value="wholesaler or distributor">批发商/经销商</option>
+          <option value="importer">进口商</option>
+          <option value="brand owner">品牌方</option>
+          <option value="online store or ecommerce">电商卖家</option>
+          <option value="supermarket or chain store">商超连锁</option>
+        </select>
+      </div>
     </div>
-    <div class="field"><label>客户类型</label>
-      <select id="k_type">
-        <option value="wholesaler OR distributor">批发商/经销商</option>
-        <option value="importer">进口商</option>
-        <option value="brand owner">品牌方</option>
-        <option value="\"online store\" OR shopify">电商卖家</option>
-        <option value="supermarket OR chain">商超连锁</option>
-      </select>
+    <div class="chips" id="chans">
+      <label class="chip on"><input type="checkbox" checked value="google">🔍 Google</label>
+      <label class="chip on"><input type="checkbox" checked value="web">🌐 官网</label>
+      <label class="chip on"><input type="checkbox" checked value="linkedin">💼 LinkedIn</label>
+      <label class="chip on"><input type="checkbox" checked value="facebook">📘 Facebook</label>
+      <label class="chip on"><input type="checkbox" checked value="instagram">📸 Instagram</label>
+      <label class="chip on"><input type="checkbox" checked value="yellow">📒 黄页/B2B</label>
     </div>
+    <div class="acts">
+      <button class="btn-main btn-ai" id="btnSearch" onclick="doAI()">🔍 AI 挖客户</button>
+      <button class="btn-main btn-secondary" id="btnMore" onclick="doMore()" style="display:none">➕ 再挖一批</button>
+      <span class="status" id="st"></span>
+    </div>
+    <div class="progress" id="prog"><div class="progress-bar" id="progBar"></div></div>
   </div>
-  <div class="chips" id="chans">
-    <label class="chip on"><input type="checkbox" checked value="web">🌐 官网</label>
-    <label class="chip on"><input type="checkbox" checked value="linkedin">💼 LinkedIn</label>
-    <label class="chip on"><input type="checkbox" checked value="facebook">📘 Facebook</label>
-    <label class="chip on"><input type="checkbox" checked value="instagram">📸 Instagram</label>
-    <label class="chip on"><input type="checkbox" checked value="yellow">📞 黄页 / B2B 目录</label>
-  </div>
-  <input id="k_query" class="qbox" placeholder="搜索词自动生成，也可直接手写">
-  <div class="acts">
-    <button class="ft-btn-primary" onclick="doSearch()">搜索</button>
-    <button class="ft-btn-ai" onclick="aiSearch()">🧭 AI 智能挖客户</button>
-    <span class="status" id="st"></span>
-  </div>
-  <div id="ai_out" class="ft-ai-output ft-ai-output-card"></div>
-  <div class="hist" id="hist"></div>
 
+  <!-- 统计 -->
   <div class="stats">
     <div class="stat"><b id="stN">0</b><span>本次结果</span></div>
-    <div class="stat"><b id="stContact">0</b><span>有联系方式</span></div>
-    <div class="stat"><b id="stConv">0</b><span>已转线索</span></div>
-    <div class="stat"><b id="stHist">0</b><span>历史搜索</span></div>
+    <div class="stat"><b id="stVerified">0</b><span>已验证</span></div>
+    <div class="stat"><b id="stContact" style="color:var(--ok)">0</b><span>有联系方式</span></div>
+    <div class="stat"><b id="stConv" style="color:var(--brand-700)">0</b><span>已转线索</span></div>
   </div>
 
+  <!-- 一键导入 -->
   <div class="acts" id="bulkRow" style="display:none; margin-top:0">
-    <button class="ft-btn-ai" onclick="bulkImport()">⬇ 一键导入全部有联系方式的</button>
+    <button class="btn-main btn-ai" onclick="bulkImport()">⬇ 一键导入全部有联系方式的</button>
     <span class="status" id="bulkSt"></span>
   </div>
 
+  <!-- 结果 -->
   <div id="results">
-    <div class="empty">填条件后点「AI 智能挖客户」：AI 规划搜索 → 多引擎抓取 → 甄别买家 → 逐站挖联系方式 → 有联系方式的直接导入线索</div>
+    <div class="empty">填入产品关键词，点击「AI 挖客户」开始挖掘 B2B 买家</div>
   </div>
+
+  <div class="log" id="log"></div>
 </main>
 
-<!-- 转线索弹窗 -->
+<!-- 导入线索弹窗 -->
 <dialog id="dlgLead">
-  <h3>导入线索</h3>
-  <label>客户名 / 公司名</label><input id="c_name">
-  <label>国家</label><input id="c_country">
-  <label>邮箱</label><input id="c_email">
-  <label>WhatsApp / 电话</label><input id="c_wa">
-  <label>联系人（可选）</label><input id="c_person">
-  <label>备注（来源 + AI 判断自动记录）</label><input id="c_note">
-  <div class="btnrow">
-    <button class="ft-btn-primary" onclick="convSave()">保存到线索 Pipeline</button>
-    <button class="ghostbtn" onclick="dlgLead.close()">取消</button>
+  <div class="dlg-header">
+    <h3>导入线索</h3>
+    <button class="dlg-close" onclick="dlgLead.close()">✕</button>
+  </div>
+  <div class="dlg-body">
+    <div class="dlg-row"><label>公司名 *</label><input id="c_name"></div>
+    <div class="dlg-row2">
+      <div class="dlg-row"><label>国家</label><input id="c_country"></div>
+      <div class="dlg-row"><label>联系人</label><input id="c_person"></div>
+    </div>
+    <div class="dlg-row2">
+      <div class="dlg-row"><label>邮箱</label><input id="c_email" type="email"></div>
+      <div class="dlg-row"><label>WhatsApp / 电话</label><input id="c_wa"></div>
+    </div>
+    <div class="dlg-row"><label>官网</label><input id="c_website"></div>
+    <div class="dlg-row"><label>备注</label><textarea id="c_note"></textarea></div>
+  </div>
+  <div class="dlg-footer">
+    <button class="dlg-cancel" onclick="dlgLead.close()">取消</button>
+    <button class="dlg-save" onclick="convSave()">保存到线索</button>
   </div>
 </dialog>
 
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
 <script>
-/* 找客户 v2.1：多渠道联系人收割
-   渠道：官网 / LinkedIn / Facebook / Instagram / 黄页B2B目录（可勾选）
-   社媒页走"摘要提取 + 跟挖其登记官网"；黄页条目直挖 + 跟挖页面里的公司官网 */
-var S = { results: [], pending: null };
+'use strict';
+
+var S = { results: [], convIds: {}, round: 0 };
 
 function v(id) { return document.getElementById(id).value; }
+function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch(e) { return ''; } }
 
-/* ---------- 渠道识别 / 外部官网提取 / 渠道选择 ---------- */
-var CHAN_NAME = { web: '🌐 官网', linkedin: '💼 LinkedIn', facebook: '📘 Facebook', instagram: '📸 Instagram', yellow: '📞 黄页/目录', social: '🔗 社媒' };
-var CHAN_RULES = [
-  ['linkedin',  /(^|\.)linkedin\.com$/i],
-  ['facebook',  /(^|\.)(facebook\.com|fb\.com|fb\.me)$/i],
-  ['instagram', /(^|\.)instagram\.com$/i],
-  ['yellow',    /yellowpages?\d*\.(com|co|pk|ae|sa|ca|com\.au|co\.uk|co\.in|co\.za)|(^|\.)yp\.(com|at)|europages\.|kompass\.|tradekey\.|thomasnet\.|exportersindia\.|wholesalecentral\.|dmoz|directory\./i],
-  ['social',    /twitter\.com|x\.com|youtube\.com|tiktok\.com|pinterest\./i]
-];
-function chanOf(url) {
-  var h = hostOf(url);
-  for (var i = 0; i < CHAN_RULES.length; i++) if (CHAN_RULES[i][1].test(h)) return CHAN_RULES[i][0];
-  return 'web';
-}
-/* 这些域名不是公司自己的官网（从摘要/页面里提取"外部官网"时排除） */
-var SOCIAL_BLOCK = /linkedin\.|facebook\.|fb\.com|instagram\.|twitter\.|x\.com|youtube\.|tiktok\.|pinterest\.|yandex\.|bing\.|google\.|duckduckgo\.|wa\.me|whatsapp\.|gmail\.|outlook\.|hotmail\.|yahoo\.|yellowpages?\.|europages\.|kompass\.|tradekey\.|thomasnet\.|alibaba\.|amazon\.|aliexpress\.|made-in-china\.|wikipedia\.|reddit\.|microsoft\./i;
-/* 从摘要/页面文本里提取公司自己登记的官网（社媒主页、黄页条目里常带） */
-function siteFromText(t) {
-  if (!t) return '';
-  var m = t.match(/(?:website|web\s*site|web|site|homepage)\s*[:：]?\s*((?:https?:\/\/)?[a-z0-9][a-z0-9.-]{2,60}\.[a-z]{2,}(?:\/[^\s"'<>]*)?)/i);
-  if (m && !SOCIAL_BLOCK.test(m[1])) return /^https?:/i.test(m[1]) ? m[1] : 'https://' + m[1];
-  var m2 = t.match(/\b([a-z0-9][a-z0-9-]{2,40}\.(?:com(?:\.(?:pk|au|sa|my|ph|eg|tr))?|net|co(?:\.(?:uk|za|in|id))?|org|biz|ae|io))\b/i);
-  if (m2 && !SOCIAL_BLOCK.test(m2[1])) return 'https://' + m2[1];
-  return '';
-}
+/* ========== 渠道 ========== */
+var CHAN_NAME = { google:'🔍 Google', web:'🌐 官网', linkedin:'💼 LinkedIn', facebook:'📘 Facebook', instagram:'📸 Instagram', yellow:'📒 黄页' };
 function selChans() {
   return Array.prototype.map.call(document.querySelectorAll('#chans input:checked'), function(i){ return i.value; });
 }
@@ -190,411 +220,397 @@ document.querySelectorAll('#chans .chip').forEach(function(ch) {
   ch.addEventListener('change', function(){ ch.classList.toggle('on', ch.querySelector('input').checked); });
 });
 
-/* ---------- 搜索词拼装（手动搜索用） ---------- */
-function buildQuery() {
-  var prod = v('k_prod').trim(), reg = v('k_region'), type = v('k_type');
-  if (!prod) return '';
-  var q = prod;
-  if (type) q += ' ' + type;
-  if (reg) q += ' ' + reg;
-  q += ' -site:alibaba.com -site:amazon.com -site:aliexpress.com';
-  return q;
+/* ========== 日志 ========== */
+function log(msg, ok) {
+  var box = $('log'); box.style.display = 'block';
+  var d = document.createElement('div');
+  d.className = ok === true ? 'ok' : ok === false ? 'fail' : '';
+  d.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+  box.appendChild(d); box.scrollTop = box.scrollHeight;
 }
-['k_prod','k_region','k_type'].forEach(function(id){
-  document.getElementById(id).addEventListener('change', function(){ document.getElementById('k_query').value = buildQuery(); });
-});
+function setProgress(pct) {
+  $('prog').style.display = pct > 0 ? 'block' : 'none';
+  $('progBar').style.width = pct + '%';
+}
 
-/* ---------- 代理链：allorigins → codetabs → jina ---------- */
+/* ========== 代理链 ========== */
 var PROXIES = [
-  { name: 'allorigins', wrap: function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); }, html: true },
-  { name: 'codetabs',   wrap: function(u){ return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }, html: true },
-  { name: 'jina',       wrap: function(u){ return 'https://r.jina.ai/' + u; }, html: false }
+  { name:'allorigins', wrap: function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); } },
+  { name:'jina',       wrap: function(u){ return 'https://r.jina.ai/' + u; } }
 ];
-async function fetchThrough(url, timeoutMs) {
+async function fetchPage(url, timeoutMs) {
   for (var i = 0; i < PROXIES.length; i++) {
     var p = PROXIES[i];
     try {
-      var r = await fetch(p.wrap(url), { signal: AbortSignal.timeout(timeoutMs || 20000) });
+      var r = await fetch(p.wrap(url), { signal: AbortSignal.timeout(timeoutMs || 15000) });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       var t = await r.text();
-      if (t && t.length > 400) return { body: t, html: p.html, via: p.name };
-      throw new Error('short');
-    } catch (e) { /* 下一个代理 */ }
+      if (t && t.length > 200) return { body: t, via: p.name };
+    } catch(e) {}
   }
-  throw new Error('all proxies failed');
+  throw new Error('fetch failed');
 }
 
-/* ---------- 多引擎搜索 URL 与解析 ---------- */
-var ENGINES = [
-  { name: 'Bing',      url: function(q){ return 'https://www.bing.com/search?q=' + encodeURIComponent(q) + '&count=20'; } },
-  { name: 'DuckDuckGo',url: function(q){ return 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q); } },
-  { name: 'Yandex',    url: function(q){ return 'https://yandex.com/search/?text=' + encodeURIComponent(q); } }
-];
-function parseResults(body, isHtml) {
+/* ========== Google 搜索解析 ========== */
+function parseGoogleResults(html) {
   var out = [];
-  if (!isHtml) {
-    // jina markdown：[标题](url) + 摘要行
-    var cur = null;
-    body.split('\n').forEach(function(l) {
-      var m = l.match(/^#{2,4}\s*\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/) || l.match(/^\[([^\]]{5,90})\]\((https?:\/\/[^\)]+)\)\s*$/);
-      if (m && !/bing\.com|duckduckgo\.com|yandex\.|microsoft|\.css|\.js/i.test(m[2])) {
-        if (cur) out.push(cur);
-        cur = { title: m[1].trim(), url: m[2], snippet: '' };
-      } else if (cur && !cur.snippet && l.trim().length > 30) {
-        cur.snippet = l.trim().slice(0, 300);
-      }
-    });
-    if (cur) out.push(cur);
-    return out;
-  }
-  var doc = new DOMParser().parseFromString(body, 'text/html');
-  // Bing
-  doc.querySelectorAll('li.b_algo').forEach(function(li) {
-    var a = li.querySelector('h2 a'), cap = li.querySelector('.b_caption p, p');
-    if (a && a.href) out.push({ title: a.textContent.trim(), url: a.href, snippet: cap ? cap.textContent.trim() : '' });
-  });
-  if (out.length) return out;
-  // DuckDuckGo html 版
-  doc.querySelectorAll('a.result__a').forEach(function(a) {
-    var href = a.href || '', m = href.match(/[?&]uddg=([^&]+)/);
-    if (m) href = decodeURIComponent(m[1]);
-    if (!/^https?:/.test(href)) return;
-    var box = a.closest('.result') || a.parentElement.parentElement;
-    var sn = box ? (box.querySelector('.result__snippet') || {}).textContent || '' : '';
-    out.push({ title: a.textContent.trim(), url: href, snippet: sn.trim().slice(0, 300) });
-  });
-  if (out.length) return out;
-  // Yandex（尽力而为）
-  doc.querySelectorAll('.OrganicTitle-Link, .organic__url, a.link').forEach(function(a) {
-    var href = a.href || '';
-    var m = href.match(/yandex\.com\/search\/.*?url=([^&]+)/) || href.match(/yandex\.com\/clck\/.*?u=([^&]+)/);
-    if (m) { try { href = decodeURIComponent(m[1].replace(/%3A/ig, ':').replace(/%2F/ig, '/')); } catch (e) {} }
-    if (!/^https?:/.test(href) || /yandex\.|\/search/.test(href)) return;
-    var box = a.closest('.serp-item, .organic');
-    var sn = box ? (box.querySelector('.organic__content-wrapper, .OrganicTextContentSpan') || {}).textContent || '' : '';
-    var t = (a.textContent || '').trim();
-    if (t.length > 8) out.push({ title: t.slice(0, 100), url: href, snippet: sn.trim().slice(0, 300) });
+  var doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('div.g, div[data-hveid]').forEach(function(el) {
+    var a = el.querySelector('a[href^="http"]');
+    if (!a) return;
+    var href = a.href;
+    if (/google\./.test(href) || /youtube\.com\/results/.test(href)) return;
+    var title = (a.querySelector('h3') || a).textContent.trim();
+    var snippet = '';
+    var snEl = el.querySelector('.VwiC3b, .IsZvec, [data-sncf], span.aCOpRe');
+    if (snEl) snippet = snEl.textContent.trim().slice(0, 300);
+    if (title.length > 5) out.push({ title: title.slice(0, 100), url: href, snippet: snippet });
   });
   return out;
 }
 
-/* ---------- 联系方式提取 ---------- */
+/* ========== 联系方式提取 ========== */
 function extractContacts(text) {
-  var c = { emails: [], was: [], phones: [], person: '' };
+  var c = { emails:[], phones:[], was:[] };
   if (!text) return c;
-  // 邮箱（滤掉图片/脚本资源）
-  var emBad = /\.(png|jpe?g|gif|webp|svg|css|js|ico|woff2?)\b/i;
+  var bad = /\.(png|jpe?g|gif|webp|svg|css|js|ico|woff2?)\b/i;
   var ems = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || [];
-  ems.forEach(function(e) { if (!emBad.test(e) && c.emails.indexOf(e.toLowerCase()) < 0 && c.emails.length < 4) c.emails.push(e.toLowerCase()); });
-  // WhatsApp 链接 / 数字
+  ems.forEach(function(e) { if (!bad.test(e) && c.emails.indexOf(e.toLowerCase()) < 0 && c.emails.length < 4) c.emails.push(e.toLowerCase()); });
   var waRe = /(?:wa\.me\/|whatsapp:\/\/send\?phone=|api\.whatsapp\.com\/send\?phone=)(\+?\d[\d\s]{6,16})/gi, m;
   while ((m = waRe.exec(text)) && c.was.length < 3) {
     var d = m[1].replace(/\D/g, ''); if (d.length >= 8 && c.was.indexOf(d) < 0) c.was.push(d);
   }
-  // 国际电话（tel: 链接优先，其次 + 国家码格式）
   var telRe = /tel:(\+?\d[\d\s().-]{6,17}\d)/gi;
   while ((m = telRe.exec(text)) && c.phones.length < 3) {
-    var d2 = m[1].replace(/\D/g, ''); if (d2.length >= 8 && c.was.indexOf(d2) < 0 && c.phones.indexOf(d2) < 0) c.phones.push(m[1].replace(/\s+/g, ' ').trim());
+    var d2 = m[1].replace(/\D/g, ''); if (d2.length >= 8 && c.was.indexOf(d2) < 0 && c.phones.indexOf(d2) < 0) c.phones.push(m[1].replace(/\s+/g,' ').trim());
   }
   var plusRe = /\+\d{1,3}[\s().-]?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}\b/g;
   while ((m = plusRe.exec(text)) && c.phones.length < 3) {
     var d3 = m[0].replace(/\D/g, ''); if (d3.length >= 9 && c.was.indexOf(d3) < 0 && c.phones.indexOf(m[0]) < 0) c.phones.push(m[0].trim());
   }
-  // 联系人名：常见线索（Contact: xxx / 陈述式姓名行）
-  var pm = text.match(/(?:contact\s*(?:person|:)?\s*[:：]\s*)([A-Z][A-Za-z.'-]+(?:\s+[A-Z][A-Za-z.'-]+){0,2})/);
-  if (pm) c.person = pm[1].trim();
   return c;
 }
 
-/* ---------- 抓取一个买家站点，挖联系方式 ---------- */
-async function harvestSite(item, st) {
-  if (item.contacts) return item.contacts;
+/* ========== 验证官网 ========== */
+async function verifyCompany(comp) {
+  if (!comp.website) return comp;
   try {
-    var res = await fetchThrough(item.url, 18000);
-    var text = res.body;
-    if (res.html) {
-      var doc = new DOMParser().parseFromString(res.body, 'text/html');
-      doc.querySelectorAll('script,style,noscript').forEach(function(n){ n.remove(); });
-      text = (doc.body ? doc.body.innerText : '') + ' ' + res.body.slice(0, 60000); // innerText + 原始串(抓 mailto/wa.me)
-    }
-    item._pageText = text.slice(0, 120000); // 留底：黄页条目里常写有公司自己的官网
-    item.contacts = extractContacts(text.slice(0, 120000));
-    // 公司名兜底：<title> 或 og:site_name
-    if (!item.company) {
-      var tm = res.body.match(/<title[^>]*>([^<]{3,80})<\/title>/i);
-      if (tm) item.company = tm[1].replace(/\s*[|\-–—]\s*home.*$/i, '').trim();
-    }
-  } catch (e) { item.contacts = { emails: [], was: [], phones: [], person: '', fail: true }; }
-  return item.contacts;
+    var res = await fetchPage(comp.website, 12000);
+    var doc = new DOMParser().parseFromString(res.body, 'text/html');
+    doc.querySelectorAll('script,style,noscript').forEach(function(n){ n.remove(); });
+    var text = (doc.body ? doc.body.innerText : '') + ' ' + res.body.slice(0, 40000);
+    var extracted = extractContacts(text);
+    if (extracted.emails.length && (!comp.email || comp.email.length < 5)) comp.email = extracted.emails[0];
+    if (extracted.was.length && !comp.phone) comp.phone = '+' + extracted.was[0];
+    else if (extracted.phones.length && !comp.phone) comp.phone = extracted.phones[0];
+    comp._verified = true;
+    log('✓ ' + hostOf(comp.website) + (comp.email ? ' → ' + comp.email : ''), true);
+  } catch(e) {
+    comp._verified = false;
+  }
+  return comp;
 }
 
-/* ---------- 渠道感知深挖 ----------
-   社媒(LinkedIn/FB/IG)：登录墙拦爬 → ①从摘要里找它登记的外部官网，挖官网；②摘要本身也可能带邮箱
-   黄页/目录：先挖条目页（通常有电话）；没挖到再跟页面里写的公司官网挖一次 */
-async function deepHarvest(item, st) {
-  var chan = item.chan || chanOf(item.url);
-  if (chan === 'linkedin' || chan === 'facebook' || chan === 'instagram') {
-    var ext = siteFromText((item.title || '') + ' ' + (item.snippet || ''));
-    if (ext) {
-      var fake = { url: ext };
-      await harvestSite(fake, st);
-      if (hasContact(fake)) {
-        item.contacts = fake.contacts;
-        if (!item.company || item.company.length < 4) item.company = fake.company || item.company;
-        item.extSite = ext;
-        return item.contacts;
-      }
-    }
-    item.contacts = extractContacts((item.title || '') + ' ' + (item.snippet || ''));
-    return item.contacts;
-  }
-  await harvestSite(item, st);
-  if (!hasContact(item) && item._pageText) {
-    var ext2 = siteFromText(item._pageText.slice(0, 30000));
-    if (ext2 && hostOf(ext2) !== hostOf(item.url)) {
-      var fake2 = { url: ext2 };
-      await harvestSite(fake2, st);
-      if (hasContact(fake2)) {
-        item.contacts = fake2.contacts;
-        if (!item.company || item.company.length < 4) item.company = fake2.company || item.company;
-        item.extSite = ext2;
-      }
-    }
-  }
-  return item.contacts;
-}
-
-/* ---------- 手动搜索（摘要级挖联系方式） ---------- */
-async function doSearch() {
-  var q = v('k_query').trim() || buildQuery();
-  if (!q) { document.getElementById('st').textContent = '请先填产品关键词'; return; }
-  var st = document.getElementById('st');
-  st.textContent = '搜索中…';
+/* ========== Google 搜索抓取 ========== */
+async function googleSearch(query, timeoutMs) {
+  var url = 'https://www.google.com/search?q=' + encodeURIComponent(query) + '&num=20&hl=en';
   try {
-    var res = await fetchThrough(ENGINES[0].url(q));
-    S.results = parseResults(res.body, res.html).slice(0, 15).map(function(r) {
-      return Object.assign(r, extractContacts(r.snippet));
-    });
-    st.textContent = '经 ' + ENGINES[0].name + '/' + res.via + ' 返回 ' + S.results.length + ' 条（摘要级联系方式，点「挖」深挖整站）';
-    render();
-    DataStore.add('searches', { query: q, via: res.via, n: S.results.length });
-    renderHist();
-  } catch (e) { st.textContent = '❌ 搜索失败：' + e.message; }
+    var res = await fetchPage(url, timeoutMs || 20000);
+    return parseGoogleResults(res.body);
+  } catch(e) {
+    log('Google 搜索失败: ' + e.message, false);
+    return [];
+  }
 }
 
-/* ---------- 🧭 AI 智能挖客户：全管线 ---------- */
-async function aiSearch() {
+/* ========== 主流程 ========== */
+async function doAI() {
   var prod = v('k_prod').trim();
-  if (!prod) { alert('先填产品关键词'); return; }
-  var st = document.getElementById('st'), box = document.getElementById('ai_out');
-  var market = v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '全球';
-  var ctype = document.getElementById('k_type').selectedOptions[0].text;
+  if (!prod) { alert('请先填写产品关键词'); return; }
+  var market = v('k_region') ? $('k_region').selectedOptions[0].text : '全球';
+  var ctype = $('k_type').selectedOptions[0].text;
+  var chans = selChans();
+  if (!chans.length) { alert('请至少勾选一个渠道'); return; }
+
+  S.round++;
+  $('btnSearch').disabled = true;
+  $('btnSearch').innerHTML = '⏳ 挖掘中…';
+  $('btnMore').style.display = 'none';
+  setProgress(5);
+  log('开始第 ' + S.round + ' 轮：' + prod + ' / ' + market + ' / ' + ctype);
+
   try {
-    /* 1. AI 按勾选渠道生成专属搜索词：官网 / LinkedIn / Facebook / Instagram / 黄页目录 */
-    var chans = selChans();
-    if (!chans.length) { st.textContent = '请至少勾选一个采集渠道'; return; }
-    st.textContent = '🧭 AI 生成搜索策略…'; box.style.display = 'block'; box.textContent = 'AI 规划搜索词中…';
-    var CHAN_DESC = {
-      web:      '"web":["买家官网词x2-3"，distributor/wholesaler/importer 换表述，带 -site:alibaba.com -site:amazon.com',
-      linkedin: '"linkedin":["site:linkedin.com/company 产品词 distributor" 等x2，可加一条 site:linkedin.com/in 找采购负责人',
-      facebook: '"facebook":["site:facebook.com 产品词 (contact OR whatsapp OR \"@gmail.com\")" 等x2',
-      instagram:'"instagram":["site:instagram.com 产品词 (gmail OR contact OR whatsapp)" 等x1-2',
-      yellow:   '"yellow":["site:yellowpages.com 产品词 importer" 等x2，按目标市场挑对应国家的黄页/目录站点（europages/kompass/tradekey/yellowpages.pk 等）]'
-    };
-    var keyDesc = chans.map(function(c){ return CHAN_DESC[c] || ''; }).join('；');
-    var rawQ = await AgnesAI.ask(
-      '我要在搜索引擎多渠道挖外贸 B2B 买家的联系方式（邮箱/WhatsApp/电话）。产品：' + prod + '；市场：' + market + '；优先客户类型：' + ctype + '。'
-      + '输出 JSON，键与要求：' + keyDesc + '。全部为英文搜索词；不要解释。',
-      { json: true, maxTokens: 700, temperature: 0.4 });
-    var qRes = AgnesAI.parseLoose(rawQ) || {};
-    var plan = [];
-    chans.forEach(function(chan) {
-      (Array.isArray(qRes[chan]) ? qRes[chan] : []).forEach(function(q, i) {
-        if (typeof q !== 'string' || q.length < 6 || plan.length >= 10) return;
-        plan.push({ q: q.trim(), chan: chan, eng: ENGINES[(plan.length + (chan === 'instagram' ? 1 : 0)) % 2] });
-      });
-    });
-    if (!plan.length) throw new Error('AI 未返回可用搜索词（片段：' + String(rawQ).slice(0, 120) + '）');
-    box.textContent = plan.map(function(p){ return '[' + CHAN_NAME[p.chan] + '] ' + p.q; }).join('\n');
+    // 1. AI 生成搜索词 + 公司名单
+    $('st').textContent = '🧠 AI 生成搜索策略…';
+    setProgress(10);
+    var aiRes = await AgnesAI.findBuyers(prod, market, ctype, chans);
+    var companies = (aiRes && aiRes.companies) || [];
+    if (!companies.length) throw new Error('AI 未返回公司名单，请调整关键词');
+    log('AI 输出 ' + companies.length + ' 家公司');
+    setProgress(25);
 
-    /* 2. 自动逐组搜索（Bing/DDG 轮换；web 渠道按域名去重，社媒渠道保留不同主页） */
-    var seen = {}, merged = [];
-    for (var pi = 0; pi < plan.length; pi++) {
-      var p = plan[pi];
-      st.textContent = '🧭 [' + CHAN_NAME[p.chan] + '] ' + p.eng.name + ' 搜索 ' + (pi + 1) + '/' + plan.length + '…';
-      try {
-        var res = await fetchThrough(p.eng.url(p.q), 22000);
-        parseResults(res.body, res.html).forEach(function(r) {
-          var key = (p.chan === 'web') ? hostOf(r.url) : r.url.split('#')[0];
-          if (!key || seen[key]) return;
-          seen[key] = 1;
-          r.chan = (p.chan === 'web') ? chanOf(r.url) : p.chan;
-          Object.assign(r, extractContacts((r.title + ' ' + r.snippet))); // 摘要级先挖一遍
-          merged.push(r);
-        });
-      } catch (e) { /* 单组失败跳过 */ }
-    }
-    if (!merged.length) throw new Error('各组搜索均无结果（引擎可能限流，稍后再试）');
-    S.results = merged.slice(0, 26);
-    box.textContent += '\n\n共 ' + merged.length + ' 条（去重后）。开始 AI 甄别 + 渠道感知深挖…';
-
-    /* 3. AI 批量甄别 buyer/maybe/noise（决定深挖优先级） */
-    st.textContent = '🧭 AI 甄别买家…';
-    var digest = S.results.map(function(r, i) {
-      return i + '|[' + (r.chan || 'web') + ']| ' + r.title.slice(0, 70) + ' | ' + hostOf(r.url) + ' | ' + (r.snippet || '').slice(0, 80);
-    }).join('\n');
-    var rawV = await AgnesAI.ask(
-      '以下是多渠道外贸客户搜索结果（序号|[渠道]|标题|域名|摘要）。逐条判断是否值得深挖联系方式的 B2B 买家/渠道商。'
-      + '输出 JSON：{"results":[{"i":序号,"verdict":"buyer|maybe|noise","type":"importer/distributor/wholesaler/brand/…","why":"≤15字中文理由"}]}。'
-      + '规则：B2B 公司官网=buyer；LinkedIn/Facebook/Instagram 公司主页=maybe（type 标注）；黄页/B2B目录里的公司条目=maybe；平台店铺页/新闻/个人生活内容=noise。\n' + digest,
-      { json: true, maxTokens: 1400, temperature: 0.2 });
-    var vRes = AgnesAI.parseLoose(rawV) || {};
-    ((vRes && vRes.results) || []).forEach(function(vv) {
-      var idx = parseInt(vv.i, 10);
-      if (S.results[idx] && /^(buyer|maybe|noise)$/.test(vv.verdict)) {
-        S.results[idx].ai = { verdict: vv.verdict, type: vv.type || '', why: vv.why || '' };
+    // 2. Google 搜索补充更多公司
+    if (chans.includes('google')) {
+      $('st').textContent = '🔍 Google 搜索补充…';
+      var gQueries = [
+        prod + ' ' + ctype + ' ' + market + ' -site:alibaba.com -site:amazon.com',
+        prod + ' importer distributor contact email ' + market,
+        'site:linkedin.com/company ' + prod + ' ' + ctype
+      ];
+      for (var gi = 0; gi < gQueries.length; gi++) {
+        try {
+          var gResults = await googleSearch(gQueries[gi]);
+          gResults.forEach(function(r) {
+            var host = hostOf(r.url);
+            if (!host || /google\.|bing\.|duckduckgo\.|alibaba\.|amazon\.|aliexpress\./.test(host)) return;
+            var exists = companies.some(function(c){ return c.website && hostOf(c.website) === host; });
+            if (exists) return;
+            var extracted = extractContacts((r.title || '') + ' ' + (r.snippet || ''));
+            companies.push({
+              name: r.title.split(/[|\-–—]/)[0].trim().slice(0, 60),
+              country: '', type: '', website: r.url,
+              email: extracted.emails[0] || '', phone: extracted.phones[0] || '',
+              linkedin: '', facebook: '', instagram: '',
+              products: prod, why: 'Google 搜索结果',
+              _chan: 'google', _fromSearch: true
+            });
+          });
+          setProgress(25 + gi * 10);
+        } catch(e) {}
       }
+      log('Google 补充后共 ' + companies.length + ' 家');
+    }
+
+    // 3. 并发验证官网（最多 15 个）
+    var toVerify = companies.filter(function(c){ return c.website && !c.email; }).slice(0, 15);
+    setProgress(40);
+    for (var i = 0; i < toVerify.length; i += 3) {
+      var batch = toVerify.slice(i, i + 3);
+      $('st').textContent = '🔍 验证官网 ' + (i + 1) + '-' + Math.min(i + 3, toVerify.length) + '/' + toVerify.length + '…';
+      setProgress(40 + Math.round((i / toVerify.length) * 40));
+      await Promise.all(batch.map(verifyCompany));
+      render();
+    }
+
+    // 4. 去重合并
+    companies.forEach(function(c) {
+      if (!c._chan) c._chan = c.linkedin ? 'linkedin' : c.facebook ? 'facebook' : c.instagram ? 'instagram' : 'web';
+      var exists = S.results.some(function(r){
+        return (r.name && r.name === c.name) || (r.website && c.website && hostOf(r.website) === hostOf(c.website));
+      });
+      if (!exists) S.results.push(c);
     });
 
-    /* 4. 渠道感知深挖：buyer 优先，其次 maybe（社媒页自动跟官网、黄页先条目后官网），最多 10 站 */
-    var digList = S.results.filter(function(r){ return r.ai && r.ai.verdict !== 'noise'; })
-      .concat(S.results.filter(function(r){ return !r.ai; }))
-      .slice(0, 10);
-    for (var di = 0; di < digList.length; di++) {
-      st.textContent = '🧭 挖联系方式 ' + (di + 1) + '/' + digList.length + '（' + CHAN_NAME[digList[di].chan || 'web'] + ' · ' + hostOf(digList[di].url) + '）…';
-      await deepHarvest(digList[di], st);
-      render(); // 边挖边出结果
-    }
+    setProgress(100);
     var nC = S.results.filter(hasContact).length;
-    st.textContent = '完成：' + S.results.length + ' 条，其中 ' + nC + ' 条有联系方式';
-    DataStore.add('searches', { query: '🧭 ' + prod + '（' + market + '）AI 智能挖', via: 'ai-pipeline', n: S.results.length, contacts: nC });
-    renderHist();
-  } catch (e) {
-    st.textContent = '❌ ' + e.message;
-    box.style.display = 'block';
-    box.textContent = 'AI 智能挖中断：' + e.message;
+    var nV = S.results.filter(function(r){ return r._verified; }).length;
+    $('st').textContent = '✅ 完成：' + S.results.length + ' 家公司，' + nC + ' 家有联系方式';
+    log('完成：总计 ' + S.results.length + ' 家，' + nC + ' 家有联系方式', true);
+
+    DataStore.add('searches', {
+      query: prod + '（' + market + '）',
+      via: 'ai+google', n: companies.length, contacts: nC, round: S.round
+    });
+
+    if (companies.length >= 8) $('btnMore').style.display = 'inline-flex';
+    render();
+  } catch(e) {
+    $('st').textContent = '❌ ' + e.message;
+    log('失败：' + e.message, false);
   }
+
+  $('btnSearch').disabled = false;
+  $('btnSearch').innerHTML = '🔍 AI 挖客户';
+  setTimeout(function(){ setProgress(0); }, 2000);
 }
 
-/* ---------- 渲染（联系人制） ---------- */
-function hasContact(r) { return r.contacts && ((r.contacts.emails && r.contacts.emails.length) || (r.contacts.was && r.contacts.was.length) || (r.contacts.phones && r.contacts.phones.length)); }
-function render() {
-  var box = document.getElementById('results');
-  var nC = S.results.filter(hasContact).length;
-  document.getElementById('stN').textContent = S.results.length;
-  document.getElementById('stContact').textContent = nC;
-  document.getElementById('stConv').textContent = Object.keys(S.convIds || {}).length;
-  document.getElementById('stHist').textContent = DataStore.list('searches').length;
-  document.getElementById('bulkRow').style.display = nC ? 'flex' : 'none';
-  if (!S.results.length) { box.innerHTML = '<div class="empty">暂无结果</div>'; return; }
-  // 排序：有联系方式 > 买家 > 待观察 > 其余 > 噪音
-  function score(r) {
-    if (hasContact(r)) return (r.ai && r.ai.verdict === 'buyer') ? 0 : 1;
-    if (r.ai) return r.ai.verdict === 'buyer' ? 2 : r.ai.verdict === 'maybe' ? 3 : 5;
-    return 4;
+/* ========== 再挖一批 ========== */
+async function doMore() {
+  var prod = v('k_prod').trim();
+  var market = v('k_region') ? $('k_region').selectedOptions[0].text : '全球';
+  var ctype = $('k_type').selectedOptions[0].text;
+  var chans = selChans();
+  S.round++;
+  $('btnMore').disabled = true;
+  $('btnMore').textContent = '⏳ 继续…';
+  setProgress(10);
+
+  try {
+    $('st').textContent = '🧠 AI 追加挖掘…';
+    var existNames = S.results.map(function(r){ return r.name; }).join(', ');
+    var aiRes = await AgnesAI.findBuyers(prod + ' (skip: ' + existNames + ')', market, ctype, chans);
+    var companies = (aiRes && aiRes.companies) || [];
+    if (!companies.length) throw new Error('没有更多公司了');
+
+    var toVerify = companies.filter(function(c){ return c.website && !c.email; }).slice(0, 10);
+    for (var i = 0; i < toVerify.length; i += 3) {
+      var batch = toVerify.slice(i, i + 3);
+      $('st').textContent = '🔍 验证 ' + (i+1) + '-' + Math.min(i+3, toVerify.length) + '/' + toVerify.length;
+      setProgress(30 + Math.round((i / toVerify.length) * 50));
+      await Promise.all(batch.map(verifyCompany));
+      render();
+    }
+
+    companies.forEach(function(c) {
+      c._chan = c.linkedin ? 'linkedin' : c.facebook ? 'facebook' : c.instagram ? 'instagram' : 'web';
+      var exists = S.results.some(function(r){ return r.name === c.name; });
+      if (!exists) S.results.push(c);
+    });
+
+    setProgress(100);
+    var nC = S.results.filter(hasContact).length;
+    $('st').textContent = '追加 ' + companies.length + ' 家，总计 ' + S.results.length + ' 家';
+    render();
+  } catch(e) {
+    $('st').textContent = '❌ ' + e.message;
   }
-  var list = S.results.map(function(r, i){ return { r: r, i: i }; }).sort(function(a, b){ return score(a.r) - score(b.r); });
+  $('btnMore').disabled = false;
+  $('btnMore').textContent = '➕ 再挖一批';
+  setTimeout(function(){ setProgress(0); }, 2000);
+}
+
+/* ========== 渲染 ========== */
+function hasContact(r) { return (r.email && r.email.length > 3) || (r.phone && r.phone.length > 5); }
+
+function render() {
+  var box = $('results');
+  var nC = S.results.filter(hasContact).length;
+  var nV = S.results.filter(function(r){ return r._verified; }).length;
+  $('stN').textContent = S.results.length;
+  $('stVerified').textContent = nV;
+  $('stContact').textContent = nC;
+  $('stConv').textContent = Object.keys(S.convIds).length;
+  $('bulkRow').style.display = nC ? 'flex' : 'none';
+
+  if (!S.results.length) { box.innerHTML = '<div class="empty">填入产品关键词，点击「AI 挖客户」开始挖掘 B2B 买家</div>'; return; }
+
+  function score(r) {
+    var s = 0;
+    if (hasContact(r)) s += 100;
+    if (r._verified) s += 50;
+    if (r.type === 'importer' || r.type === 'distributor' || r.type === 'wholesaler') s += 30;
+    return -s;
+  }
+  var list = S.results.map(function(r,i){ return {r:r, i:i}; }).sort(function(a,b){ return score(a.r) - score(b.r); });
+
   box.innerHTML = list.map(function(it) {
-    var r = it.r, i = it.i, conv = (S.convIds || {})[i];
-    var badge = '';
-    if (r.ai && r.ai.verdict === 'buyer') badge = '<span class="ai-badge ai-buyer">🧭 ' + esc(r.ai.type || '买家') + '</span>';
-    else if (r.ai && r.ai.verdict === 'maybe') badge = '<span class="ai-badge ai-maybe">待观察</span>';
-    else if (r.ai && r.ai.verdict === 'noise') badge = '<span class="ai-badge ai-noise">噪音</span>';
-    var cls = '';
-    if (r.contacts && r.contacts.fail) cls = ' style="opacity:.5"';
+    var r = it.r, i = it.i;
+    var imported = S.convIds[i];
+    var initials = (r.name||'?').slice(0,2).toUpperCase();
+    var typeCls = 'badge-maybe';
+    var typeLabel = r.type || '';
+    if (r.type === 'importer' || r.type === 'distributor' || r.type === 'wholesaler') { typeCls = 'badge-buyer'; typeLabel = r.type; }
+    var chanName = CHAN_NAME[r._chan] || '🌐 官网';
+
     var contacts = '';
     if (hasContact(r)) {
-      var lines = [];
-      (r.contacts.emails || []).forEach(function(e){ lines.push('<a href="mailto:' + esc(e) + '"><span class="c-ico">✉</span>' + esc(e) + '</a>'); });
-      (r.contacts.was || []).forEach(function(w){ lines.push('<a href="https://wa.me/' + esc(w) + '" target="_blank" rel="noopener"><span class="c-ico">🟢</span>WhatsApp +' + esc(w) + '</a>'); });
-      (r.contacts.phones || []).forEach(function(pp){ lines.push('<a href="tel:' + esc(pp.replace(/\s/g,'')) + '"><span class="c-ico">☎</span>' + esc(pp) + '</a>'); });
-      contacts = '<div class="contacts">' + lines.join('') + '</div>';
-    } else if (r.contacts && r.contacts.fail) {
-      contacts = '<div class="nocontact">该站抓取失败（可能反爬），可打开链接人工看</div>';
+      var items = [];
+      if (r.email) items.push('<a href="mailto:' + esc(r.email) + '">✉ ' + esc(r.email) + '</a>');
+      if (r.phone) {
+        var ph = r.phone.replace(/\s/g,'');
+        if (ph.startsWith('+')) items.push('<a href="https://wa.me/' + esc(ph.replace('+','')) + '" target="_blank">🟢 ' + esc(r.phone) + '</a>');
+        else items.push('<a href="tel:' + esc(ph) + '">☎ ' + esc(r.phone) + '</a>');
+      }
+      contacts = '<div class="card-contacts">' + items.join('') + '</div>';
+    } else if (r.website) {
+      contacts = '<div class="card-nocontact">暂未提取到联系方式 <button class="btn-sm btn-dig" onclick="digOne(' + i + ')">⛏ 深挖</button></div>';
     } else {
-      contacts = '<div class="nocontact">暂无联系方式 <button class="ghostbtn" style="font-size:12px;padding:2px 8px" onclick="digOne(' + i + ')">⛏ 深挖整站</button></div>';
+      contacts = '<div class="card-nocontact">无官网信息</div>';
     }
-    return '<div class="lead"' + cls + '>'
-      + '<div class="top"><span class="name">' + esc(r.company || r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60)) + '</span>'
-      + badge
-      + (conv ? '<span class="ft-tag" style="background:var(--ok-bg);color:var(--ok)">✓ 已导入</span>' : '')
-      + '<span class="src" style="margin-left:auto"><span class="chan-tag">' + CHAN_NAME[r.chan || chanOf(r.url)] + '</span> <a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(hostOf(r.url)) + '</a></span></div>'
-      + (r.ai && r.ai.why ? '<div class="ai-why">' + esc(r.ai.why) + '</div>' : '')
-      + contacts
-      + '<div class="acts" style="margin-top:8px">'
-      + (conv ? '' : '<button class="ft-btn-primary" style="font-size:12.5px;padding:5px 16px" onclick="openConv(' + i + ')">→ 导入线索</button>')
+
+    var links = '';
+    if (r.website) links += '<a href="' + esc(r.website) + '" target="_blank">🌐</a>';
+    if (r.linkedin) links += '<a href="' + esc(r.linkedin) + '" target="_blank">💼</a>';
+    if (r.facebook) links += '<a href="' + esc(r.facebook) + '" target="_blank">📘</a>';
+    if (r.instagram) links += '<a href="' + esc(r.instagram) + '" target="_blank">📸</a>';
+
+    return '<div class="card"><div class="card-body"><div class="card-top">'
+      + '<div class="card-avatar">' + esc(initials) + '</div>'
+      + '<div class="card-info">'
+      +   '<div class="card-name">' + esc(r.name || '未知公司') + '</div>'
+      +   '<div class="card-meta">'
+      +     (r.country ? '<span>📍 ' + esc(r.country) + '</span>' : '')
+      +     (typeLabel ? '<span class="card-badge ' + typeCls + '">' + esc(typeLabel) + '</span>' : '')
+      +     (r._verified ? '<span class="card-badge badge-verified">✓ 已验证</span>' : '')
+      +     '<span style="margin-left:auto">' + links + '</span>'
+      +   '</div>'
+      +   (r.why ? '<div class="card-why">' + esc(r.why) + '</div>' : '')
+      +   contacts
+      + '</div></div></div>'
+      + '<div class="card-footer">'
+      +   (imported ? '<span class="imported-tag">✓ 已导入线索</span>' : '<button class="btn-sm btn-import" onclick="openConv(' + i + ')">→ 导入线索</button>')
+      +   (r.website && !imported ? '<button class="btn-sm btn-dig" onclick="digOne(' + i + ')">⛏ 深挖整站</button>' : '')
       + '</div></div>';
   }).join('');
 }
-function renderHist() {
-  var hs = DataStore.list('searches').slice(-8).reverse();
-  document.getElementById('hist').innerHTML = hs.length
-    ? '最近：' + hs.map(function(h){ return '<span onclick="reuse(this)" data-q="' + esc(h.query.replace(/^🧭 /,'')) + '">' + esc(h.query.slice(0, 44)) + '</span>'; }).join('')
-    : '';
-}
-function reuse(el) { document.getElementById('k_query').value = el.dataset.q; }
+
+/* ========== 深挖 ========== */
 async function digOne(i) {
-  var st = document.getElementById('st');
-  st.textContent = '⛏ 深挖 ' + CHAN_NAME[S.results[i].chan || chanOf(S.results[i].url)] + ' · ' + hostOf(S.results[i].url) + '…';
-  await deepHarvest(S.results[i], st);
-  st.textContent = hasContact(S.results[i]) ? '挖到联系方式 ✓' : '该来源未挖到联系方式';
+  var r = S.results[i];
+  if (!r.website) return;
+  $('st').textContent = '⛏ 深挖 ' + hostOf(r.website) + '…';
+  await verifyCompany(r);
+  $('st').textContent = hasContact(r) ? '✓ 挖到联系方式' : '未提取到联系方式';
   render();
 }
 
-/* ---------- 导入线索 ---------- */
+/* ========== 导入线索 ========== */
 function openConv(i) {
-  S.pending = i;
+  S._pending = i;
   var r = S.results[i];
-  document.getElementById('c_name').value = r.company || r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60);
-  document.getElementById('c_country').value = v('k_region') ? '' : '';
-  document.getElementById('c_email').value = (r.contacts && r.contacts.emails[0]) || '';
-  document.getElementById('c_wa').value = (r.contacts && (r.contacts.was[0] ? '+' + r.contacts.was[0] : r.contacts.phones[0])) || '';
-  document.getElementById('c_person').value = (r.contacts && r.contacts.person) || '';
-  document.getElementById('c_note').value = '来源：' + hostOf(r.url)
-    + (r.ai ? '（AI：' + (r.ai.type || r.ai.verdict) + (r.ai.why ? '，' + r.ai.why : '') + '）' : '');
+  $('c_name').value = r.name || '';
+  $('c_country').value = r.country || '';
+  $('c_email').value = r.email || '';
+  $('c_wa').value = r.phone || '';
+  $('c_person').value = r.contact_person || '';
+  $('c_website').value = r.website || '';
+  $('c_note').value = '来源：AI 挖客户' + (r._chan ? ' / ' + (CHAN_NAME[r._chan]||r._chan) : '') + (r.why ? ' — ' + r.why : '');
   dlgLead.showModal();
 }
 function convSave() {
-  if (S.pending == null) return;
-  var r = S.results[S.pending];
-  var name = v('c_name'); if (!name) { alert('客户名必填'); return; }
-  var contact = v('c_email') || v('c_wa');
-  if (!contact) { alert('至少要有邮箱或电话才能导入线索（你的线索规则）'); return; }
+  if (S._pending == null) return;
+  var name = $('c_name').value.trim();
+  if (!name) { alert('公司名必填'); return; }
+  var email = $('c_email').value.trim();
+  var phone = $('c_wa').value.trim();
+  if (!email && !phone) { alert('邮箱或电话至少填一个'); return; }
   DataStore.add('leads', {
-    name: name, country: v('c_country'), person: v('c_person'),
-    market: v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '',
-    stage: '待开发', wa: v('c_wa'), email: v('c_email'), product: v('k_prod'),
-    amount: 0, last: new Date().toISOString().slice(0, 10), note: v('c_note'), source: 'ai_search'
+    name: name, country: $('c_country').value.trim(),
+    person: $('c_person').value.trim(),
+    market: v('k_region') ? $('k_region').selectedOptions[0].text : '',
+    stage: '待开发',
+    wa: phone, email: email, product: v('k_prod').trim(),
+    website: $('c_website').value.trim(),
+    amount: 0, last: new Date().toISOString().slice(0, 10),
+    note: $('c_note').value.trim(), source: 'ai_findBuyers'
   });
-  S.convIds = S.convIds || {}; S.convIds[S.pending] = name;
-  dlgLead.close(); render();
+  S.convIds[S._pending] = name;
+  dlgLead.close();
+  render();
 }
-/* 一键导入全部有联系方式的 */
-async function bulkImport() {
-  var bs = document.getElementById('bulkSt');
+
+/* ========== 一键导入 ========== */
+function bulkImport() {
   var n = 0;
-  for (var i = 0; i < S.results.length; i++) {
-    var r = S.results[i];
-    if (!hasContact(r)) continue;
-    if ((S.convIds || {})[i]) continue;
+  S.results.forEach(function(r, i) {
+    if (!hasContact(r) || S.convIds[i]) return;
     DataStore.add('leads', {
-      name: r.company || r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60),
-      country: '', person: (r.contacts && r.contacts.person) || '',
-      market: v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '',
+      name: r.name || '未知', country: r.country || '',
+      person: r.contact_person || '',
+      market: v('k_region') ? $('k_region').selectedOptions[0].text : '',
       stage: '待开发',
-      wa: (r.contacts.was[0] ? '+' + r.contacts.was[0] : (r.contacts.phones[0] || '')),
-      email: (r.contacts.emails[0] || ''), product: v('k_prod'),
+      wa: r.phone || '', email: r.email || '',
+      website: r.website || '', product: v('k_prod').trim(),
       amount: 0, last: new Date().toISOString().slice(0, 10),
-      note: '来源：' + hostOf(r.url) + (r.ai ? '（AI：' + (r.ai.type || r.ai.verdict) + '）' : ''), source: 'ai_search'
+      note: '来源：AI 挖客户 — ' + (r.why || ''), source: 'ai_findBuyers'
     });
-    S.convIds = S.convIds || {}; S.convIds[i] = 'bulk'; n++;
-    render();
-  }
-  bs.textContent = '已导入 ' + n + ' 条到线索 Pipeline ✓';
+    S.convIds[i] = 'bulk'; n++;
+  });
+  $('bulkSt').textContent = '已导入 ' + n + ' 条 ✓';
+  render();
 }
-renderHist();
-document.getElementById('stTotal2') && 0;
-document.getElementById('stHist').textContent = DataStore.list('searches').length;
+
+render();
 </script>
 </body>
 </html>

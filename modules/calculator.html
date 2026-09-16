@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 利润计算器</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  main { max-width:960px; margin:0 auto; padding:var(--sp-4) var(--sp-6) 80px; }
+  .hint { font-size:13px; color:var(--text-2); background:var(--bg-inset); border-radius:var(--r-sm); padding:12px 16px; margin-bottom:var(--sp-4); line-height:1.7; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-4); }
+  .section { background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:var(--sp-4); margin-bottom:var(--sp-4); }
+  .section h3 { margin:0 0 var(--sp-3); font-size:14px; color:var(--brand-700); display:flex; align-items:center; gap:6px; }
+  .frow { display:flex; gap:var(--sp-3); align-items:flex-end; margin-bottom:var(--sp-3); flex-wrap:wrap; }
+  .frow .field { flex:1; min-width:120px; }
+  .frow label { display:block; font-size:11.5px; color:var(--text-2); margin-bottom:3px; }
+  .frow input, .frow select {
+    width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong);
+    border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans);
+  }
+  .frow input:focus, .frow select:focus { outline:none; border-color:var(--brand-600); }
+  .frow .unit { font-size:12px; color:var(--text-3); padding-bottom:8px; white-space:nowrap; }
+  .result-box { background:linear-gradient(135deg,#f0fdf4,#ecfdf5); border:1px solid #86efac; border-radius:var(--r-md); padding:var(--sp-4); margin-top:var(--sp-4); }
+  .result-box h3 { color:#166534; margin:0 0 var(--sp-3); }
+  .result-row { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed #d1fae5; }
+  .result-row:last-child { border-bottom:none; }
+  .result-row .label { font-size:13px; color:#166534; }
+  .result-row .value { font-size:15px; font-weight:600; color:#15803d; }
+  .result-row.total { margin-top:6px; padding-top:10px; border-top:2px solid #86efac; border-bottom:none; }
+  .result-row.total .label { font-size:15px; font-weight:600; color:#166534; }
+  .result-row.total .value { font-size:20px; color:#15803d; }
+  .warn-box { background:#fffbeb; border:1px solid #fcd34d; border-radius:var(--r-md); padding:var(--sp-3) var(--sp-4); margin-top:var(--sp-3); }
+  .warn-box .title { font-size:13px; font-weight:600; color:#92400e; margin-bottom:4px; }
+  .warn-box .msg { font-size:12.5px; color:#a16207; line-height:1.6; }
+  .good-box { background:#f0fdf4; border:1px solid #86efac; border-radius:var(--r-md); padding:var(--sp-3) var(--sp-4); margin-top:var(--sp-3); }
+  .good-box .title { font-size:13px; font-weight:600; color:#166534; margin-bottom:4px; }
+  .good-box .msg { font-size:12.5px; color:#15803d; line-height:1.6; }
+  .breakdown { font-size:12px; color:var(--text-3); margin-top:var(--sp-3); line-height:1.8; }
+  .breakdown b { color:var(--text-2); }
+  .btnrow { display:flex; gap:var(--sp-3); margin-top:var(--sp-3); flex-wrap:wrap; }
+  .btn-sm { font-size:12.5px; padding:6px 14px; border-radius:var(--r-sm); cursor:pointer; border:0; }
+  .btn-primary { background:var(--brand-700); color:#fff; }
+  .btn-primary:hover { background:var(--brand-800); }
+  .btn-ghost { background:none; color:var(--text-2); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--bg-inset); }
+  .ai-out { font-size:13px; line-height:1.7; padding:var(--sp-3); background:var(--bg-inset); border-radius:var(--r-sm); margin-top:var(--sp-3); display:none; white-space:pre-wrap; }
+  .history { margin-top:var(--sp-4); }
+  .history h3 { font-size:14px; color:var(--text-2); margin-bottom:var(--sp-2); }
+  .hist-item { display:flex; align-items:center; gap:var(--sp-3); padding:8px 12px; background:var(--bg-card); border-radius:var(--r-sm); margin-bottom:4px; font-size:13px; }
+  .hist-item .hi-date { color:var(--text-3); font-size:12px; min-width:80px; }
+  .hist-item .hi-prod { flex:1; color:var(--text-1); }
+  .hist-item .hi-price { color:var(--brand-700); font-weight:500; }
+  .hist-item .hi-margin { font-size:12px; padding:2px 8px; border-radius:999px; }
+  .hist-item .hi-margin.good { background:#d1fae5; color:#065f46; }
+  .hist-item .hi-margin.warn { background:#fef3c7; color:#92400e; }
+  .hist-item .hi-margin.bad { background:#fee2e2; color:#991b1b; }
+  @media(max-width:700px) { .grid2 { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="logo">
+  <h1>利润计算器</h1>
+</header>
+<main>
+  <div class="hint">
+    💡 报价前先算清楚：输入采购成本、运费、目标利润率，自动算出 FOB/CIF 报价和预估利润。支持多币种切换，历史计算可追溯。
+  </div>
+
+  <div class="grid2">
+    <!-- 左：成本输入 -->
+    <div>
+      <div class="section">
+        <h3>📦 产品成本</h3>
+        <div class="frow">
+          <div class="field"><label>采购单价</label><input id="c_cost" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>币种</label>
+            <select id="c_costCur" onchange="calc()"><option>CNY</option><option>USD</option></select>
+          </div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>国内运费（每件）</label><input id="c_localShip" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>包装费（每件）</label><input id="c_packing" type="number" step="0.01" value="0" oninput="calc()"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>检验费（每件）</label><input id="c_inspect" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>其他费用（每件）</label><input id="c_other" type="number" step="0.01" value="0" oninput="calc()"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>🚢 物流费用</h3>
+        <div class="frow">
+          <div class="field"><label>海运费（整柜/每件分摊）</label><input id="c_ocean" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>保险费（每件）</label><input id="c_insurance" type="number" step="0.01" value="0" oninput="calc()"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>报关费（每件分摊）</label><input id="c_customs" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>港杂费（每件分摊）</label><input id="c_portFee" type="number" step="0.01" value="0" oninput="calc()"></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <h3>💰 定价策略</h3>
+        <div class="frow">
+          <div class="field"><label>目标利润率 (%)</label><input id="c_margin" type="number" step="1" value="30" oninput="calc()"></div>
+          <div class="field"><label>佣金率 (%)</label><input id="c_comm" type="number" step="0.1" value="0" oninput="calc()"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>报价币种</label>
+            <select id="c_sellCur" onchange="calc()">
+              <option value="USD">USD 美元</option>
+              <option value="EUR">EUR 欧元</option>
+              <option value="GBP">GBP 英镑</option>
+              <option value="AED">AED 迪拉姆</option>
+              <option value="SAR">SAR 里亚尔</option>
+              <option value="CNY">CNY 人民币</option>
+            </select>
+          </div>
+          <div class="field"><label>汇率（1 外币 = ? CNY）</label><input id="c_rate" type="number" step="0.0001" value="7.25" oninput="calc()"></div>
+        </div>
+        <div class="frow">
+          <div class="field"><label>报价数量</label><input id="c_qty" type="number" step="1" value="1000" oninput="calc()"></div>
+          <div class="field"><label>目标客户价（可选）</label><input id="c_target" type="number" step="0.01" placeholder="知道市场价可填" oninput="calc()"></div>
+        </div>
+        <div class="btnrow">
+          <button class="btn-sm btn-ghost" onclick="resetForm()">🔄 重置</button>
+          <button class="btn-sm btn-ghost" onclick="saveCalc()">💾 保存本次计算</button>
+          <button class="btn-sm btn-primary" onclick="aiPriceAdvice()">🧠 AI 定价建议</button>
+        </div>
+        <div class="ai-out" id="aiOut"></div>
+      </div>
+    </div>
+
+    <!-- 右：结果 -->
+    <div>
+      <div class="result-box" id="resultBox">
+        <h3>📊 计算结果</h3>
+        <div class="result-row"><span class="label">单位成本（人民币）</span><span class="value" id="r_costCNY">¥0.00</span></div>
+        <div class="result-row"><span class="label">单位总成本（含运费）</span><span class="value" id="r_totalCost">¥0.00</span></div>
+        <div class="result-row"><span class="label">FOB 报价（外币）</span><span class="value" id="r_fob">$0.00</span></div>
+        <div class="result-row"><span class="label">CIF 报价（外币）</span><span class="value" id="r_cif">$0.00</span></div>
+        <div class="result-row"><span class="label">含佣报价（外币）</span><span class="value" id="r_commPrice">$0.00</span></div>
+        <div class="result-row total"><span class="label">预估单件利润</span><span class="value" id="r_profit">$0.00</span></div>
+        <div class="result-row"><span class="label">预估总利润</span><span class="value" id="r_totalProfit" style="font-size:16px">$0.00</span></div>
+        <div class="result-row"><span class="label">实际利润率</span><span class="value" id="r_margin">0%</span></div>
+      </div>
+
+      <div id="warnArea"></div>
+
+      <div class="section" style="margin-top:var(--sp-4)">
+        <h3>📋 成本拆解</h3>
+        <div class="breakdown" id="breakdown"></div>
+      </div>
+
+      <div class="section">
+        <h3>🔄 快速换算</h3>
+        <div class="frow">
+          <div class="field"><label>输入金额</label><input id="conv_amt" type="number" step="0.01" value="0" oninput="convert()"></div>
+          <div class="field"><label>从</label>
+            <select id="conv_from" onchange="convert()"><option>USD</option><option>EUR</option><option>CNY</option><option>GBP</option><option>AED</option><option>SAR</option></select>
+          </div>
+          <div class="field"><label>到</label>
+            <select id="conv_to" onchange="convert()"><option>CNY</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SAR</option></select>
+          </div>
+        </div>
+        <div style="font-size:18px;font-weight:600;color:var(--brand-700);text-align:center;padding:8px 0" id="convResult">= ¥0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="history">
+    <h3>📝 历史计算</h3>
+    <div id="histList"></div>
+  </div>
+</main>
+
+<script src="../js/datastore.js"></script>
+<script src="../agnes-ai.js"></script>
+<script>
+'use strict';
+
+function v(id) { return document.getElementById(id).value; }
+function n(id) { return parseFloat(document.getElementById(id).value) || 0; }
+function $(id) { return document.getElementById(id); }
+
+var RATES = { USD:7.25, EUR:7.85, GBP:9.15, AED:1.97, SAR:1.93, CNY:1 };
+var SYM = { USD:'$', EUR:'€', GBP:'£', AED:'AED', SAR:'SAR', CNY:'¥' };
+
+function calc() {
+  var costCNY = n('c_cost');
+  if (v('c_costCur') === 'USD') costCNY *= n('c_rate');
+  var localShip = n('c_localShip');
+  var packing = n('c_packing');
+  var inspect = n('c_inspect');
+  var other = n('c_other');
+  var ocean = n('c_ocean');
+  var insurance = n('c_insurance');
+  var customs = n('c_customs');
+  var portFee = n('c_portFee');
+  var marginPct = n('c_margin');
+  var commPct = n('c_comm');
+  var sellCur = v('c_sellCur');
+  var rate = n('c_rate');
+  if (rate <= 0) rate = 7.25;
+  var qty = n('c_qty') || 1;
+  var target = n('c_target');
+  var sym = SYM[sellCur] || '$';
+
+  // 成本
+  var unitCost = costCNY + localShip + packing + inspect + other;
+  var totalCost = unitCost + ocean + insurance + customs + portFee;
+
+  // FOB = (总成本 / (1 - 佣金率)) × (1 + 利润率) / 汇率
+  var fobCNY = totalCost / (1 - commPct / 100) * (1 + marginPct / 100);
+  var fob = fobCNY / rate;
+
+  // CIF = FOB + 海运费 + 保险费（折算到外币）
+  var cif = fob + (ocean + insurance) / rate;
+
+  // 含佣价
+  var commPrice = commPct > 0 ? fob / (1 - commPct / 100) : fob;
+
+  // 利润
+  var profitCNY = fobCNY - totalCost;
+  var profit = profitCNY / rate;
+  var actualMargin = fob > 0 ? (profit / fob * 100) : 0;
+
+  // 总利润
+  var totalProfit = profit * qty;
+
+  // 显示
+  $('r_costCNY').textContent = '¥' + unitCost.toFixed(2);
+  $('r_totalCost').textContent = '¥' + totalCost.toFixed(2);
+  $('r_fob').textContent = sym + fob.toFixed(2);
+  $('r_cif').textContent = sym + cif.toFixed(2);
+  $('r_commPrice').textContent = sym + commPrice.toFixed(2);
+  $('r_profit').textContent = sym + profit.toFixed(2);
+  $('r_totalProfit').textContent = sym + totalProfit.toFixed(2);
+  $('r_margin').textContent = actualMargin.toFixed(1) + '%';
+
+  // 预警
+  var warn = '';
+  if (actualMargin < 5) warn += '<div class="warn-box"><div class="title">⚠️ 利润率极低</div><div class="msg">当前利润率仅 ' + actualMargin.toFixed(1) + '%，远低于外贸常规 15-30%。建议提高报价或降低采购成本。</div></div>';
+  else if (actualMargin < 15) warn += '<div class="warn-box"><div class="title">⚠️ 利润偏低</div><div class="msg">利润率 ' + actualMargin.toFixed(1) + '%，属于偏低水平。考虑是否有优化空间（采购议价/物流降本）。</div></div>';
+  else if (actualMargin >= 30) warn += '<div class="good-box"><div class="title">✅ 利润率优秀</div><div class="msg">利润率 ' + actualMargin.toFixed(1) + '%，非常健康。注意确认该价格在目标市场是否有竞争力。</div></div>';
+
+  if (target > 0) {
+    var diff = fob - target;
+    if (diff > 0.01) warn += '<div class="warn-box"><div class="title">📌 高于目标客户价</div><div class="msg">你的报价 ' + sym + fob.toFixed(2) + ' 比客户预期 ' + sym + target.toFixed(2) + ' 高 ' + sym + diff.toFixed(2) + '，客户可能嫌贵。</div></div>';
+    else if (diff < -0.01) warn += '<div class="good-box"><div class="title">📌 低于目标客户价</div><div class="msg">你的报价 ' + sym + fob.toFixed(2) + ' 比客户预期 ' + sym + target.toFixed(2) + ' 低 ' + sym + Math.abs(diff).toFixed(2) + '，有竞争力。</div></div>';
+  }
+  $('warnArea').innerHTML = warn;
+
+  // 成本拆解
+  var rate2 = rate;
+  $('breakdown').innerHTML = '<b>成本构成（人民币）：</b><br>'
+    + '采购成本：¥' + costCNY.toFixed(2) + '<br>'
+    + '国内运费：¥' + localShip.toFixed(2) + '<br>'
+    + '包装费：¥' + packing.toFixed(2) + '<br>'
+    + '检验费：¥' + inspect.toFixed(2) + '<br>'
+    + '其他：¥' + other.toFixed(2) + '<br>'
+    + '——<br>'
+    + '产品成本小计：¥' + unitCost.toFixed(2) + '<br>'
+    + '海运费：¥' + ocean.toFixed(2) + (ocean > 0 ? ' (' + sym + (ocean / rate2).toFixed(2) + ')' : '') + '<br>'
+    + '保险费：¥' + insurance.toFixed(2) + '<br>'
+    + '报关费：¥' + customs.toFixed(2) + '<br>'
+    + '港杂费：¥' + portFee.toFixed(2) + '<br>'
+    + '——<br>'
+    + '<b>总成本：¥' + totalCost.toFixed(2) + '</b><br>'
+    + '÷ (1 - 佣金 ' + commPct + '%) × (1 + 利润 ' + marginPct + '%) ÷ 汇率 ' + rate2 + '<br>'
+    + '<b>FOB 报价：' + sym + fob.toFixed(2) + '</b>';
+
+  convert();
+}
+
+function convert() {
+  var amt = n('conv_amt');
+  var from = v('conv_from');
+  var to = v('conv_to');
+  var inCNY = amt * (RATES[from] || 1);
+  var result = inCNY / (RATES[to] || 1);
+  $('convResult').textContent = '= ' + (SYM[to] || to) + result.toFixed(2);
+}
+
+function resetForm() {
+  ['c_cost','c_localShip','c_packing','c_inspect','c_other','c_ocean','c_insurance','c_customs','c_portFee'].forEach(function(id){
+    document.getElementById(id).value = 0;
+  });
+  $('c_margin').value = 30;
+  $('c_comm').value = 0;
+  $('c_qty').value = 1000;
+  $('c_target').value = '';
+  calc();
+}
+
+function saveCalc() {
+  var sellCur = v('c_sellCur');
+  var data = {
+    product: '计算记录',
+    costCNY: n('c_cost') + n('c_localShip') + n('c_packing') + n('c_inspect') + n('c_other'),
+    totalCost: n('c_cost') + n('c_localShip') + n('c_packing') + n('c_inspect') + n('c_other') + n('c_ocean') + n('c_insurance') + n('c_customs') + n('c_portFee'),
+    margin: n('c_margin'),
+    qty: n('c_qty'),
+    currency: sellCur,
+    result: $('r_fob').textContent
+  };
+  DataStore.add('calculations', data);
+  loadHist();
+}
+
+function loadHist() {
+  var list = DataStore.list('calculations').slice(-10).reverse();
+  if (!list.length) { $('histList').innerHTML = '<div style="color:var(--text-3);font-size:13px">暂无历史记录</div>'; return; }
+  $('histList').innerHTML = list.map(function(item) {
+    var date = item.createdAt ? new Date(item.createdAt).toLocaleDateString() : '';
+    var margin = item.margin || 0;
+    var cls = margin >= 25 ? 'good' : margin >= 10 ? 'warn' : 'bad';
+    return '<div class="hist-item">'
+      + '<span class="hi-date">' + date + '</span>'
+      + '<span class="hi-prod">' + (item.product || '—') + ' ×' + (item.qty || 0) + '</span>'
+      + '<span class="hi-price">' + (item.result || '—') + '</span>'
+      + '<span class="hi-margin ' + cls + '">' + margin + '%</span>'
+      + '</div>';
+  }).join('');
+}
+
+async function aiPriceAdvice() {
+  var sellCur = v('c_sellCur');
+  var sym = SYM[sellCur] || '$';
+  var p = '分析以下外贸报价的利润空间和定价策略：\n'
+    + '总成本：¥' + ($('r_totalCost').textContent) + '\n'
+    + 'FOB报价：' + sym + $('r_fob').textContent.replace(/[^0-9.]/g,'') + '\n'
+    + 'CIF报价：' + sym + $('r_cif').textContent.replace(/[^0-9.]/g,'') + '\n'
+    + '利润率：' + $('r_margin').textContent + '\n'
+    + '佣金率：' + v('c_comm') + '%\n'
+    + '报价数量：' + v('c_qty') + '\n\n'
+    + '请给出：\n'
+    + '1) 该产品出口市场均价参考（如果知道的话）\n'
+    + '2) 当前定价是否有竞争力\n'
+    + '3) 优化建议（降本空间/议价策略/付款方式搭配）\n'
+    + '用中文，简洁实用。';
+  $('aiOut').style.display = 'block';
+  $('aiOut').textContent = '🧠 AI 分析中…';
+  try {
+    var res = await AgnesAI.ask(p, { temperature: 0.4, maxTokens: 600 });
+    $('aiOut').textContent = res;
+  } catch(e) {
+    $('aiOut').textContent = '❌ ' + e.message;
+  }
+}
+
+// 汇率预填
+$('c_rate').value = RATES[v('c_sellCur')] || 7.25;
+$('c_sellCur').addEventListener('change', function(){
+  $('c_rate').value = RATES[v('c_sellCur')] || 7.25;
+  calc();
+});
+
+calc();
+loadHist();
+</script>
+</body>
+</html>
