@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 报价管理</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  main { max-width:1100px; margin:0 auto; padding:var(--sp-4) var(--sp-4) 80px; display:flex; gap:var(--sp-4); align-items:flex-start; }
+  /* 左：列表 */
+  .left { width:340px; flex-shrink:0; }
+  .left .ft-card { padding:var(--sp-3); }
+  .toolbar { display:flex; gap:var(--sp-2); margin-bottom:var(--sp-3); }
+  .toolbar input { flex:1; padding:7px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; }
+  .toolbar select { padding:7px 8px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; }
+  .qlist { max-height:calc(100vh - 260px); overflow:auto; }
+  .qitem { padding:10px 12px; border-radius:var(--r-sm); cursor:pointer; margin-bottom:4px; border-left:3px solid transparent; transition:all .15s; }
+  .qitem:hover { background:var(--bg-inset); }
+  .qitem.on { background:var(--brand-50); border-left-color:var(--brand-600); }
+  .qitem .qi-top { display:flex; align-items:center; gap:6px; }
+  .qitem .qi-no { font-weight:600; font-size:13.5px; }
+  .qitem .qi-status { font-size:11px; padding:1px 8px; border-radius:999px; margin-left:auto; }
+  .qitem .qi-client { font-size:12.5px; color:var(--text-2); margin-top:2px; }
+  .qitem .qi-amt { font-size:12.5px; color:var(--brand-700); font-weight:500; }
+  .qitem .qi-date { font-size:11px; color:var(--text-3); }
+  .st-draft { background:var(--bg-inset); color:var(--text-3); }
+  .st-sent { background:#dbeafe; color:#1d4ed8; }
+  .st-accepted { background:#d1fae5; color:#065f46; }
+  .st-rejected { background:#fee2e2; color:#991b1b; }
+  .st-expired { background:var(--bg-inset); color:var(--text-3); }
+  .empty-left { text-align:center; color:var(--text-3); padding:var(--sp-6) 0; font-size:13px; }
+  /* 右：编辑/预览 */
+  .right { flex:1; min-width:0; }
+  .form-card { padding:var(--sp-4); }
+  .form-card h3 { margin:0 0 var(--sp-3); font-size:15px; display:flex; align-items:center; gap:8px; }
+  .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+  .fgrid .full { grid-column:1 / -1; }
+  .fgrid label { font-size:12px; color:var(--text-2); display:block; margin-bottom:3px; }
+  .fgrid input, .fgrid select, .fgrid textarea {
+    width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong);
+    border-radius:var(--r-sm); font-size:13.5px; font-family:var(--font-sans);
+  }
+  .fgrid textarea { min-height:60px; resize:vertical; }
+  .fgrid input:focus, .fgrid select:focus, .fgrid textarea:focus { outline:none; border-color:var(--brand-600); }
+  /* 明细表 */
+  .items-table { width:100%; border-collapse:collapse; font-size:13px; margin:var(--sp-3) 0; }
+  .items-table th, .items-table td { border:1px solid var(--border-strong); padding:7px 8px; text-align:left; }
+  .items-table th { background:var(--bg-inset); font-size:12px; color:var(--text-2); }
+  .items-table input { width:100%; box-sizing:border-box; padding:5px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:13px; }
+  .items-table .num { text-align:right; }
+  .items-table .total-row td { font-weight:600; background:var(--bg-inset); }
+  .btn-sm { font-size:12px; padding:4px 10px; border-radius:var(--r-sm); cursor:pointer; border:0; }
+  .btn-primary { background:var(--brand-700); color:#fff; }
+  .btn-primary:hover { background:var(--brand-800); }
+  .btn-ghost { background:none; color:var(--text-2); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--bg-inset); }
+  .btn-danger { background:#fee2e2; color:#991b1b; }
+  .btn-danger:hover { background:#fecaca; }
+  .btnrow { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-top:var(--sp-3); align-items:center; }
+  .ai-out { font-size:13px; line-height:1.7; padding:var(--sp-3); background:var(--bg-inset); border-radius:var(--r-sm); margin-top:var(--sp-3); display:none; white-space:pre-wrap; }
+  /* 预览纸 */
+  .preview-toggle { margin-left:auto; }
+  .paper { background:#fff; border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--shadow-card); padding:40px 48px; min-height:500px; margin-top:var(--sp-3); display:none; }
+  .paper h2 { text-align:center; font-size:18px; margin:0 0 4px; }
+  .paper .no { text-align:right; font-size:12px; color:var(--text-2); }
+  .paper .parties { display:flex; justify-content:space-between; font-size:13px; line-height:1.6; margin:16px 0; }
+  .paper table { width:100%; border-collapse:collapse; font-size:13px; margin:12px 0; }
+  .paper th, .paper td { border:1px solid #cfc9b8; padding:6px 10px; }
+  .paper th { background:#f5f3ee; font-size:12px; }
+  .paper .notes { font-size:13px; line-height:1.8; margin-top:10px; }
+  .paper .sig { display:flex; justify-content:space-between; margin-top:40px; font-size:13px; }
+  @media print {
+    body * { visibility:hidden; }
+    .paper, .paper * { visibility:visible; }
+    .paper { position:absolute; left:0; top:0; width:100%; border:0; box-shadow:none; }
+  }
+  .status-bar { display:flex; gap:var(--sp-3); align-items:center; margin-top:var(--sp-3); flex-wrap:wrap; }
+  .status-bar select { padding:6px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="logo">
+  <h1>报价管理</h1>
+</header>
+<main>
+  <!-- 左：报价列表 -->
+  <div class="left">
+    <div class="ft-card">
+      <div class="toolbar">
+        <input id="searchQ" placeholder="搜索客户/产品/单号…" oninput="renderList()">
+        <select id="filterSt" onchange="renderList()">
+          <option value="">全部状态</option>
+          <option value="draft">草稿</option>
+          <option value="sent">已发送</option>
+          <option value="accepted">已接受</option>
+          <option value="rejected">已拒绝</option>
+          <option value="expired">已过期</option>
+        </select>
+      </div>
+      <div class="toolbar">
+        <button class="ft-btn-primary" style="flex:1" onclick="newQuote()">＋ 新建报价</button>
+        <button class="ft-btn-ai" style="flex:1" onclick="aiGenQuote()">🧠 AI 生成</button>
+      </div>
+      <div class="qlist" id="qlist"></div>
+    </div>
+  </div>
+
+  <!-- 右：编辑/预览 -->
+  <div class="right">
+    <div class="ft-card form-card" id="editor">
+      <h3 id="editorTitle">
+        新建报价
+        <span class="preview-toggle">
+          <button class="btn-sm btn-ghost" id="btnPreview" onclick="togglePreview()">👁 预览</button>
+        </span>
+      </h3>
+      <div class="fgrid">
+        <div><label>关联线索</label><select id="q_lead" onchange="onLeadPick()"><option value="">— 选择线索 —</option></select></div>
+        <div><label>报价单号</label><input id="q_no" placeholder="QT-20260916-001"></div>
+        <div><label>日期</label><input id="q_date" type="date"></div>
+        <div><label>币种</label>
+          <select id="q_currency"><option>USD</option><option>EUR</option><option>CNY</option><option>GBP</option><option>AED</option><option>SAR</option></select>
+        </div>
+        <div><label>付款方式</label><input id="q_payment" placeholder="30% T/T deposit, 70% before shipment"></div>
+        <div><label>报价有效期</label><input id="q_validity" placeholder="30 days"></div>
+        <div><label>起运港</label><input id="q_portFrom" placeholder="Ningbo / Shenzhen"></div>
+        <div><label>目的港</label><input id="q_portTo" placeholder="Jebel Ali, Dubai"></div>
+        <div><label>交期</label><input id="q_delivery" placeholder="25 days after deposit"></div>
+        <div class="full"><label>报价说明</label><textarea id="q_note" rows="2" placeholder="给客户的备注…"></textarea></div>
+      </div>
+
+      <!-- 报价明细 -->
+      <div style="margin-top:var(--sp-3)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <b style="font-size:13.5px">报价明细</b>
+          <button class="btn-sm btn-ghost" onclick="addItem()">＋ 添加行</button>
+        </div>
+        <table class="items-table" id="itemsTable">
+          <thead><tr>
+            <th style="width:30%">产品名称</th>
+            <th style="width:18%">规格</th>
+            <th style="width:10%">数量</th>
+            <th style="width:8%">单位</th>
+            <th style="width:14%">单价</th>
+            <th style="width:14%">小计</th>
+            <th style="width:6%"></th>
+          </tr></thead>
+          <tbody id="itemsBody"></tbody>
+          <tfoot><tr class="total-row">
+            <td colspan="5" style="text-align:right">合计 Total</td>
+            <td id="totalCell" class="num">$0.00</td>
+            <td></td>
+          </tr></tfoot>
+        </table>
+      </div>
+
+      <div class="btnrow">
+        <button class="btn-sm btn-primary" onclick="saveQuote()">💾 保存</button>
+        <button class="btn-sm btn-primary" onclick="saveAndPreview()">💾 保存并预览</button>
+        <button class="btn-sm btn-ghost" onclick="printQuote()">🖨 打印</button>
+        <button class="btn-sm btn-danger" id="btnDel" onclick="deleteQuote()" style="display:none">🗑 删除</button>
+      </div>
+      <div class="status-bar">
+        <span style="font-size:13px;color:var(--text-2)">状态：</span>
+        <select id="q_status" onchange="onStatusChange()">
+          <option value="draft">草稿</option>
+          <option value="sent">已发送</option>
+          <option value="accepted">已接受</option>
+          <option value="rejected">已拒绝</option>
+          <option value="expired">已过期</option>
+        </select>
+        <button class="ft-btn-ai" onclick="aiAnalyzeQuote()">🧠 AI 分析报价</button>
+      </div>
+      <div class="ai-out" id="aiOut"></div>
+    </div>
+
+    <!-- A4 预览 -->
+    <div class="paper" id="paper"></div>
+  </div>
+</main>
+
+<script src="../js/datastore.js"></script>
+<script src="../agnes-ai.js"></script>
+<script>
+'use strict';
+
+var S = { quotes: [], current: null, editing: false };
+
+function v(id) { return document.getElementById(id).value; }
+function $(id) { return document.getElementById(id); }
+function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function uid() { return 'qo_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
+function today() { return new Date().toISOString().slice(0,10); }
+function genNo() {
+  var d = today().replace(/-/g,'');
+  var list = S.quotes.filter(function(q){ return q.no && q.no.startsWith('QT-' + d); });
+  return 'QT-' + d + '-' + String(list.length + 1).padStart(3, '0');
+}
+
+/* ========== 初始化 ========== */
+function init() {
+  S.quotes = DataStore.list('quotes');
+  loadLeads();
+  addItem(); // 默认一行
+  renderList();
+  if (!S.quotes.length) {
+    $('editorTitle').textContent = '新建报价';
+    $('q_date').value = today();
+    $('q_no').value = genNo();
+  }
+}
+
+function loadLeads() {
+  var sel = $('q_lead');
+  var leads = DataStore.list('leads');
+  sel.innerHTML = '<option value="">— 选择线索（可选）—</option>'
+    + leads.map(function(l){ return '<option value="' + esc(l.id) + '">' + esc(l.name) + (l.product ? ' / ' + l.product : '') + '</option>'; }).join('');
+}
+
+/* ========== 明细操作 ========== */
+function addItem() {
+  var tbody = $('itemsBody');
+  var tr = document.createElement('tr');
+  tr.innerHTML = '<td><input class="it-name" placeholder="LED Panel Light 60x60"></td>'
+    + '<td><input class="it-spec" placeholder="600x600mm, 40W"></td>'
+    + '<td><input class="it-qty num" type="number" value="100" min="1" oninput="calcRow(this)"></td>'
+    + '<td><input class="it-unit" value="pcs" style="width:50px"></td>'
+    + '<td><input class="it-price num" type="number" step="0.01" value="0" oninput="calcRow(this)"></td>'
+    + '<td class="it-amt num">$0.00</td>'
+    + '<td><button class="btn-sm btn-danger" onclick="removeItem(this)">✕</button></td>';
+  tbody.appendChild(tr);
+  calcTotal();
+}
+function removeItem(btn) {
+  var tbody = $('itemsBody');
+  if (tbody.children.length <= 1) return;
+  btn.closest('tr').remove();
+  calcTotal();
+}
+function calcRow(el) {
+  var tr = el.closest('tr');
+  var qty = parseFloat(tr.querySelector('.it-qty').value) || 0;
+  var price = parseFloat(tr.querySelector('.it-price').value) || 0;
+  var cur = v('q_currency');
+  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[cur] || '$';
+  tr.querySelector('.it-amt').textContent = sym + (qty * price).toFixed(2);
+  calcTotal();
+}
+function calcTotal() {
+  var total = 0;
+  var cur = v('q_currency');
+  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[cur] || '$';
+  $('itemsBody').querySelectorAll('tr').forEach(function(tr) {
+    var qty = parseFloat(tr.querySelector('.it-qty').value) || 0;
+    var price = parseFloat(tr.querySelector('.it-price').value) || 0;
+    total += qty * price;
+  });
+  $('totalCell').textContent = sym + total.toFixed(2);
+}
+function getItems() {
+  var items = [];
+  $('itemsBody').querySelectorAll('tr').forEach(function(tr) {
+    var name = tr.querySelector('.it-name').value.trim();
+    if (!name) return;
+    items.push({
+      name: name,
+      spec: tr.querySelector('.it-spec').value.trim(),
+      qty: parseFloat(tr.querySelector('.it-qty').value) || 0,
+      unit: tr.querySelector('.it-unit').value.trim() || 'pcs',
+      unitPrice: parseFloat(tr.querySelector('.it-price').value) || 0,
+      amount: (parseFloat(tr.querySelector('.it-qty').value) || 0) * (parseFloat(tr.querySelector('.it-price').value) || 0)
+    });
+  });
+  return items;
+}
+function setItems(items) {
+  $('itemsBody').innerHTML = '';
+  if (!items || !items.length) { addItem(); return; }
+  items.forEach(function(it) {
+    addItem();
+    var tr = $('itemsBody').lastElementChild;
+    tr.querySelector('.it-name').value = it.name || '';
+    tr.querySelector('.it-spec').value = it.spec || '';
+    tr.querySelector('.it-qty').value = it.qty || 0;
+    tr.querySelector('.it-unit').value = it.unit || 'pcs';
+    tr.querySelector('.it-price').value = it.unitPrice || 0;
+    calcRow(tr.querySelector('.it-qty'));
+  });
+}
+
+/* ========== 列表渲染 ========== */
+function renderList() {
+  var q = v('searchQ').toLowerCase();
+  var st = v('filterSt');
+  var list = S.quotes.filter(function(item) {
+    if (st && item.status !== st) return false;
+    if (q && !String(item.no).toLowerCase().includes(q) && !(item.leadName||'').toLowerCase().includes(q) && !(item.product||'').toLowerCase().includes(q)) return false;
+    return true;
+  }).reverse();
+
+  var box = $('qlist');
+  if (!list.length) { box.innerHTML = '<div class="empty-left">暂无报价记录<br>点击上方按钮新建</div>'; return; }
+  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[v('q_currency') || 'USD'] || '$';
+  box.innerHTML = list.map(function(item) {
+    var stLabel = {draft:'草稿',sent:'已发送',accepted:'已接受',rejected:'已拒绝',expired:'已过期'}[item.status] || item.status;
+    return '<div class="qitem' + (S.current === item.id ? ' on' : '') + '" onclick="loadQuote(\'' + item.id + '\')">'
+      + '<div class="qi-top"><span class="qi-no">' + esc(item.no || '未编号') + '</span>'
+      + '<span class="qi-status st-' + esc(item.status) + '">' + stLabel + '</span></div>'
+      + '<div class="qi-client">' + esc(item.leadName || '未关联线索') + ' · ' + esc(item.product || '') + '</div>'
+      + '<div class="qi-amt">' + sym + (item.total || 0).toFixed(2) + ' ' + esc(item.currency || 'USD')
+      + '<span class="qi-date" style="margin-left:8px">' + esc(item.date || '') + '</span></div>'
+      + '</div>';
+  }).join('');
+}
+
+/* ========== 新建/加载 ========== */
+function newQuote() {
+  S.current = null; S.editing = false;
+  $('editorTitle').textContent = '新建报价';
+  $('btnDel').style.display = 'none';
+  $('q_lead').value = '';
+  $('q_no').value = genNo();
+  $('q_date').value = today();
+  $('q_payment').value = '30% T/T deposit, 70% before shipment';
+  $('q_validity').value = '30 days';
+  $('q_portFrom').value = '';
+  $('q_portTo').value = '';
+  $('q_delivery').value = '25 days after deposit';
+  $('q_note').value = '';
+  $('q_status').value = 'draft';
+  $('aiOut').style.display = 'none';
+  $('itemsBody').innerHTML = '';
+  addItem();
+  $('paper').style.display = 'none';
+  $('editor').style.display = 'block';
+  renderList();
+}
+
+function loadQuote(id) {
+  var item = DataStore.get('quotes', id);
+  if (!item) return;
+  S.current = id; S.editing = true;
+  $('editorTitle').textContent = '编辑报价 ' + esc(item.no || '');
+  $('btnDel').style.display = 'inline-flex';
+  $('q_lead').value = item.leadId || '';
+  $('q_no').value = item.no || '';
+  $('q_date').value = item.date || '';
+  $('q_currency').value = item.currency || 'USD';
+  $('q_payment').value = item.payment || '';
+  $('q_validity').value = item.validity || '';
+  $('q_portFrom').value = item.portFrom || '';
+  $('q_portTo').value = item.portTo || '';
+  $('q_delivery').value = item.delivery || '';
+  $('q_note').value = item.note || '';
+  $('q_status').value = item.status || 'draft';
+  $('aiOut').style.display = 'none';
+  setItems(item.items);
+  $('paper').style.display = 'none';
+  $('editor').style.display = 'block';
+  renderList();
+}
+
+function onLeadPick() {
+  var lid = v('q_lead');
+  if (!lid) return;
+  var lead = DataStore.get('leads', lid);
+  if (!lead) return;
+  if (!v('q_portTo') && lead.country) {
+    // 根据国家推断目的港
+    var portMap = { 'UAE':'Jebel Ali, Dubai', 'Saudi Arabia':'Jeddah', 'Philippines':'Manila', 'Indonesia':'Tanjung Priok, Jakarta', 'Thailand':'Laem Chabang', 'Malaysia':'Port Klang', 'Nigeria':'Lagos', 'South Africa':'Cape Town', 'Egypt':'Alexandria' };
+    $('q_portTo').value = portMap[lead.country] || '';
+  }
+  if (!v('q_product') && lead.product) {
+    // 自动填入产品名到第一行
+    var firstRow = $('itemsBody').querySelector('tr');
+    if (firstRow) firstRow.querySelector('.it-name').value = lead.product;
+  }
+}
+
+/* ========== 保存 ========== */
+function saveQuote() {
+  var no = v('q_no').trim();
+  if (!no) { alert('报价单号必填'); return null; }
+  var items = getItems();
+  var total = items.reduce(function(s, it){ return s + it.amount; }, 0);
+  var lid = v('q_lead');
+  var lead = lid ? DataStore.get('leads', lid) : null;
+  var data = {
+    no: no, leadId: lid, leadName: lead ? lead.name : '',
+    date: v('q_date'), currency: v('q_currency'),
+    product: items.length ? items[0].name : '',
+    items: items, total: total,
+    payment: v('q_payment'), validity: v('q_validity'),
+    portFrom: v('q_portFrom'), portTo: v('q_portTo'),
+    delivery: v('q_delivery'), note: v('q_note'),
+    status: v('q_status')
+  };
+  if (S.current) {
+    DataStore.update('quotes', S.current, data);
+  } else {
+    var saved = DataStore.add('quotes', data);
+    S.current = saved.id;
+  }
+  S.quotes = DataStore.list('quotes');
+  $('editorTitle').textContent = '编辑报价 ' + esc(no);
+  $('btnDel').style.display = 'inline-flex';
+  renderList();
+  return S.current;
+}
+function saveAndPreview() {
+  if (saveQuote()) { togglePreview(); }
+}
+function deleteQuote() {
+  if (!S.current) return;
+  if (!confirm('确定删除此报价？')) return;
+  DataStore.remove('quotes', S.current);
+  S.quotes = DataStore.list('quotes');
+  newQuote();
+}
+function onStatusChange() {
+  if (S.current) {
+    DataStore.update('quotes', S.current, { status: v('q_status') });
+    S.quotes = DataStore.list('quotes');
+    renderList();
+  }
+}
+
+/* ========== 预览/打印 ========== */
+function togglePreview() {
+  var paper = $('paper');
+  if (paper.style.display === 'block') {
+    paper.style.display = 'none'; $('editor').style.display = 'block';
+    $('btnPreview').textContent = '👁 预览';
+    return;
+  }
+  renderPaper();
+  paper.style.display = 'block'; $('editor').style.display = 'none';
+  $('btnPreview').textContent = '✏️ 编辑';
+}
+function renderPaper() {
+  var items = getItems();
+  var total = items.reduce(function(s, it){ return s + it.amount; }, 0);
+  var cur = v('q_currency');
+  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[cur] || '$';
+  var lead = v('q_lead') ? DataStore.get('leads', v('q_lead')) : null;
+  var rows = items.map(function(it, i) {
+    return '<tr><td>' + (i+1) + '</td><td>' + esc(it.name) + (it.spec ? '<br><small>' + esc(it.spec) + '</small>' : '') + '</td>'
+      + '<td class="num">' + it.qty + ' ' + esc(it.unit) + '</td>'
+      + '<td class="num">' + sym + it.unitPrice.toFixed(2) + '</td>'
+      + '<td class="num">' + sym + it.amount.toFixed(2) + '</td></tr>';
+  }).join('');
+  var noteLines = [];
+  if (v('q_payment')) noteLines.push('Payment: ' + v('q_payment'));
+  if (v('q_delivery')) noteLines.push('Delivery: ' + v('q_delivery'));
+  if (v('q_portFrom')) noteLines.push('Port of Loading: ' + v('q_portFrom'));
+  if (v('q_portTo')) noteLines.push('Port of Discharge: ' + v('q_portTo'));
+  if (v('q_validity')) noteLines.push('Validity: ' + v('q_validity'));
+  if (v('q_note')) noteLines.push(v('q_note'));
+
+  $('paper').innerHTML = '<h2>QUOTATION</h2>'
+    + '<div class="no">No. ' + esc(v('q_no')) + '<br>Date: ' + esc(v('q_date')) + '</div>'
+    + '<div class="parties"><div><b>To:</b><br>' + esc(lead ? lead.name : '—') + (lead && lead.country ? '<br>' + esc(lead.country) : '') + '</div>'
+    + '<div style="text-align:right"><b>From:</b><br>' + esc($('q_portFrom').value ? 'Seller' : '—') + '</div></div>'
+    + '<table><thead><tr><th>#</th><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>'
+    + '<tbody>' + rows + '</tbody>'
+    + '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">TOTAL</td><td style="text-align:right;font-weight:600">' + sym + total.toFixed(2) + ' ' + esc(cur) + '</td></tr></tfoot></table>'
+    + '<div class="notes">' + noteLines.map(function(l){ return esc(l); }).join('<br>') + '</div>'
+    + '<div class="sig"><div>_________________<br>Seller</div><div>_________________<br>Buyer</div></div>';
+}
+function printQuote() {
+  renderPaper();
+  $('paper').style.display = 'block';
+  window.print();
+}
+
+/* ========== AI 生成报价 ========== */
+async function aiGenQuote() {
+  var lid = v('q_lead');
+  var lead = lid ? DataStore.get('leads', lid) : null;
+  var profile = DataStore.list('profile');
+  var prof = profile.length ? profile[0] : {};
+  if (!lead && !v('q_no')) { alert('请先选择关联线索，或填写产品信息'); return; }
+  var btn = $('aiOut');
+  btn.style.display = 'block'; btn.textContent = '🧠 AI 正在生成报价…';
+  try {
+    var aiLead = lead || { name: '客户', product: v('q_payment') || 'product', country: '', market: '' };
+    var res = await AgnesAI.genQuote(aiLead, prof);
+    if (res.items && res.items.length) {
+      setItems(res.items);
+    }
+    if (res.currency) $('q_currency').value = res.currency;
+    if (res.payment) $('q_payment').value = res.payment;
+    if (res.portFrom) $('q_portFrom').value = res.portFrom;
+    if (res.portTo) $('q_portTo').value = res.portTo;
+    if (res.delivery) $('q_delivery').value = res.delivery;
+    if (res.validity) $('q_validity').value = res.validity;
+    if (res.note) $('q_note').value = res.note;
+    var out = '✅ AI 报价已填入表单\n';
+    if (res.aiNote) out += '\n💡 AI 建议：' + res.aiNote;
+    btn.textContent = out;
+  } catch(e) {
+    btn.textContent = '❌ AI 生成失败：' + e.message;
+  }
+}
+
+/* ========== AI 分析报价 ========== */
+async function aiAnalyzeQuote() {
+  var items = getItems();
+  var total = items.reduce(function(s, it){ return s + it.amount; }, 0);
+  var lid = v('q_lead');
+  var lead = lid ? DataStore.get('leads', lid) : null;
+  var btn = $('aiOut');
+  btn.style.display = 'block'; btn.textContent = '🧠 AI 分析中…';
+  try {
+    var p = '分析以下外贸报价，给出专业建议。\n'
+      + '客户：' + (lead ? lead.name + '（' + lead.country + '）' : '未关联线索') + '\n'
+      + '产品：' + items.map(function(it){ return it.name + ' x' + it.qty + ' @' + it.unitPrice; }).join(', ') + '\n'
+      + '总价：' + total + ' ' + v('q_currency') + '\n'
+      + '付款方式：' + v('q_payment') + '\n'
+      + '交期：' + v('q_delivery') + '\n\n'
+      + '请给出：\n'
+      + '1) 价格竞争力评估（该产品出口市场均价对比）\n'
+      + '2) 利润率估算（如果有明显偏低/偏高请提醒）\n'
+      + '3) 报价策略建议（是否需要阶梯报价/MOQ 调整/付款方式优化）\n'
+      + '4) 谈判话术要点（如果客户砍价怎么应对）\n'
+      + '用中文，简洁实用。';
+    var res = await AgnesAI.ask(p, { temperature: 0.4, maxTokens: 800 });
+    btn.textContent = res;
+  } catch(e) {
+    btn.textContent = '❌ 分析失败：' + e.message;
+  }
+}
+
+init();
+</script>
+</body>
+</html>

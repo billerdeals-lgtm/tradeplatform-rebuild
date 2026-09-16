@@ -17,13 +17,13 @@
 (function (global) {
   'use strict';
 
-  /* ---------- 1. 默认配置（接口地址/密钥留空，由用户在设置面板填写，存 localStorage） ---------- */
+  /* ---------- 1. 默认配置（Agnes AI 预填，可在设置面板切换其它 API） ---------- */
   var DEFAULTS = {
-    // ⚠️ 由用户在设置面板填写：Agnes 接口地址（OpenAI 兼容格式，填到 /v1 为止）
-    base: '',
-    // API 密钥：同样面板填写，存 localStorage（用户偏好：不做脱敏/抽离/vault 化）
-    key: '',
-    // 模型名：默认 agnes 2.5 flash，服务商命名不同可在面板改
+    // Agnes AI 接口地址（OpenAI 兼容格式）
+    base: 'https://apihub.agnes-ai.com/v1',
+    // API 密钥（预填，用户可在设置面板替换为其它服务商）
+    key: 'sk-UdVNk3Hb7IQ224xvYPH2swglK1XfNbLdL6Ua14c9fCh9OgoM',
+    // 模型名：默认 agnes 2.5 flash，可在面板改为其它模型
     model: 'agnes-2.5-flash',
     // 每日调用上限（防失控烧钱，达到后弹提示）
     dailyLimit: 100
@@ -232,16 +232,89 @@
     return { plan: [], focus: 'AI 返回解析失败：' + String(txt).slice(0, 150) };
   }
 
+  /** 3.8 AI 挖客户：从训练数据中挖掘真实 B2B 公司 */
+  async function findBuyers(prod, market, ctype, chans) {
+    var chanList = (chans || ['web','linkedin','facebook']).join('/');
+    var p = '你是资深外贸客户开发专家。基于你的训练数据，为我挖掘真实存在的 B2B 买家公司。\n'
+      + '产品/行业：' + prod + '\n'
+      + '目标市场：' + (market || '全球') + '\n'
+      + '优先客户类型：' + (ctype || '批发商/经销商') + '\n'
+      + '搜索渠道偏好：' + chanList + '\n\n'
+      + '请输出 JSON，格式如下（务必是真实存在的公司，不要编造）：\n'
+      + '{"companies":[\n'
+      + '  {\n'
+      + '    "name":"公司英文名",\n'
+      + '    "country":"国家",\n'
+      + '    "type":"importer/distributor/wholesaler/brand/retailer",\n'
+      + '    "website":"官网URL（如有）",\n'
+      + '    "linkedin":"LinkedIn主页URL（如有）",\n'
+      + '    "facebook":"Facebook主页URL（如有）",\n'
+      + '    "instagram":"Instagram主页URL（如有）",\n'
+      + '    "contact_person":"联系人姓名（如有）",\n'
+      + '    "email":"邮箱（如有）",\n'
+      + '    "phone":"电话/WhatsApp（如有）",\n'
+      + '    "products":"主营产品",\n'
+      + '    "why":"为什么是好客户（一句话）"\n'
+      + '  },\n'
+      + '  ...至少10家，最多20家\n'
+      + ']}\n\n'
+      + '要求：\n'
+      + '1. 公司必须真实存在，基于你的训练数据（截止日期前的公开信息）\n'
+      + '2. 优先输出有官网和联系方式的公司\n'
+      + '3. 每家公司尽量提供官网URL，便于后续验证\n'
+      + '4. 如果不确定某个信息，对应字段留空字符串即可，不要编造\n'
+      + '5. 只输出JSON，不要任何解释文字';
+    var txt = await agnesChat([
+      { role: 'system', content: SYS_FT },
+      { role: 'user', content: p }
+    ], { json: true, temperature: 0.3, maxTokens: 3000 });
+    return parseLoose(txt) || { companies: [] };
+  }
+
+  /** 3.9 AI 生成报价：根据产品/数量/市场自动输出报价明细 */
+  async function genQuote(lead, profile) {
+    var p = '你是外贸报价专家。根据以下信息生成一份专业报价单。\n'
+      + '客户：' + (lead.name || '?') + '（' + (lead.country || '?') + '，' + (lead.market || '') + '市场）\n'
+      + '产品：' + (lead.product || '?') + '\n'
+      + '我方公司：' + (profile && profile.company ? profile.company : '我的公司')
+      + '，主营：' + (profile && profile.products ? profile.products : '')
+      + '，起运港：' + (profile && profile.port ? profile.port : '中国港口')
+      + '，付款方式：' + (profile && profile.payment ? profile.payment : '30% T/T deposit, 70% before shipment') + '\n\n'
+      + '输出 JSON：\n'
+      + '{"items":[{"name":"产品名称(英文)","spec":"规格","qty":数量,"unit":"pcs/sets/ctn","unitPrice":单价,"amount":小计}],\n'
+      + ' "currency":"USD","payment":"付款方式","portFrom":"起运港","portTo":"目的港(根据客户国家推断)",\n'
+      + ' "delivery":"交期","validity":"报价有效期","note":"给客户的报价说明(英文，2-3句话)",\n'
+      + ' "aiNote":"AI报价建议(中文，关于利润率/竞争力/谈判策略的建议)"}\n\n'
+      + '要求：\n'
+      + '1. 产品名和规格用英文，要专业\n'
+      + '2. 单价要合理（基于对该产品出口价格的了解）\n'
+      + '3. 小计= qty × unitPrice\n'
+      + '4. 目的港根据客户国家推断主要港口\n'
+      + '5. 只输出JSON';
+    var txt = await agnesChat([
+      { role: 'system', content: SYS_FT },
+      { role: 'user', content: p }
+    ], { json: true, temperature: 0.3, maxTokens: 1500 });
+    return parseLoose(txt) || {};
+  }
+
   /* ---------- 4. 设置面板（可选挂载） ---------- */
   function settingsHTML() {
     var c = loadCfg();
+    var isDefault = c.base === DEFAULTS.base && c.key === DEFAULTS.key;
     return '<div style="font:14px/1.6 system-ui;max-width:420px">'
+      + '<div style="margin-bottom:10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534">✅ 已预填 Agnes AI 配置，开箱即用。如需切换其它 OpenAI 兼容服务，修改下方内容并保存即可。</div>'
       + '<label>接口地址（/v1 结尾）</label><input id="ag_base" value="' + c.base + '" placeholder="https://你的网关/v1" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
-      + '<label style="display:block;margin-top:8px">API 密钥</label><input id="ag_key" value="' + c.key + '" placeholder="sk-..." style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
+      + '<label style="display:block;margin-top:8px">API 密钥</label><input id="ag_key" value="' + c.key + '" placeholder="sk-..." type="password" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">模型名</label><input id="ag_model" value="' + c.model + '" placeholder="agnes-2.5-flash" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">每日上限：<input id="ag_limit" type="number" value="' + c.dailyLimit + '" style="width:80px"></label>'
       + '<div style="margin-top:6px;color:#888;font-size:12px">今日已调用 ' + todayCount() + ' 次</div>'
-      + '<button onclick="AgnesAI.saveFromPanel()" style="margin-top:10px;padding:8px 20px;background:#2563eb;color:#fff;border:0;border-radius:6px;cursor:pointer">保存</button>'
+      + '<div style="display:flex;gap:8px;margin-top:10px">'
+      + '<button onclick="AgnesAI.saveFromPanel()" style="padding:8px 20px;background:#2563eb;color:#fff;border:0;border-radius:6px;cursor:pointer">保存</button>'
+      + '<button onclick="AgnesAI.resetDefaults()" style="padding:8px 16px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:13px">恢复默认</button>'
+      + '<button onclick="AgnesAI.ping().then(function(r){document.getElementById(\'agPing\').textContent=r.ok?\'✓ 连通：\'+r.reply.slice(0,30):\'✗ \'+r.error})" style="padding:8px 16px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:13px">测试连通</button>'
+      + '</div>'
+      + '<div id="agPing" style="margin-top:6px;font-size:12px;color:#888"></div>'
       + '</div>';
   }
   function saveFromPanel() {
@@ -262,6 +335,14 @@
     } catch (e) { return { ok: false, error: e.message }; }
   }
 
+  /** 恢复默认 Agnes AI 配置 */
+  function resetDefaults() {
+    if (!confirm('将恢复为默认 Agnes AI 配置，确定？')) return;
+    saveCfg(Object.assign({}, DEFAULTS));
+    alert('已恢复默认配置，刷新页面生效');
+    location.reload();
+  }
+
   /* ---------- 5. 导出 ---------- */
   global.AgnesAI = {
     chat: agnesChat,
@@ -274,8 +355,11 @@
     genReviewInsight: genReviewInsight,
     genHolidayGreet: genHolidayGreet,
     genDailyPlan: genDailyPlan,
+    findBuyers: findBuyers,
+    genQuote: genQuote,
     settingsHTML: settingsHTML,
     saveFromPanel: saveFromPanel,
+    resetDefaults: resetDefaults,
     ping: ping,
     todayCount: todayCount,
     loadCfg: loadCfg
