@@ -50,6 +50,11 @@
   .ai-buyer { background:var(--accent-100); color:#8a5a00; }
   .ai-noise { background:var(--bg-inset); color:var(--text-3); }
   .ai-maybe { background:var(--info-bg); color:var(--info); }
+  .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:var(--sp-4); }
+  .chip { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-3); background:var(--bg-inset); border-radius:999px; padding:6px 14px; cursor:pointer; user-select:none; transition:all .15s; }
+  .chip input { width:auto; margin:0; accent-color:var(--brand-700); cursor:pointer; }
+  .chip.on { background:var(--brand-100); color:var(--brand-700); }
+  .chan-tag { display:inline-block; font-size:11px; padding:1px 8px; border-radius:6px; background:var(--bg-inset); color:var(--text-2); white-space:nowrap; }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
   dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:440px; width:92%; }
   dialog::backdrop { background:rgba(31,41,51,.4); }
@@ -92,6 +97,13 @@
         <option value="supermarket OR chain">商超连锁</option>
       </select>
     </div>
+  </div>
+  <div class="chips" id="chans">
+    <label class="chip on"><input type="checkbox" checked value="web">🌐 官网</label>
+    <label class="chip on"><input type="checkbox" checked value="linkedin">💼 LinkedIn</label>
+    <label class="chip on"><input type="checkbox" checked value="facebook">📘 Facebook</label>
+    <label class="chip on"><input type="checkbox" checked value="instagram">📸 Instagram</label>
+    <label class="chip on"><input type="checkbox" checked value="yellow">📞 黄页 / B2B 目录</label>
   </div>
   <input id="k_query" class="qbox" placeholder="搜索词自动生成，也可直接手写">
   <div class="acts">
@@ -137,13 +149,46 @@
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
 <script>
-/* 找客户 v2：从"搜网页"到"挖联系人"
-   多引擎(Bing/DDG/Yandex) 经公共代理 → AI 甄别买家 → 逐站抓页面挖联系方式 → 有联系方式的导入线索 */
+/* 找客户 v2.1：多渠道联系人收割
+   渠道：官网 / LinkedIn / Facebook / Instagram / 黄页B2B目录（可勾选）
+   社媒页走"摘要提取 + 跟挖其登记官网"；黄页条目直挖 + 跟挖页面里的公司官网 */
 var S = { results: [], pending: null };
 
 function v(id) { return document.getElementById(id).value; }
 function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function hostOf(url) { try { return new URL(url).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
+
+/* ---------- 渠道识别 / 外部官网提取 / 渠道选择 ---------- */
+var CHAN_NAME = { web: '🌐 官网', linkedin: '💼 LinkedIn', facebook: '📘 Facebook', instagram: '📸 Instagram', yellow: '📞 黄页/目录', social: '🔗 社媒' };
+var CHAN_RULES = [
+  ['linkedin',  /(^|\.)linkedin\.com$/i],
+  ['facebook',  /(^|\.)(facebook\.com|fb\.com|fb\.me)$/i],
+  ['instagram', /(^|\.)instagram\.com$/i],
+  ['yellow',    /yellowpages?\d*\.(com|co|pk|ae|sa|ca|com\.au|co\.uk|co\.in|co\.za)|(^|\.)yp\.(com|at)|europages\.|kompass\.|tradekey\.|thomasnet\.|exportersindia\.|wholesalecentral\.|dmoz|directory\./i],
+  ['social',    /twitter\.com|x\.com|youtube\.com|tiktok\.com|pinterest\./i]
+];
+function chanOf(url) {
+  var h = hostOf(url);
+  for (var i = 0; i < CHAN_RULES.length; i++) if (CHAN_RULES[i][1].test(h)) return CHAN_RULES[i][0];
+  return 'web';
+}
+/* 这些域名不是公司自己的官网（从摘要/页面里提取"外部官网"时排除） */
+var SOCIAL_BLOCK = /linkedin\.|facebook\.|fb\.com|instagram\.|twitter\.|x\.com|youtube\.|tiktok\.|pinterest\.|yandex\.|bing\.|google\.|duckduckgo\.|wa\.me|whatsapp\.|gmail\.|outlook\.|hotmail\.|yahoo\.|yellowpages?\.|europages\.|kompass\.|tradekey\.|thomasnet\.|alibaba\.|amazon\.|aliexpress\.|made-in-china\.|wikipedia\.|reddit\.|microsoft\./i;
+/* 从摘要/页面文本里提取公司自己登记的官网（社媒主页、黄页条目里常带） */
+function siteFromText(t) {
+  if (!t) return '';
+  var m = t.match(/(?:website|web\s*site|web|site|homepage)\s*[:：]?\s*((?:https?:\/\/)?[a-z0-9][a-z0-9.-]{2,60}\.[a-z]{2,}(?:\/[^\s"'<>]*)?)/i);
+  if (m && !SOCIAL_BLOCK.test(m[1])) return /^https?:/i.test(m[1]) ? m[1] : 'https://' + m[1];
+  var m2 = t.match(/\b([a-z0-9][a-z0-9-]{2,40}\.(?:com(?:\.(?:pk|au|sa|my|ph|eg|tr))?|net|co(?:\.(?:uk|za|in|id))?|org|biz|ae|io))\b/i);
+  if (m2 && !SOCIAL_BLOCK.test(m2[1])) return 'https://' + m2[1];
+  return '';
+}
+function selChans() {
+  return Array.prototype.map.call(document.querySelectorAll('#chans input:checked'), function(i){ return i.value; });
+}
+document.querySelectorAll('#chans .chip').forEach(function(ch) {
+  ch.addEventListener('change', function(){ ch.classList.toggle('on', ch.querySelector('input').checked); });
+});
 
 /* ---------- 搜索词拼装（手动搜索用） ---------- */
 function buildQuery() {
@@ -272,6 +317,7 @@ async function harvestSite(item, st) {
       doc.querySelectorAll('script,style,noscript').forEach(function(n){ n.remove(); });
       text = (doc.body ? doc.body.innerText : '') + ' ' + res.body.slice(0, 60000); // innerText + 原始串(抓 mailto/wa.me)
     }
+    item._pageText = text.slice(0, 120000); // 留底：黄页条目里常写有公司自己的官网
     item.contacts = extractContacts(text.slice(0, 120000));
     // 公司名兜底：<title> 或 og:site_name
     if (!item.company) {
@@ -279,6 +325,42 @@ async function harvestSite(item, st) {
       if (tm) item.company = tm[1].replace(/\s*[|\-–—]\s*home.*$/i, '').trim();
     }
   } catch (e) { item.contacts = { emails: [], was: [], phones: [], person: '', fail: true }; }
+  return item.contacts;
+}
+
+/* ---------- 渠道感知深挖 ----------
+   社媒(LinkedIn/FB/IG)：登录墙拦爬 → ①从摘要里找它登记的外部官网，挖官网；②摘要本身也可能带邮箱
+   黄页/目录：先挖条目页（通常有电话）；没挖到再跟页面里写的公司官网挖一次 */
+async function deepHarvest(item, st) {
+  var chan = item.chan || chanOf(item.url);
+  if (chan === 'linkedin' || chan === 'facebook' || chan === 'instagram') {
+    var ext = siteFromText((item.title || '') + ' ' + (item.snippet || ''));
+    if (ext) {
+      var fake = { url: ext };
+      await harvestSite(fake, st);
+      if (hasContact(fake)) {
+        item.contacts = fake.contacts;
+        if (!item.company || item.company.length < 4) item.company = fake.company || item.company;
+        item.extSite = ext;
+        return item.contacts;
+      }
+    }
+    item.contacts = extractContacts((item.title || '') + ' ' + (item.snippet || ''));
+    return item.contacts;
+  }
+  await harvestSite(item, st);
+  if (!hasContact(item) && item._pageText) {
+    var ext2 = siteFromText(item._pageText.slice(0, 30000));
+    if (ext2 && hostOf(ext2) !== hostOf(item.url)) {
+      var fake2 = { url: ext2 };
+      await harvestSite(fake2, st);
+      if (hasContact(fake2)) {
+        item.contacts = fake2.contacts;
+        if (!item.company || item.company.length < 4) item.company = fake2.company || item.company;
+        item.extSite = ext2;
+      }
+    }
+  }
   return item.contacts;
 }
 
@@ -308,51 +390,64 @@ async function aiSearch() {
   var market = v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '全球';
   var ctype = document.getElementById('k_type').selectedOptions[0].text;
   try {
-    /* 1. AI 生成两类搜索词：买家词 + 联系方式收割词 */
+    /* 1. AI 按勾选渠道生成专属搜索词：官网 / LinkedIn / Facebook / Instagram / 黄页目录 */
+    var chans = selChans();
+    if (!chans.length) { st.textContent = '请至少勾选一个采集渠道'; return; }
     st.textContent = '🧭 AI 生成搜索策略…'; box.style.display = 'block'; box.textContent = 'AI 规划搜索词中…';
+    var CHAN_DESC = {
+      web:      '"web":["买家官网词x2-3"，distributor/wholesaler/importer 换表述，带 -site:alibaba.com -site:amazon.com',
+      linkedin: '"linkedin":["site:linkedin.com/company 产品词 distributor" 等x2，可加一条 site:linkedin.com/in 找采购负责人',
+      facebook: '"facebook":["site:facebook.com 产品词 (contact OR whatsapp OR \"@gmail.com\")" 等x2',
+      instagram:'"instagram":["site:instagram.com 产品词 (gmail OR contact OR whatsapp)" 等x1-2',
+      yellow:   '"yellow":["site:yellowpages.com 产品词 importer" 等x2，按目标市场挑对应国家的黄页/目录站点（europages/kompass/tradekey/yellowpages.pk 等）]'
+    };
+    var keyDesc = chans.map(function(c){ return CHAN_DESC[c] || ''; }).join('；');
     var rawQ = await AgnesAI.ask(
-      '我要在搜索引擎挖外贸 B2B 买家的联系方式（邮箱/WhatsApp）。产品：' + prod + '；市场：' + market + '；优先客户类型：' + ctype + '。'
-      + '输出 JSON：{"queries":["买家搜索词x4",...],"harvest":["收割词x2",...]}。'
-      + 'queries：英文买家搜索词，覆盖 distributor/wholesaler/importer/agent，带 -site:alibaba.com -site:amazon.com；'
-      + 'harvest：直击联系方式的搜索词，套用这类模式（把产品词换进去）："产品词" distributor ("@gmail.com" OR "@outlook.com" OR "@yahoo.com")、产品词 supplier whatsapp contact、产品词 importer "tel:" contact；不要解释。', { json: true, maxTokens: 600, temperature: 0.4 });
+      '我要在搜索引擎多渠道挖外贸 B2B 买家的联系方式（邮箱/WhatsApp/电话）。产品：' + prod + '；市场：' + market + '；优先客户类型：' + ctype + '。'
+      + '输出 JSON，键与要求：' + keyDesc + '。全部为英文搜索词；不要解释。',
+      { json: true, maxTokens: 700, temperature: 0.4 });
     var qRes = AgnesAI.parseLoose(rawQ) || {};
-    var queries = (Array.isArray(qRes.queries) ? qRes.queries : []).filter(function(q){ return typeof q === 'string' && q.length > 5; }).slice(0, 3);
-    var harvest = (Array.isArray(qRes.harvest) ? qRes.harvest : []).filter(function(q){ return typeof q === 'string' && q.length > 5; }).slice(0, 2);
-    if (!queries.length && !harvest.length) throw new Error('AI 未返回可用搜索词（片段：' + String(rawQ).slice(0, 120) + '）');
-    box.textContent = '买家词：\n· ' + queries.join('\n· ') + '\n\n联系方式收割词：\n· ' + harvest.join('\n· ');
+    var plan = [];
+    chans.forEach(function(chan) {
+      (Array.isArray(qRes[chan]) ? qRes[chan] : []).forEach(function(q, i) {
+        if (typeof q !== 'string' || q.length < 6 || plan.length >= 10) return;
+        plan.push({ q: q.trim(), chan: chan, eng: ENGINES[(plan.length + (chan === 'instagram' ? 1 : 0)) % 2] });
+      });
+    });
+    if (!plan.length) throw new Error('AI 未返回可用搜索词（片段：' + String(rawQ).slice(0, 120) + '）');
+    box.textContent = plan.map(function(p){ return '[' + CHAN_NAME[p.chan] + '] ' + p.q; }).join('\n');
 
-    /* 2. 多引擎轮换自动搜索：买家词用 Bing/DDG，收割词换 DDG/Yandex */
-    var seen = {}, merged = [], plan = [];
-    queries.forEach(function(q, i){ plan.push({ q: q, eng: ENGINES[i % 2] }); });
-    harvest.forEach(function(q, i){ plan.push({ q: q, eng: ENGINES[(i + 1) % 2 + 1] }); });
+    /* 2. 自动逐组搜索（Bing/DDG 轮换；web 渠道按域名去重，社媒渠道保留不同主页） */
+    var seen = {}, merged = [];
     for (var pi = 0; pi < plan.length; pi++) {
       var p = plan[pi];
-      st.textContent = '🧭 ' + p.eng.name + ' 搜索 ' + (pi + 1) + '/' + plan.length + '…';
+      st.textContent = '🧭 [' + CHAN_NAME[p.chan] + '] ' + p.eng.name + ' 搜索 ' + (pi + 1) + '/' + plan.length + '…';
       try {
         var res = await fetchThrough(p.eng.url(p.q), 22000);
         parseResults(res.body, res.html).forEach(function(r) {
-          var key = hostOf(r.url);
+          var key = (p.chan === 'web') ? hostOf(r.url) : r.url.split('#')[0];
           if (!key || seen[key]) return;
           seen[key] = 1;
+          r.chan = (p.chan === 'web') ? chanOf(r.url) : p.chan;
           Object.assign(r, extractContacts((r.title + ' ' + r.snippet))); // 摘要级先挖一遍
           merged.push(r);
         });
       } catch (e) { /* 单组失败跳过 */ }
     }
     if (!merged.length) throw new Error('各组搜索均无结果（引擎可能限流，稍后再试）');
-    S.results = merged.slice(0, 20);
-    box.textContent += '\n\n共 ' + merged.length + ' 条（去重后）。开始 AI 甄别 + 逐站挖联系方式…';
+    S.results = merged.slice(0, 26);
+    box.textContent += '\n\n共 ' + merged.length + ' 条（去重后）。开始 AI 甄别 + 渠道感知深挖…';
 
     /* 3. AI 批量甄别 buyer/maybe/noise（决定深挖优先级） */
     st.textContent = '🧭 AI 甄别买家…';
     var digest = S.results.map(function(r, i) {
-      return i + '| ' + r.title.slice(0, 70) + ' | ' + hostOf(r.url) + ' | ' + (r.snippet || '').slice(0, 80);
+      return i + '|[' + (r.chan || 'web') + ']| ' + r.title.slice(0, 70) + ' | ' + hostOf(r.url) + ' | ' + (r.snippet || '').slice(0, 80);
     }).join('\n');
     var rawV = await AgnesAI.ask(
-      '以下是外贸客户搜索结果（序号|标题|域名|摘要）。逐条判断是否值得深挖联系方式的 B2B 买家/渠道商。'
+      '以下是多渠道外贸客户搜索结果（序号|[渠道]|标题|域名|摘要）。逐条判断是否值得深挖联系方式的 B2B 买家/渠道商。'
       + '输出 JSON：{"results":[{"i":序号,"verdict":"buyer|maybe|noise","type":"importer/distributor/wholesaler/brand/…","why":"≤15字中文理由"}]}。'
-      + '规则：B2B 公司官网=buyer；平台店铺页/黄页目录/新闻/C端零售=noise；其余=maybe。\n' + digest,
-      { json: true, maxTokens: 1200, temperature: 0.2 });
+      + '规则：B2B 公司官网=buyer；LinkedIn/Facebook/Instagram 公司主页=maybe（type 标注）；黄页/B2B目录里的公司条目=maybe；平台店铺页/新闻/个人生活内容=noise。\n' + digest,
+      { json: true, maxTokens: 1400, temperature: 0.2 });
     var vRes = AgnesAI.parseLoose(rawV) || {};
     ((vRes && vRes.results) || []).forEach(function(vv) {
       var idx = parseInt(vv.i, 10);
@@ -361,13 +456,13 @@ async function aiSearch() {
       }
     });
 
-    /* 4. 逐站深挖联系方式：优先 buyer，其次 maybe，最多 8 站 */
+    /* 4. 渠道感知深挖：buyer 优先，其次 maybe（社媒页自动跟官网、黄页先条目后官网），最多 10 站 */
     var digList = S.results.filter(function(r){ return r.ai && r.ai.verdict !== 'noise'; })
       .concat(S.results.filter(function(r){ return !r.ai; }))
-      .slice(0, 8);
+      .slice(0, 10);
     for (var di = 0; di < digList.length; di++) {
-      st.textContent = '🧭 挖联系方式 ' + (di + 1) + '/' + digList.length + '（' + hostOf(digList[di].url) + '）…';
-      await harvestSite(digList[di], st);
+      st.textContent = '🧭 挖联系方式 ' + (di + 1) + '/' + digList.length + '（' + CHAN_NAME[digList[di].chan || 'web'] + ' · ' + hostOf(digList[di].url) + '）…';
+      await deepHarvest(digList[di], st);
       render(); // 边挖边出结果
     }
     var nC = S.results.filter(hasContact).length;
@@ -423,7 +518,7 @@ function render() {
       + '<div class="top"><span class="name">' + esc(r.company || r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60)) + '</span>'
       + badge
       + (conv ? '<span class="ft-tag" style="background:var(--ok-bg);color:var(--ok)">✓ 已导入</span>' : '')
-      + '<span class="src" style="margin-left:auto"><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(hostOf(r.url)) + '</a></span></div>'
+      + '<span class="src" style="margin-left:auto"><span class="chan-tag">' + CHAN_NAME[r.chan || chanOf(r.url)] + '</span> <a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(hostOf(r.url)) + '</a></span></div>'
       + (r.ai && r.ai.why ? '<div class="ai-why">' + esc(r.ai.why) + '</div>' : '')
       + contacts
       + '<div class="acts" style="margin-top:8px">'
@@ -440,9 +535,9 @@ function renderHist() {
 function reuse(el) { document.getElementById('k_query').value = el.dataset.q; }
 async function digOne(i) {
   var st = document.getElementById('st');
-  st.textContent = '⛏ 深挖 ' + hostOf(S.results[i].url) + '…';
-  await harvestSite(S.results[i], st);
-  st.textContent = hasContact(S.results[i]) ? '挖到联系方式 ✓' : '该站未挖到联系方式';
+  st.textContent = '⛏ 深挖 ' + CHAN_NAME[S.results[i].chan || chanOf(S.results[i].url)] + ' · ' + hostOf(S.results[i].url) + '…';
+  await deepHarvest(S.results[i], st);
+  st.textContent = hasContact(S.results[i]) ? '挖到联系方式 ✓' : '该来源未挖到联系方式';
   render();
 }
 
