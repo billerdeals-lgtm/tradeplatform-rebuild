@@ -11,35 +11,46 @@
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
   header img { width:34px; height:34px; }
   header h1 { font-size:18px; margin:0; flex:1; }
-  main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
-  .card { padding:var(--sp-5); margin-bottom:var(--sp-4); }
-  .row { display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; }
-  label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-2) 0 4px; }
-  input, select { padding:9px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); box-sizing:border-box; }
-  .row input, .row select { flex:1; min-width:140px; }
-  .qbox { width:100%; font-family:var(--font-mono); font-size:13.5px; color:var(--brand-700); background:var(--bg-inset); }
-  .res { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); }
+  main { max-width:920px; margin:0 auto; padding:var(--sp-6) var(--sp-4) 80px; }
+  .row { display:flex; gap:var(--sp-4); flex-wrap:wrap; align-items:flex-end; }
+  .field { flex:1; min-width:170px; }
+  .field.wide { flex:2.2; min-width:240px; }
+  label { display:block; font-size:12.5px; color:var(--text-3); margin-bottom:5px; }
+  input, select {
+    width:100%; box-sizing:border-box; padding:10px 2px; border:0; border-bottom:1.5px solid var(--border-strong);
+    font-size:14.5px; font-family:var(--font-sans); background:transparent; color:var(--text-1); transition:border-color .15s;
+  }
+  select { cursor:pointer; }
+  input:focus, select:focus { outline:none; border-bottom-color:var(--brand-700); }
+  ::placeholder { color:var(--text-3); opacity:.55; }
+  .qbox { width:100%; font-family:var(--font-mono); font-size:13.5px; color:var(--brand-700); background:var(--bg-inset); border:0; border-radius:var(--r-sm); padding:11px 14px; margin-top:var(--sp-4); }
+  .qbox:focus { outline:2px solid var(--brand-100); }
+  .acts { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); align-items:center; flex-wrap:wrap; }
+  .status { font-size:13px; color:var(--text-2); }
+  .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
+  .hist { font-size:12.5px; color:var(--text-3); margin-top:var(--sp-4); }
+  .hist span { display:inline-block; background:var(--bg-inset); border-radius:999px; padding:3px 12px; margin:3px 6px 3px 0; cursor:pointer; }
+  .hist span:hover { background:var(--brand-100); }
+  .stats { display:flex; gap:var(--sp-8); margin:var(--sp-6) 0 var(--sp-5); padding:0 var(--sp-2); }
+  .stat b { display:block; font-size:24px; font-weight:600; }
+  .stat span { font-size:12px; color:var(--text-3); }
+  .res { background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-3); }
   .res h3 { font-size:14.5px; margin:0 0 3px; }
   .res h3 a { color:var(--brand-700); text-decoration:none; }
   .res h3 a:hover { text-decoration:underline; }
   .res .u { font-size:12px; color:var(--text-3); word-break:break-all; margin-bottom:3px; }
   .res .s { font-size:13px; color:var(--text-2); line-height:1.6; }
-  .res .acts { margin-top:6px; }
-  .res .acts button { font-size:12px; padding:4px 12px; }
-  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-3); margin-bottom:var(--sp-4); }
-  .stat { padding:var(--sp-3); text-align:center; }
-  .stat b { display:block; font-size:22px; }
-  .stat span { font-size:12px; color:var(--text-2); }
-  .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
+  .res .acts { margin-top:8px; }
+  .res .acts button { font-size:12px; padding:4px 14px; }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
-  .status { font-size:13px; color:var(--text-2); }
   dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:420px; width:92%; }
   dialog::backdrop { background:rgba(31,41,51,.4); }
   dialog h3 { margin:0 0 var(--sp-3); font-size:15px; color:var(--brand-700); }
-  dialog input { width:100%; margin-bottom:var(--sp-2); }
-  .hist { font-size:12.5px; color:var(--text-2); }
-  .hist span { display:inline-block; background:var(--bg-inset); border-radius:999px; padding:2px 10px; margin:2px 4px 2px 0; cursor:pointer; }
-  .hist span:hover { background:var(--brand-100); }
+  dialog label { margin-top:var(--sp-2); }
+  dialog input { background:var(--bg-inset); border-radius:var(--r-sm); padding:9px 12px; }
+  dialog input:focus { border-bottom:0; }
+  .btnrow { display:flex; gap:var(--sp-3); margin-top:var(--sp-4); }
+  .ghostbtn { background:none; border:0; cursor:pointer; color:var(--text-2); font-size:13.5px; }
 </style>
 </head>
 <body>
@@ -48,51 +59,47 @@
   <h1>找客户</h1>
 </header>
 <main>
-  <div class="ft-card card">
-    <h2 style="font-size:15px;color:var(--brand-700);margin:0 0 8px">🔍 搜索条件</h2>
-    <div class="row">
-      <div style="flex:2;min-width:220px"><label>产品 / 行业关键词（英文）</label><input id="k_prod" placeholder="cat litter / freeze dried chicken" value=""></div>
-      <div><label>目标市场</label>
-        <select id="k_region">
-          <option value="">🌍 全球</option>
-          <option value="Southeast Asia">东南亚</option>
-          <option value="Middle East">中东</option>
-          <option value="USA OR Europe">欧美</option>
-          <option value="Africa">非洲</option>
-          <option value="Philippines">菲律宾</option>
-          <option value="Indonesia">印尼</option>
-          <option value="Thailand">泰国</option>
-          <option value="Malaysia">马来西亚</option>
-          <option value="Cambodia">柬埔寨</option>
-          <option value="Saudi Arabia OR UAE">海湾六国</option>
-        </select>
-      </div>
-      <div><label>客户类型</label>
-        <select id="k_type">
-          <option value="wholesaler OR distributor">批发商/经销商</option>
-          <option value="importer">进口商</option>
-          <option value="brand owner">品牌方</option>
-          <option value="\"online store\" OR shopify">电商卖家</option>
-          <option value="supermarket OR chain">商超连锁</option>
-        </select>
-      </div>
+  <div class="row">
+    <div class="field wide"><label>产品 / 行业关键词（英文）</label><input id="k_prod"></div>
+    <div class="field"><label>目标市场</label>
+      <select id="k_region">
+        <option value="">全球</option>
+        <option value="Southeast Asia">东南亚</option>
+        <option value="Middle East">中东</option>
+        <option value="USA OR Europe">欧美</option>
+        <option value="Africa">非洲</option>
+        <option value="Philippines">菲律宾</option>
+        <option value="Indonesia">印尼</option>
+        <option value="Thailand">泰国</option>
+        <option value="Malaysia">马来西亚</option>
+        <option value="Cambodia">柬埔寨</option>
+        <option value="Saudi Arabia OR UAE">海湾六国</option>
+      </select>
     </div>
-    <label>搜索词（自动拼装，可手改）</label>
-    <input id="k_query" class="qbox" placeholder="选好上面两项自动生成，也可直接手写">
-    <div class="row" style="margin-top:var(--sp-3)">
-      <button class="ft-btn-primary" onclick="doSearch()">🔎 搜索</button>
-      <button class="ft-btn-ai" onclick="aiExpand()">✨ AI 扩展搜索词</button>
-      <span class="status" id="st"></span>
+    <div class="field"><label>客户类型</label>
+      <select id="k_type">
+        <option value="wholesaler OR distributor">批发商/经销商</option>
+        <option value="importer">进口商</option>
+        <option value="brand owner">品牌方</option>
+        <option value="\"online store\" OR shopify">电商卖家</option>
+        <option value="supermarket OR chain">商超连锁</option>
+      </select>
     </div>
-    <div id="ai_out" class="ft-ai-output"></div>
-    <div class="hist" id="hist" style="margin-top:var(--sp-3)"></div>
   </div>
+  <input id="k_query" class="qbox" placeholder="搜索词自动生成，也可直接手写">
+  <div class="acts">
+    <button class="ft-btn-primary" onclick="doSearch()">搜索</button>
+    <button class="ft-btn-ai" onclick="aiExpand()">✨ AI 扩展搜索词</button>
+    <span class="status" id="st"></span>
+  </div>
+  <div id="ai_out" class="ft-ai-output"></div>
+  <div class="hist" id="hist"></div>
 
   <div class="stats">
-    <div class="ft-card stat"><b id="stN">0</b><span>本次结果</span></div>
-    <div class="ft-card stat"><b id="stConv">0</b><span>已转线索</span></div>
-    <div class="ft-card stat"><b id="stTotal">0</b><span>线索总量</span></div>
-    <div class="ft-card stat"><b id="stHist">0</b><span>历史搜索</span></div>
+    <div class="stat"><b id="stN">0</b><span>本次结果</span></div>
+    <div class="stat"><b id="stConv">0</b><span>已转线索</span></div>
+    <div class="stat"><b id="stTotal">0</b><span>线索总量</span></div>
+    <div class="stat"><b id="stHist">0</b><span>历史搜索</span></div>
   </div>
 
   <div id="results">
@@ -102,15 +109,15 @@
 
 <!-- 转线索弹窗 -->
 <dialog id="dlgLead">
-  <h3>→ 转为线索</h3>
+  <h3>转为线索</h3>
   <label>客户名 / 公司名</label><input id="c_name">
   <label>国家</label><input id="c_country">
   <label>邮箱（从摘要自动识别，需核对）</label><input id="c_email">
   <label>WhatsApp / 电话</label><input id="c_wa">
   <label>备注（来源页自动记录）</label><input id="c_note">
-  <div class="row" style="margin-top:var(--sp-3)">
+  <div class="btnrow">
     <button class="ft-btn-primary" onclick="convSave()">保存到线索 Pipeline</button>
-    <button onclick="dlgLead.close()" style="background:none;border:0;cursor:pointer;color:var(--text-2)">取消</button>
+    <button class="ghostbtn" onclick="dlgLead.close()">取消</button>
   </div>
 </dialog>
 
@@ -209,12 +216,12 @@ function render() {
   if (!S.results.length) { box.innerHTML = '<div class="empty">无结果，换个关键词试试</div>'; return; }
   box.innerHTML = S.results.map(function(r, i) {
     var conv = S.convIds[i];
-    return '<div class="ft-card res"><h3><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a></h3>'
+    return '<div class="res"><h3><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a></h3>'
       + '<div class="u">' + esc(r.url) + '</div>'
       + (r.snippet ? '<div class="s">' + esc(r.snippet) + '</div>' : '')
       + '<div class="acts">' + (conv
         ? '<span class="ft-tag" style="background:var(--ok-bg);color:var(--ok)">✓ 已转线索：' + esc(conv) + '</span>'
-        : '<button class="ft-btn-primary" onclick="openConv(' + i + ')">→ 转为线索</button>')
+        : '<button class="ft-btn-primary" onclick="openConv(' + i + ')">转为线索</button>')
       + '</div></div>';
   }).join('');
 }
