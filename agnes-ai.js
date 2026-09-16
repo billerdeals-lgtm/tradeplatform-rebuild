@@ -128,6 +128,26 @@
   var SYS_FT = '你是资深外贸 B2B 销售教练，熟悉阿里国际站、Google 开发客户、WhatsApp/邮件触达。'
     + '回答用简体中文，客户名和专有名词保留原文，输出务实可执行，不写空话套话。';
 
+  /** JSON 容错解析：剥离 ```代码围栏 / 提取首个 {...} 块 / 兜底正则抓字段 */
+  function parseLoose(txt) {
+    if (!txt) return null;
+    var s = String(txt).replace(/```(?:json)?/gi, '').trim();
+    try { return JSON.parse(s); } catch (e) {}
+    var a = s.indexOf('{'), b = s.lastIndexOf('}');
+    if (a >= 0 && b > a) {
+      try { return JSON.parse(s.slice(a, b + 1)); } catch (e) {}
+      // 仍是坏 JSON：逐字段正则抠（score/next_action 等关键值）
+      var out = {};
+      var m = s.match(/"score"\s*:\s*([0-9.]+)/);          if (m) out.score = parseFloat(m[1]);
+      m = s.match(/"tier"\s*:\s*"([^"]*)"/);               if (m) out.tier = m[1];
+      m = s.match(/"reason"\s*:\s*"([^"]*)"/);             if (m) out.reason = m[1];
+      m = s.match(/"next_action"\s*:\s*"([^"]*)"/);        if (m) out.next_action = m[1];
+      m = s.match(/"channel"\s*:\s*"([^"]*)"/);            if (m) out.channel = m[1];
+      if (Object.keys(out).length) return out;
+    }
+    return null;
+  }
+
   /** 3.1 线索 AI 评分 + 下一步动作（对应蓝图 find 模块） */
   async function scoreLead(lead) {
     var p = '请给这条外贸线索评分并给下一步建议。输出 JSON：{"score":0-100,"tier":"高/中/低","reason":"一句话理由","next_action":"具体下一步（含话术要点）","channel":"建议触达渠道(email/whatsapp/call)"}。\n'
@@ -143,7 +163,9 @@
       { role: 'system', content: SYS_FT },
       { role: 'user', content: p }
     ], { json: true, temperature: 0.3, maxTokens: 400 });
-    try { return JSON.parse(txt); } catch (e) { return { score: 0, tier: '?', reason: '解析失败', next_action: txt.slice(0, 200), channel: '' }; }
+    var r = parseLoose(txt);
+    if (r && typeof r.score === 'number') return r;
+    return { score: 0, tier: '?', reason: 'AI 返回无法解析', next_action: String(txt).slice(0, 200), channel: '' };
   }
 
   /** 3.2 个性化开发信/跟进邮件（对应 reach 模块，替换假模板署名） */
@@ -153,7 +175,10 @@
       + (lead.market || '') + '市场，主营/关注产品：' + (lead.product || '?') + '，备注：' + (lead.note || '无') + '）\n'
       + '发件人：' + (myProfile && myProfile.name ? myProfile.name : '我')
       + (myProfile && myProfile.company ? '，公司：' + myProfile.company : '')
-      + (myProfile && myProfile.selling ? '，优势：' + myProfile.selling : '') + '\n'
+      + (myProfile && myProfile.selling ? '，优势：' + myProfile.selling : '')
+      + (myProfile && myProfile.products ? '，主营产品：' + myProfile.products : '')
+      + (myProfile && myProfile.port ? '，起运港：' + myProfile.port : '')
+      + (myProfile && myProfile.payment ? '，付款方式：' + myProfile.payment : '') + '\n'
       + '要求：英文正文（150 词内），口语化不像群发；给出 Subject；正文后另起一行用【中文要点】总结这封信想让客户做什么。';
     return agnesChat([{ role: 'system', content: SYS_FT }, { role: 'user', content: p }], { temperature: 0.8, maxTokens: 600 });
   }
@@ -201,7 +226,9 @@
       + '。只排未完成项，按“到期紧急度>成交金额>线索评分>阶段推进价值”综合排序，最多 8 条。';
     var txt = await agnesChat([{ role: 'system', content: SYS_FT }, { role: 'user', content: p }],
       { json: true, temperature: 0.3, maxTokens: 700 });
-    try { return JSON.parse(txt); } catch (e) { return { plan: [], focus: 'AI 返回解析失败：' + txt.slice(0, 150) }; }
+    var r = parseLoose(txt);
+    if (r && Array.isArray(r.plan)) return r;
+    return { plan: [], focus: 'AI 返回解析失败：' + String(txt).slice(0, 150) };
   }
 
   /* ---------- 4. 设置面板（可选挂载） ---------- */

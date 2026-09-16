@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 找客户</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
+  .card { padding:var(--sp-5); margin-bottom:var(--sp-4); }
+  .row { display:flex; gap:var(--sp-2); flex-wrap:wrap; align-items:center; }
+  label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-2) 0 4px; }
+  input, select { padding:9px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); box-sizing:border-box; }
+  .row input, .row select { flex:1; min-width:140px; }
+  .qbox { width:100%; font-family:var(--font-mono); font-size:13.5px; color:var(--brand-700); background:var(--bg-inset); }
+  .res { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); }
+  .res h3 { font-size:14.5px; margin:0 0 3px; }
+  .res h3 a { color:var(--brand-700); text-decoration:none; }
+  .res h3 a:hover { text-decoration:underline; }
+  .res .u { font-size:12px; color:var(--text-3); word-break:break-all; margin-bottom:3px; }
+  .res .s { font-size:13px; color:var(--text-2); line-height:1.6; }
+  .res .acts { margin-top:6px; }
+  .res .acts button { font-size:12px; padding:4px 12px; }
+  .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-3); margin-bottom:var(--sp-4); }
+  .stat { padding:var(--sp-3); text-align:center; }
+  .stat b { display:block; font-size:22px; }
+  .stat span { font-size:12px; color:var(--text-2); }
+  .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
+  .status { font-size:13px; color:var(--text-2); }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:420px; width:92%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  dialog h3 { margin:0 0 var(--sp-3); font-size:15px; color:var(--brand-700); }
+  dialog input { width:100%; margin-bottom:var(--sp-2); }
+  .hist { font-size:12.5px; color:var(--text-2); }
+  .hist span { display:inline-block; background:var(--bg-inset); border-radius:999px; padding:2px 10px; margin:2px 4px 2px 0; cursor:pointer; }
+  .hist span:hover { background:var(--brand-100); }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="logo">
+  <h1>找客户</h1>
+</header>
+<main>
+  <div class="ft-card card">
+    <h2 style="font-size:15px;color:var(--brand-700);margin:0 0 8px">🔍 搜索条件</h2>
+    <div class="row">
+      <div style="flex:2;min-width:220px"><label>产品 / 行业关键词（英文）</label><input id="k_prod" placeholder="cat litter / freeze dried chicken" value=""></div>
+      <div><label>目标市场</label>
+        <select id="k_region">
+          <option value="">🌍 全球</option>
+          <option value="Southeast Asia">东南亚</option>
+          <option value="Middle East">中东</option>
+          <option value="USA OR Europe">欧美</option>
+          <option value="Africa">非洲</option>
+          <option value="Philippines">菲律宾</option>
+          <option value="Indonesia">印尼</option>
+          <option value="Thailand">泰国</option>
+          <option value="Malaysia">马来西亚</option>
+          <option value="Cambodia">柬埔寨</option>
+          <option value="Saudi Arabia OR UAE">海湾六国</option>
+        </select>
+      </div>
+      <div><label>客户类型</label>
+        <select id="k_type">
+          <option value="wholesaler OR distributor">批发商/经销商</option>
+          <option value="importer">进口商</option>
+          <option value="brand owner">品牌方</option>
+          <option value="\"online store\" OR shopify">电商卖家</option>
+          <option value="supermarket OR chain">商超连锁</option>
+        </select>
+      </div>
+    </div>
+    <label>搜索词（自动拼装，可手改）</label>
+    <input id="k_query" class="qbox" placeholder="选好上面两项自动生成，也可直接手写">
+    <div class="row" style="margin-top:var(--sp-3)">
+      <button class="ft-btn-primary" onclick="doSearch()">🔎 搜索</button>
+      <button class="ft-btn-ai" onclick="aiExpand()">✨ AI 扩展搜索词</button>
+      <span class="status" id="st"></span>
+    </div>
+    <div id="ai_out" class="ft-ai-output"></div>
+    <div class="hist" id="hist" style="margin-top:var(--sp-3)"></div>
+  </div>
+
+  <div class="stats">
+    <div class="ft-card stat"><b id="stN">0</b><span>本次结果</span></div>
+    <div class="ft-card stat"><b id="stConv">0</b><span>已转线索</span></div>
+    <div class="ft-card stat"><b id="stTotal">0</b><span>线索总量</span></div>
+    <div class="ft-card stat"><b id="stHist">0</b><span>历史搜索</span></div>
+  </div>
+
+  <div id="results">
+    <div class="empty">输入条件开始搜索 · 结果可一键转为线索进入 Pipeline</div>
+  </div>
+</main>
+
+<!-- 转线索弹窗 -->
+<dialog id="dlgLead">
+  <h3>→ 转为线索</h3>
+  <label>客户名 / 公司名</label><input id="c_name">
+  <label>国家</label><input id="c_country">
+  <label>邮箱（从摘要自动识别，需核对）</label><input id="c_email">
+  <label>WhatsApp / 电话</label><input id="c_wa">
+  <label>备注（来源页自动记录）</label><input id="c_note">
+  <div class="row" style="margin-top:var(--sp-3)">
+    <button class="ft-btn-primary" onclick="convSave()">保存到线索 Pipeline</button>
+    <button onclick="dlgLead.close()" style="background:none;border:0;cursor:pointer;color:var(--text-2)">取消</button>
+  </div>
+</dialog>
+
+<script src="../js/datastore.js"></script>
+<script src="../agnes-ai.js"></script>
+<script>
+/* 找客户：Bing 搜索经公共 CORS 代理（与原版同思路、自研实现）
+   AI 落点：关键词扩展；结果一键转线索（leads）+ 搜索历史（searches） */
+var S = { results: [], convIds: {}, pending: null };
+
+/* ---------- 搜索词拼装 ---------- */
+function buildQuery() {
+  var prod = v('k_prod').trim(), reg = v('k_region'), type = v('k_type');
+  if (!prod) return '';
+  var q = prod;
+  if (type) q += ' ' + type;
+  if (reg) q += ' ' + reg;
+  q += ' -site:alibaba.com -site:amazon.com -site:aliexpress.com'; // 排除 C 端噪音
+  return q;
+}
+['k_prod','k_region','k_type'].forEach(function(id){
+  document.getElementById(id).addEventListener('change', function(){ document.getElementById('k_query').value = buildQuery(); });
+});
+function v(id) { return document.getElementById(id).value; }
+function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+/* ---------- 代理链：allorigins → codetabs → jina ---------- */
+var PROXIES = [
+  { name: 'allorigins', wrap: function(u){ return 'https://api.allorigins.win/raw?url=' + encodeURIComponent(u); }, html: true },
+  { name: 'codetabs',   wrap: function(u){ return 'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(u); }, html: true },
+  { name: 'jina',       wrap: function(u){ return 'https://r.jina.ai/' + u; }, html: false }
+];
+async function fetchThrough(url) {
+  for (var i = 0; i < PROXIES.length; i++) {
+    var p = PROXIES[i];
+    try {
+      var r = await fetch(p.wrap(url), { signal: AbortSignal.timeout(20000) });
+      if (!r.ok) throw new Error(p.name + ' HTTP ' + r.status);
+      var t = await r.text();
+      if (t && t.length > 500) return { body: t, html: p.html, via: p.name };
+      throw new Error(p.name + ' 返回过短');
+    } catch (e) { /* 换下一个代理 */ }
+  }
+  throw new Error('三个代理全部失败（可能被限流，稍后再试）');
+}
+
+/* ---------- Bing 结果解析 ---------- */
+function parseBing(body, isHtml) {
+  var out = [];
+  if (isHtml) {
+    var doc = new DOMParser().parseFromString(body, 'text/html');
+    doc.querySelectorAll('li.b_algo').forEach(function(li) {
+      var a = li.querySelector('h2 a'), cap = li.querySelector('.b_caption p, p');
+      if (a && a.href) out.push({ title: a.textContent.trim(), url: a.href, snippet: cap ? cap.textContent.trim() : '' });
+    });
+  } else {
+    // jina 返回 markdown：[标题](url) 后跟摘要
+    var lines = body.split('\n'), cur = null;
+    lines.forEach(function(l) {
+      var m = l.match(/^#{2,4}\s*\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/) || l.match(/^\[([^\]]{5,80})\]\((https?:\/\/[^\)]+)\)\s*$/);
+      if (m && m[2].indexOf('bing.com') < 0 && m[2].indexOf('microsoft') < 0) {
+        if (cur) out.push(cur);
+        cur = { title: m[1].trim(), url: m[2], snippet: '' };
+      } else if (cur && !cur.snippet && l.trim().length > 30) {
+        cur.snippet = l.trim().slice(0, 300);
+      }
+    });
+    if (cur) out.push(cur);
+  }
+  return out.filter(function(r){ return r.url.indexOf('bing.com') < 0; });
+}
+
+/* ---------- 执行搜索 ---------- */
+async function doSearch() {
+  var q = v('k_query').trim() || buildQuery();
+  if (!q) { document.getElementById('st').textContent = '请先填产品关键词'; return; }
+  var st = document.getElementById('st');
+  st.textContent = '搜索中（自动切换代理）…';
+  try {
+    var res = await fetchThrough('https://www.bing.com/search?q=' + encodeURIComponent(q) + '&count=20');
+    S.results = parseBing(res.body, res.html).slice(0, 15);
+    st.textContent = '经 ' + res.via + ' 返回 ' + S.results.length + ' 条';
+    render();
+    DataStore.add('searches', { query: q, via: res.via, n: S.results.length });
+    renderHist();
+  } catch (e) { st.textContent = '❌ ' + e.message; }
+}
+
+/* ---------- 渲染 ---------- */
+function render() {
+  var box = document.getElementById('results');
+  document.getElementById('stN').textContent = S.results.length;
+  document.getElementById('stConv').textContent = Object.keys(S.convIds).length;
+  document.getElementById('stTotal').textContent = DataStore.list('leads').length;
+  document.getElementById('stHist').textContent = DataStore.list('searches').length;
+  if (!S.results.length) { box.innerHTML = '<div class="empty">无结果，换个关键词试试</div>'; return; }
+  box.innerHTML = S.results.map(function(r, i) {
+    var conv = S.convIds[i];
+    return '<div class="ft-card res"><h3><a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.title) + '</a></h3>'
+      + '<div class="u">' + esc(r.url) + '</div>'
+      + (r.snippet ? '<div class="s">' + esc(r.snippet) + '</div>' : '')
+      + '<div class="acts">' + (conv
+        ? '<span class="ft-tag" style="background:var(--ok-bg);color:var(--ok)">✓ 已转线索：' + esc(conv) + '</span>'
+        : '<button class="ft-btn-primary" onclick="openConv(' + i + ')">→ 转为线索</button>')
+      + '</div></div>';
+  }).join('');
+}
+function renderHist() {
+  var hs = DataStore.list('searches').slice(-8).reverse();
+  document.getElementById('hist').innerHTML = hs.length
+    ? '最近搜索：' + hs.map(function(h){ return '<span onclick="reuse(this)" data-q="' + esc(h.query) + '">' + esc(h.query.slice(0, 46)) + '</span>'; }).join('')
+    : '';
+}
+function reuse(el) { document.getElementById('k_query').value = el.dataset.q; }
+
+/* ---------- 转线索 ---------- */
+function openConv(i) {
+  S.pending = S.results[i];
+  var r = S.pending;
+  var host = ''; try { host = new URL(r.url).hostname.replace('www.',''); } catch(e){}
+  document.getElementById('c_name').value = r.title.split(/[|\-–—·]/)[0].trim().slice(0, 60);
+  document.getElementById('c_country').value = '';
+  // 从摘要里捞邮箱/电话
+  var em = (r.snippet.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/) || [''])[0];
+  var ph = (r.snippet.match(/\+\d{2}[\d\s-]{7,14}/) || [''])[0].trim();
+  document.getElementById('c_email').value = em;
+  document.getElementById('c_wa').value = ph;
+  document.getElementById('c_note').value = '找客户搜索命中：' + host + (r.snippet ? ' · ' + r.snippet.slice(0, 80) : '');
+  dlgLead.showModal();
+}
+function convSave() {
+  if (!S.pending) return;
+  var name = v('c_name'); if (!name) { alert('客户名必填'); return; }
+  var lead = DataStore.add('leads', {
+    name: name, country: v('c_country'), market: v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '',
+    stage: '待开发', wa: v('c_wa'), email: v('c_email'), product: v('k_prod'),
+    amount: 0, last: new Date().toISOString().slice(0,10), note: v('c_note'), source: 'search'
+  });
+  S.convIds[S.results.indexOf(S.pending)] = name;
+  dlgLead.close(); render();
+}
+
+/* ---------- AI 扩展搜索词 ---------- */
+async function aiExpand() {
+  var prod = v('k_prod').trim();
+  if (!prod) { alert('先填产品关键词'); return; }
+  var box = document.getElementById('ai_out');
+  box.style.display = 'block'; box.textContent = 'AI 扩展搜索词中…';
+  try {
+    var txt = await AgnesAI.ask('我在用 Bing 搜外贸 B2B 客户（批发商/进口商/经销商网站）。产品：' + prod
+      + '，市场：' + (v('k_region') ? document.getElementById('k_region').selectedOptions[0].text : '全球')
+      + '。给我 6 条英文 Bing 搜索词，每行一条、不要编号不要解释，覆盖不同客户类型和表述习惯（如 distributor/wholesale/agent/buying house），每条都带排除 C 端的 -site:amazon.com。', { maxTokens: 400 });
+    box.textContent = txt;
+  } catch (e) { box.textContent = '❌ ' + e.message; }
+}
+renderHist();
+document.getElementById('stTotal').textContent = DataStore.list('leads').length;
+</script>
+</body>
+</html>

@@ -34,6 +34,8 @@
     docs:    'ftc_docs_v1',     // 单证
     reviews: 'ftc_reviews_v1',  // 复盘
     comps:   'ftc_comps_v1',    // 竞品
+    profile: 'ftc_profile_v1',  // 我的资料（公司/署名/卖点，AI 个性化数据源）
+    searches:'ftc_searches_v1', // 找客户搜索历史
     cfg:     'ftc_cfg_v1'       // 全局配置（AI 设置等）
   };
 
