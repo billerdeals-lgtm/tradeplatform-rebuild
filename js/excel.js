@@ -118,6 +118,30 @@
     return rows;
   }
 
+  /** 规范词典取词（i18n 未加载时回退英文硬编码） */
+  function I(key, fallback) {
+    try {
+      if (typeof I18N !== 'undefined' && I18N.t) {
+        var v = I18N.t(key, 'en');
+        if (v) return v;
+      }
+    } catch (e) {}
+    return fallback;
+  }
+
+  /** 客户版兜底：剔除 CONFIDENTIAL 内部字段（feature 7） */
+  function publicValues(values) {
+    try {
+      if (typeof Confidential !== 'undefined' && Confidential.strip) return Confidential.strip(values);
+    } catch (e) {}
+    var out = {};
+    Object.keys(values || {}).forEach(function (k) {
+      if (/^internal/i.test(k) || k === 'factoryNote' || k === 'supplierNote' || k === 'costPrice' || k === 'aiCheck') return;
+      out[k] = values[k];
+    });
+    return out;
+  }
+
   var ExcelExport = {
     workbookXML: workbookXML,
     download: download,
@@ -128,37 +152,38 @@
     /**
      * 报价单「客户版」：单 sheet，近正式单据，客户可改 Qty
      * q: {no,date,leadName,leadCountry,payment,validity,portFrom,portTo,delivery,note,items[],currency,total}
+     * feature 7：永不带 internalNote 等 CONFIDENTIAL 字段
      */
     quoteClient: function (q, brand) {
-      var cur = q.currency || 'USD';
+      var pub = publicValues(q);
+      var cur = pub.currency || 'USD';
       var rows = brandBlock(brand);
       rows.push(row([{ v: 'QUOTATION 报价单', style: 'h1' }]));
       rows.push(blankRow(4));
-      rows.push(row([{ v: 'Quotation No.', style: 'lbl' }, q.no || '', { v: 'Date', style: 'lbl' }, q.date || '']));
-      rows.push(row([{ v: 'To (Customer)', style: 'lbl' }, q.leadName || '', { v: 'Country', style: 'lbl' }, q.leadCountry || '']));
+      rows.push(row([{ v: 'Quotation No.', style: 'lbl' }, pub.no || '', { v: 'Date', style: 'lbl' }, pub.date || '']));
+      rows.push(row([{ v: 'To (Customer)', style: 'lbl' }, pub.leadName || '', { v: 'Country', style: 'lbl' }, pub.leadCountry || '']));
       rows.push(blankRow(4));
       rows.push(row(['#', 'Product', 'Spec', 'Qty', 'Unit', 'Unit Price (' + cur + ')', 'Amount (' + cur + ')'], { style: 'th' }));
-      (q.items || []).forEach(function (it, i) {
+      (pub.items || []).forEach(function (it, i) {
         rows.push(row([
           i + 1, it.name || '', it.spec || '',
           { v: Number(it.qty) || 0 }, it.unit || 'pcs',
           { v: Number(it.unitPrice) || 0 },
           { v: Number(it.amount) || 0 }
         ], { style: 'td' }));
-        // 数量列用 num 样式更佳：简化处理，整行 td
       });
-      rows.push(row(['', '', '', '', '', { v: 'TOTAL', style: 'total' }, { v: Number(q.total) || 0, style: 'total' }]));
+      rows.push(row(['', '', '', '', '', { v: 'TOTAL', style: 'total' }, { v: Number(pub.total) || 0, style: 'total' }]));
       rows.push(blankRow(8));
-      if (q.payment) rows.push(row(['Payment:', q.payment]));
-      if (q.portFrom) rows.push(row(['Port of Loading:', q.portFrom]));
-      if (q.portTo) rows.push(row(['Port of Discharge:', q.portTo]));
-      if (q.delivery) rows.push(row(['Delivery:', q.delivery]));
-      if (q.validity) rows.push(row(['Validity:', q.validity]));
-      if (q.note) rows.push(row(['Note:', q.note]));
+      if (pub.payment) rows.push(row(['Payment:', pub.payment]));
+      if (pub.portFrom) rows.push(row(['Port of Loading:', pub.portFrom]));
+      if (pub.portTo) rows.push(row(['Port of Discharge:', pub.portTo]));
+      if (pub.delivery) rows.push(row(['Delivery:', pub.delivery]));
+      if (pub.validity) rows.push(row(['Validity:', pub.validity]));
+      if (pub.note) rows.push(row(['Note:', pub.note]));
       rows.push(blankRow(12));
       rows.push(row([{ v: 'Seller / 卖方', style: 'h2' }, '', { v: 'Buyer / 买方', style: 'h2' }]));
       rows.push(row(['Signature & Stamp:', '', 'Signature:']));
-      return download('Quotation_' + (q.no || 'draft') + '_客户版.xls',
+      return download('Quotation_' + (pub.no || 'draft') + '_客户版.xls',
         workbookXML([{ name: 'Quotation', rows: rows, cols: 7, colWidth: 95 }], { theme: brand && brand.brandColor }));
     },
 
@@ -177,7 +202,9 @@
         ['Payment', q.payment || ''], ['Validity', q.validity || ''],
         ['Port of Loading', q.portFrom || ''], ['Port of Discharge', q.portTo || ''],
         ['Delivery', q.delivery || ''], ['Total', Number(q.total) || 0],
-        ['Status', q.status || ''], ['Note', q.note || '']
+        ['Status', q.status || ''], ['Note', q.note || ''],
+        /* feature 7：内部字段仅出现在数据版 */
+        ['Internal Note', q.internalNote || '']
       ].forEach(function (r) {
         head.push(row(r, { style: 'td' }));
       });
@@ -229,31 +256,33 @@
 
     /**
      * 单证「客户版」：当前 values + 单证标题
+     * feature 7：Confidential.strip 后再导出；feature 8：固定标签走词典
      */
     docClient: function (def, values, brand) {
+      var pub = publicValues(values);
       var rows = brandBlock(brand);
       rows.push(row([{ v: def.title, style: 'h1' }]));
       rows.push(blankRow(4));
-      rows.push(row([{ v: 'No.', style: 'lbl' }, values.no || '', { v: 'Date', style: 'lbl' }, values.date || '']));
-      rows.push(row([{ v: 'Seller', style: 'lbl' }, brand && brand.sellerFull || values.seller || '',
-        { v: 'Buyer', style: 'lbl' }, values.buyer || '']));
-      rows.push(row([{ v: 'Seller Addr', style: 'lbl' }, brand && brand.addr || values.sellerAddr || '',
-        { v: 'Buyer Addr', style: 'lbl' }, values.buyerAddr || '']));
+      rows.push(row([{ v: I('f.no', 'No.'), style: 'lbl' }, pub.no || '', { v: I('f.date', 'Date'), style: 'lbl' }, pub.date || '']));
+      rows.push(row([{ v: I('f.seller', 'Seller'), style: 'lbl' }, brand && brand.sellerFull || pub.seller || '',
+        { v: I('f.buyer', 'Buyer'), style: 'lbl' }, pub.buyer || '']));
+      rows.push(row([{ v: I('f.sellerAddr', 'Seller Addr'), style: 'lbl' }, brand && brand.addr || pub.sellerAddr || '',
+        { v: I('f.buyerAddr', 'Buyer Addr'), style: 'lbl' }, pub.buyerAddr || '']));
       rows.push(blankRow(4));
-      rows.push(row(['Description', 'Qty', 'Unit Price', 'Amount'], { style: 'th' }));
+      rows.push(row([I('t.desc', 'Description'), I('t.qty', 'Qty'), I('t.unitPrice', 'Unit Price'), I('t.amount', 'Amount')], { style: 'th' }));
       rows.push(row([
-        values.product || '',
-        (values.qty || '') + ' ' + (values.unit || ''),
-        (values.currency || '') + ' ' + (values.price || ''),
-        (values.currency || '') + ' ' + (values.total || '')
+        pub.product || '',
+        (pub.qty || '') + ' ' + (pub.unit || ''),
+        (pub.currency || '') + ' ' + (pub.price || ''),
+        (pub.currency || '') + ' ' + (pub.total || '')
       ], { style: 'td' }));
       rows.push(blankRow(8));
       ['payment', 'portFrom', 'portTo', 'delivery', 'bank', 'remark'].forEach(function (k) {
-        if (values[k]) rows.push(row([k + ':', values[k]], { style: 'note' }));
+        if (pub[k]) rows.push(row([k + ':', pub[k]], { style: 'note' }));
       });
       rows.push(blankRow(12));
-      rows.push(row([{ v: 'Seller Signature/Stamp', style: 'h2' }, '', { v: 'Buyer Signature', style: 'h2' }]));
-      return download((def.id || 'doc') + '_' + (values.no || 'draft') + '_客户版.xls',
+      rows.push(row([{ v: I('p.sellerSign', 'Seller Signature/Stamp'), style: 'h2' }, '', { v: I('p.buyerSign', 'Buyer Signature'), style: 'h2' }]));
+      return download((def.id || 'doc') + '_' + (pub.no || 'draft') + '_客户版.xls',
         workbookXML([{ name: 'Document', rows: rows, cols: 4, colWidth: 120 }], { theme: brand && brand.brandColor }));
     },
 

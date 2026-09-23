@@ -115,7 +115,7 @@
     el.style.setProperty('--paper-brand', color);
   }
 
-  /** 工具条 HTML（select 模板 + select 方向），onchange 调本页钩子 */
+  /** 工具条 HTML（select 模板 + 方向 + 语言），onchange 调本页钩子 */
   function toolbarHTML() {
     var st = getStyle(), or = getOrient();
     var opts = PAPER_STYLES.map(function (s) {
@@ -124,10 +124,15 @@
     var oopts = PAPER_ORIENTS.map(function (o) {
       return '<option value="' + o.id + '"' + (o.id === or ? ' selected' : '') + '>' + o.name + '</option>';
     }).join('');
+    var langSel = '';
+    if (typeof I18N !== 'undefined' && I18N.toolbarSelectHTML) {
+      langSel = I18N.toolbarSelectHTML();
+    }
     return '<select id="paperStyle" onchange="onPaperStyle()" title="纸面模板" style="padding:4px 6px;border:1px solid var(--border-strong,#cfc9b8);border-radius:4px;font-size:12px">'
       + opts + '</select>'
       + '<select id="paperOrient" onchange="onPaperOrient()" title="横/竖版" style="padding:4px 6px;border:1px solid var(--border-strong,#cfc9b8);border-radius:4px;font-size:12px">'
-      + oopts + '</select>';
+      + oopts + '</select>'
+      + langSel;
   }
 
   injectCSS();
