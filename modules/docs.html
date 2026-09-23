@@ -47,17 +47,17 @@
   .paper th, .paper td { border:1px solid #cfc9b8; padding:7px 10px; text-align:left; }
   .paper th { background:var(--bg-inset); font-size:12px; }
   .paper .notes { font-size:13px; line-height:1.9; margin-top:10px; }
-  .paper .sig { display:flex; justify-content:space-between; align-items:flex-end; margin-top:48px; font-size:13px; }
+  .paper { position:relative; }
+  .paper .sig { position:relative; display:flex; justify-content:space-between; align-items:flex-end; margin-top:48px; font-size:13px; min-height:24px; }
   .aicheck { margin-top:var(--sp-3); font-size:13px; line-height:1.7; }
-  /* ---- 品牌：纸面顶部 / 签章区（绝对定位叠在签名线上，Buyer/Seller 底部对齐） ---- */
+  /* ---- 品牌：纸面顶部 / 签章（.br-stamps 是 .sig 的绝对子元素，不参与 flex，不撑高度） ---- */
   .br-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .br-top-logo { max-height:46px; max-width:180px; object-fit:contain; }
   .br-top-name { font-size:13px; font-weight:600; color:var(--text-2); letter-spacing:.04em; }
-  .br-stamps { position:absolute; left:-4px; bottom:-10px; width:230px; height:96px; margin:0; pointer-events:none; z-index:2; }
-  .sig-sell { position:relative; display:inline-block; }
+  .br-stamps { position:absolute; left:0; bottom:0; width:260px; height:100px; margin:0; padding:0; pointer-events:none; z-index:2; }
   .br-stamp { position:absolute; object-fit:contain; }
-  .br-stamp-sign { left:18px; bottom:16px; max-height:56px; max-width:140px; transform:rotate(-6deg); }
-  .br-stamp-seal { left:96px; bottom:4px; width:86px; height:86px; transform:rotate(-10deg); opacity:.9; }
+  .br-stamp-sign { left:36px; bottom:18px; max-height:54px; max-width:150px; transform:rotate(-6deg); }
+  .br-stamp-seal { left:120px; bottom:6px; width:88px; height:88px; transform:rotate(-10deg); opacity:.9; }
   .br-top-in-paper { border-bottom:1px dashed var(--border-strong); padding-bottom:6px; }
   /* ---- 品牌资料弹窗 ---- */
   dialog.br-dlg { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:640px; width:94%; }
@@ -170,7 +170,7 @@
 <script src="../agnes-ai.js"></script>
 <script src="../js/datastore.js"></script>
 <script src="../js/docs_data.js"></script>
-<script src="../js/brand.js"></script>
+<script src="../js/brand.js?v=3"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -372,7 +372,7 @@ function renderPaper(){
     + '<div class="notes">'+notes+'</div>'
     + bankBlock
     + (values.remark ? '<div class="notes"><b>Remarks:</b> '+esc(values.remark)+'</div>' : '')
-    + '<div class="sig"><div class="sig-sell">'+stamp+'Seller: ______________</div><div>Buyer: ______________</div></div>';
+    + '<div class="sig">'+stamp+'<div>Seller: ______________</div><div>Buyer: ______________</div></div>';
 }
 
 /* ---------- 品牌资料：打开 / 带入 ---------- */

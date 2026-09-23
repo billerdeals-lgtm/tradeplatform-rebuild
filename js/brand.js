@@ -37,11 +37,11 @@
     + '.br-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;border-bottom:1px dashed #cfc9b8;padding-bottom:6px}'
     + '.br-top-logo{max-height:44px;max-width:170px;object-fit:contain}'
     + '.br-top-name{font-size:13px;font-weight:600;color:#52606d}'
-    + '.br-stamps{position:absolute;left:-4px;bottom:-10px;width:230px;height:96px;margin:0;pointer-events:none;z-index:2}'
+    + '.br-stamps{position:absolute;left:0;bottom:0;width:260px;height:100px;margin:0;padding:0;pointer-events:none;z-index:2}'
     + '.br-stamp{position:absolute;object-fit:contain}'
-    + '.br-stamp-sign{left:18px;bottom:16px;max-height:56px;max-width:140px;transform:rotate(-6deg)}'
-    + '.br-stamp-seal{left:96px;bottom:4px;width:86px;height:86px;transform:rotate(-10deg);opacity:.9}'
-    + '.sig-sell{position:relative;display:inline-block}';
+    + '.br-stamp-sign{left:36px;bottom:18px;max-height:54px;max-width:150px;transform:rotate(-6deg)}'
+    + '.br-stamp-seal{left:120px;bottom:6px;width:88px;height:88px;transform:rotate(-10deg);opacity:.9}'
+    + '.paper .sig{position:relative;display:flex;justify-content:space-between;align-items:flex-end;min-height:24px}';
   if (!document.getElementById('brand-style')) {
     var st = document.createElement('style');
     st.id = 'brand-style';
