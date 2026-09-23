@@ -161,15 +161,42 @@ function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
   t.style.cssText='position:fixed;top:16px;right:16px;background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
   document.body.appendChild(t); setTimeout(function(){t.remove();},2600); }
 
-/* ---------- 备份 / 恢复（防 localStorage 清空丢数据） ---------- */
+/* ---------- 备份 / 恢复 v2：完整 JSON 覆盖全部 11 个存储键（HUIDI feature 5） ---------- */
+var COLL_LABEL = {
+  leads:'线索', todos:'待办', outreach:'触达', quotes:'报价', docs:'单证',
+  reviews:'复盘', comps:'竞品', profile:'资料', products:'商品', searches:'搜索历史', cfg:'配置'
+};
+function readRaw(lsKey){
+  try { return JSON.parse(localStorage.getItem(lsKey)); } catch(e){ return null; }
+}
 function backupAll(){
-  var data = DataStore.exportAll();
-  data._meta = { app:'FT Compass', version:1, exportedAt:new Date().toISOString() };
+  var keys = DataStore.KEYS;
+  var data = {}, counts = {};
+  Object.keys(keys).forEach(function(name){
+    var raw = readRaw(keys[name]);
+    if (raw === null || raw === undefined){
+      data[name] = (name === 'cfg') ? {} : [];
+      counts[name] = 0;
+      return;
+    }
+    data[name] = raw;
+    counts[name] = Array.isArray(raw) ? raw.length
+      : (raw && typeof raw === 'object' ? Object.keys(raw).length : 1);
+  });
+  data._meta = {
+    app: 'FT Compass',
+    schema: 'ftc-backup-v2',
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    keys: Object.keys(keys),
+    counts: counts
+  };
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type:'application/json'}));
   a.download = 'ftcompass_backup_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
-  toast('备份已下载（含线索/待办/触达/报价/单证/商品/复盘/竞品全部数据）');
+  var parts = Object.keys(counts).map(function(n){ return (COLL_LABEL[n]||n)+' '+counts[n]; });
+  toast('完整备份已下载（v2）：'+parts.join('、'));
 }
 function restoreAll(input){
   var f = input.files && input.files[0];
@@ -178,14 +205,26 @@ function restoreAll(input){
   reader.onload = function(){
     var data;
     try { data = JSON.parse(reader.result); } catch(e){ toast('文件不是合法 JSON'); return; }
-    if (!data || data._meta && data._meta.app !== 'FT Compass'){ toast('不是 FT Compass 的备份文件'); return; }
-    // 按业务名分组校验：leads/todos/outreach/quotes/docs/reviews/comps
-    var valid = Object.keys(data).filter(function(k){ return k!=='_meta' && Array.isArray(data[k]) && DataStore.KEYS[k]; });
-    if (!valid.length){ toast('备份里没有可恢复的数据'); return; }
-    var total = valid.reduce(function(s,k){ return s+data[k].length; },0);
-    if (!confirm('将覆盖当前数据并写入 '+valid.length+' 类共 '+total+' 条记录（建议先点备份留底）。继续？')) return;
-    valid.forEach(function(k){ DataStore.saveAll(k, data[k]); });
-    toast('恢复完成：'+valid.length+' 类 / '+total+' 条，正在刷新…');
+    if (!data || typeof data !== 'object' || Array.isArray(data)){ toast('不是合法的备份结构'); return; }
+    if (data._meta && data._meta.app && data._meta.app !== 'FT Compass'){ toast('不是 FT Compass 的备份文件'); return; }
+    var keys = DataStore.KEYS;
+    var toRestore = [];
+    Object.keys(keys).forEach(function(name){
+      if (!Object.prototype.hasOwnProperty.call(data, name)) return;
+      var val = data[name];
+      if (name === 'cfg'){
+        if (val && typeof val === 'object' && !Array.isArray(val)) toRestore.push({name:name, val:val, n:1});
+        return;
+      }
+      if (Array.isArray(val)) toRestore.push({name:name, val:val, n:val.length});
+    });
+    if (!toRestore.length){ toast('备份里没有可恢复的数据'); return; }
+    var total = toRestore.reduce(function(s,x){ return s + x.n; }, 0);
+    var summary = toRestore.map(function(x){ return (COLL_LABEL[x.name]||x.name)+' '+x.n; }).join('、');
+    var ver = (data._meta && (data._meta.schema || ('v'+data._meta.version))) || 'legacy';
+    if (!confirm('将覆盖当前数据并写入 '+toRestore.length+' 类 / 共 '+total+' 条（'+ver+'）：\n\n'+summary+'\n\n建议先点备份留底。继续？')) return;
+    toRestore.forEach(function(x){ DataStore.saveAll(x.name, x.val); });
+    toast('恢复完成：'+toRestore.length+' 类 / '+total+' 条，正在刷新…');
     setTimeout(function(){ location.reload(); }, 1200);
   };
   reader.readAsText(f);

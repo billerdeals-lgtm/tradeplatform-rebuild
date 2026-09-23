@@ -52,6 +52,13 @@
   .aicheck { margin-top:var(--sp-3); font-size:13px; line-height:1.7; }
   .paper-tools { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .paper-tools select { padding:5px 8px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:12px; background:var(--bg-card); }
+  /* ---- CONFIDENTIAL 内部区（feature 7） ---- */
+  .conf-sect { border:1px dashed #f0b429; background:#fffbeb; border-radius:var(--r-sm); padding:8px 10px; margin-top:8px; }
+  .conf-badge { display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.04em; color:#92400e; background:#fde68a; border-radius:4px; padding:2px 7px; margin-bottom:6px; }
+  .conf-hint { font-size:11px; color:#92400e; margin-top:6px; line-height:1.4; }
+  .conf-sect .fgrid label { color:#92400e; }
+  .conf-sect input { background:#fff; border-color:#f0b429 !important; }
+  #gateBox { margin-top:var(--sp-2); }
   /* ---- 品牌：纸面顶部 / 签章（.br-stamps 是 .sig 的绝对子元素，不参与 flex，不撑高度） ---- */
   .br-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .br-top-logo { max-height:46px; max-width:180px; object-fit:contain; }
@@ -125,7 +132,9 @@
       <div class="btnrow">
         <button class="ft-btn-ai" onclick="aiCheck()">🧭 AI 单单一致校验</button>
         <button class="ft-btn-ai" onclick="aiPolish()">✨ AI 润色英文备注</button>
+        <button class="iconbtn" onclick="runGate(true)" title="Formal Output Gate：必填校验 + Issue Navigator">🔎 输出校验</button>
       </div>
+      <div id="gateBox"></div>
       <div class="ft-ai-output aicheck" id="aiOut" style="display:none"></div>
     </div>
   </div>
@@ -181,9 +190,11 @@
 <script src="../agnes-ai.js"></script>
 <script src="../js/datastore.js"></script>
 <script src="../js/docs_data.js"></script>
+<script src="../js/gate.js?v=1"></script>
+<script src="../js/i18n.js?v=1"></script>
 <script src="../js/brand.js?v=3"></script>
-<script src="../js/excel.js?v=1"></script>
-<script src="../js/paper.js?v=1"></script>
+<script src="../js/excel.js?v=2"></script>
+<script src="../js/paper.js?v=2"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -205,22 +216,22 @@ function fill(k){ // 占位符替换，未填字段显示浅色占位
 }
 function rep(t){ return t.replace(/\{\{(\w+)\}\}/g, function(m,k){ return fill(k); }); }
 
-/* ---------- 左侧：单证选择 ---------- */
+/* ---------- 左侧：单证选择（feature 8：短标题走词典） ---------- */
 function renderList(){
   var cats = []; DOCS_DEF.forEach(function(d){ if(cats.indexOf(d.cat)<0) cats.push(d.cat); });
   var html = '';
   cats.forEach(function(c){
     html += '<div class="catlbl">'+esc(c)+'</div>';
     html += DOCS_DEF.filter(function(d){ return d.cat===c; }).map(function(d){
-      return '<span class="docchip'+(d.id===current.id?' on':'')+'" onclick="pick(\''+d.id+'\')">'+esc(d.title.split(' / ')[0])+'</span>';
+      return '<span class="docchip'+(d.id===current.id?' on':'')+'" onclick="pick(\''+d.id+'\')">'+esc(I18N.docChipTitle(d))+'</span>';
     }).join('');
   });
   $('doclist').innerHTML = html;
 }
 function pick(id){
   current = DOCS_DEF.find(function(d){ return d.id===id; });
-  editingSavedId = null; $('aiOut').style.display='none';
-  renderList(); renderChain(); renderForm(); renderPaper();
+  editingSavedId = null; $('aiOut').style.display='none'; gateRan=false;
+  renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
 }
 
 /* ---------- 单据链：面包屑 + 链式派生 ---------- */
@@ -283,10 +294,10 @@ function deriveNext(){
   next.date = todayStr();
   next.derivedFrom = lineage;
 
-  // 4) 目标字段空则用 preset
+  // 4) 目标字段空则用 preset（不覆盖 CONFIDENTIAL 内部字段）
   var presets = policy.presets || {};
   Object.keys(presets).forEach(function(k){
-    if (!next[k]) next[k] = presets[k];
+    if (!Confidential.is(k) && !next[k]) next[k] = presets[k];
   });
 
   // 5) 若当前源单已保存，确保血缘可回溯（保存源单最新值）
@@ -298,11 +309,12 @@ function deriveNext(){
   values = next;
   current = nextDef;
   editingSavedId = null;
+  gateRan = false;
   $('aiOut').style.display = 'none';
-  renderList(); renderChain(); renderForm(); renderPaper();
+  renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
 
   var msg = '⛓ 已派生：' + (lineage.fromTitle.split(' / ')[0]) + (lineage.fromNo ? ' No.'+lineage.fromNo : '')
-    + ' → ' + nextDef.title.split(' / ')[0] + ' No.' + next.no;
+    + ' → ' + I18N.docChipTitle(nextDef) + ' No.' + next.no;
   if (miss.length) msg += '（源单缺：' + miss.join('/') + '，请补全）';
   toast(msg);
 }
@@ -316,90 +328,148 @@ function deriveFromSaved(id){
   editingSavedId = id;
   values = d.values || {};
   current = DOCS_DEF.find(function(x){ return x.id === d.docId; }) || current;
-  renderList(); renderChain(); renderForm(); renderPaper();
+  gateRan = false;
+  renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
   // 立即派生
   deriveNext();
 }
 
-/* ---------- 表单：共享字段 + 专有字段 ---------- */
+/* ---------- 表单：共享字段 + 专有字段 + CONFIDENTIAL 内部区 ---------- */
 function fieldInput(f){
   var ph = f.ph ? ' placeholder="'+esc(f.ph)+'"' : '';
   var cls = (['seller','buyer','product','remark'].indexOf(f.k)>=0) ? 'full' : '';
-  return '<div class="'+cls+'"><label>'+esc(f.label)+'</label>'
+  var label = I18N.fieldLabel(f);
+  return '<div class="'+cls+'"><label>'+esc(label)+'</label>'
     + '<input data-k="'+f.k+'" type="'+(f.type||'text')+'"'+ph+' value="'+esc(values[f.k]||'')+'" oninput="onVal(this)"></div>';
 }
+function confidentialHTML(){
+  var conf = [
+    {k:'internalNote', label:'内部备注 Internal Note', ph:'核价底线 / 工厂交期等，不出客户版'},
+    {k:'internalCost', label:'核算成本 Cost (internal)', ph:'USD'}
+  ];
+  var n = Confidential.countFilled(values);
+  return '<div class="full conf-sect">'
+    + '<div class="conf-badge">🔒 CONFIDENTIAL · 内部字段</div>'
+    + '<div class="fgrid">'
+    + conf.map(function(f){
+      return '<div class="'+(f.k==='internalNote'?'full':'')+'"><label>'+esc(f.label)+'</label>'
+        + '<input data-k="'+f.k+'" type="text"'+(f.ph?' placeholder="'+esc(f.ph)+'"':'')
+        + ' value="'+esc(values[f.k]||'')+'" oninput="onVal(this)"></div>';
+    }).join('')
+    + '</div>'
+    + '<div class="conf-hint">仅内部可见：打印 / 客户版 Excel / 纸面预览自动排除。'
+    + (n? ' 当前已填 '+n+' 项内部字段，客户版已隔离。':'') + '</div>'
+    + '</div>';
+}
 function renderForm(){
-  $('formTitle').textContent = current.title;
+  $('formTitle').textContent = I18N.docTitle(current);
   var all = SHARED_FIELDS.concat((current.rows||[]).map(function(r){ return {k:r[0], label:r[1], ph:r[2]}; }));
-  $('formFields').innerHTML = all.map(fieldInput).join('');
+  $('formFields').innerHTML = all.map(fieldInput).join('') + confidentialHTML();
   renderChain();
 }
 function onVal(input){
   values[input.dataset.k] = input.value;
   renderPaper(); // 实时联动预览
+  if (gateRan) refreshGate();
   // 已保存单证的编辑态：防抖保存
   if (editingSavedId){ clearTimeout(window._sv); window._sv = setTimeout(saveDoc, 800); }
 }
 
-/* ---------- 右侧：通用单证渲染 ---------- */
+/* ---------- 右侧：通用单证渲染（客户版：Confidential.strip + i18n 标签） ---------- */
 function renderPaper(){
   var d = current;
+  var pub = Confidential.strip(values); // feature 7：纸面永不带内部字段
   var rowsHtml = '';
   if (d.table !== false){
-    rowsHtml = '<table><tr><th style="width:50%">Description 品名</th><th>Qty 数量</th><th>Unit Price 单价</th><th>Amount 金额</th></tr>'
+    rowsHtml = '<table><tr><th style="width:50%">'+esc(I18N.t('t.desc'))+'</th><th>'+esc(I18N.t('t.qty'))+'</th><th>'+esc(I18N.t('t.unitPrice'))+'</th><th>'+esc(I18N.t('t.amount'))+'</th></tr>'
       + '<tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></table>';
   }
   var notes = (d.notes||[]).map(function(n){ return '<div>'+rep(n)+'</div>'; }).join('');
   // 品牌：顶部 Logo + 卖方信息增强（全称/地址/税号）
   var brandHdr = Brand.headerHTML();
   if (brandHdr) brandHdr = '<div class="br-top-in-paper">'+brandHdr+'</div>';
-  var sellerBlock = Brand.sellerHTML(values.seller, values.sellerAddr);
+  var sellerBlock = Brand.sellerHTML(pub.seller, pub.sellerAddr);
   if (!sellerBlock) sellerBlock = fill('seller')+'<br>'+fill('sellerAddr');
   // 银行信息：PI 等有 bank 字段时，未手填则用品牌银行自动带出
   var bankBlock = '';
-  if ((current.rows||[]).some(function(r){return r[0]==='bank'})){
-    var bankVal = values.bank || Brand.bankText();
-    if (bankVal) bankBlock = '<div class="notes"><b>Bank Info 收款信息:</b><br>'+esc(bankVal)+'</div>';
+  if ((current.rows||[]).some(function(r){return r[0]==='bank';})){
+    var bankVal = pub.bank || Brand.bankText();
+    if (bankVal) bankBlock = '<div class="notes"><b>'+esc(I18N.t('p.bank'))+':</b><br>'+esc(bankVal)+'</div>';
   }
   // 签章区：电子签名 + 公司公章 叠在 Seller 签名线上
   var stamp = Brand.signHTML();
   // 链式派生血缘
   var lineage = '';
-  if (values.derivedFrom && values.derivedFrom.fromTitle){
-    var df = values.derivedFrom;
+  if (pub.derivedFrom && pub.derivedFrom.fromTitle){
+    var df = pub.derivedFrom;
     lineage = '<div class="derived-line">⛓ Derived from '
       + esc(String(df.fromTitle).split(' / ')[0])
       + (df.fromNo ? ' No. ' + esc(df.fromNo) : '')
       + (df.at ? ' · ' + esc(String(df.at).slice(0,10)) : '')
       + '</div>';
   }
+  var title = I18N.docTitle(d);
+  var titleParts = String(title).split(' / ');
   $('paper').innerHTML =
     brandHdr
-    + '<h2>'+esc(d.title.split(' / ')[1]||d.title)+'</h2>'
-    + '<div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:10px">'+esc(d.title.split(' / ')[0])+'</div>'
+    + '<h2>'+esc(titleParts[1]||title)+'</h2>'
+    + (titleParts[1] ? '<div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:10px">'+esc(titleParts[0])+'</div>' : '')
     + lineage
-    + '<div class="no">No. '+fill('no')+'<br>Date: '+fill('date')+'</div>'
-    + '<div class="party"><div><b>Seller 卖方</b><br>'+sellerBlock+'</div>'
-    + '<div style="text-align:right"><b>Buyer 买方</b><br>'+fill('buyer')+'<br>'+fill('buyerAddr')+'</div></div>'
+    + '<div class="no">'+esc(I18N.t('f.no'))+' '+fill('no')+'<br>'+esc(I18N.t('f.date'))+': '+fill('date')+'</div>'
+    + '<div class="party"><div><b>'+esc(I18N.t('p.seller'))+'</b><br>'+sellerBlock+'</div>'
+    + '<div style="text-align:right"><b>'+esc(I18N.t('p.buyer'))+'</b><br>'+fill('buyer')+'<br>'+fill('buyerAddr')+'</div></div>'
     + rowsHtml
     + '<div class="notes">'+notes+'</div>'
     + bankBlock
-    + (values.remark ? '<div class="notes"><b>Remarks:</b> '+esc(values.remark)+'</div>' : '')
-    + '<div class="sig">'+stamp+'<div>Seller: ______________</div><div>Buyer: ______________</div></div>';
+    + (pub.remark ? '<div class="notes"><b>'+esc(I18N.t('p.remarks'))+':</b> '+esc(pub.remark)+'</div>' : '')
+    + '<div class="sig">'+stamp+'<div>'+esc(I18N.t('p.sellerSign'))+': ______________</div><div>'+esc(I18N.t('p.buyerSign'))+': ______________</div></div>';
   Paper.apply($('paper'));
 }
 
-/* ---------- 纸面模板 / 横竖版 ---------- */
+/* ---------- Formal Output Gate（feature 6） ---------- */
+var gateRan = false;
+function currentIssues(){ return Gate.checkDoc(current, values); }
+function refreshGate(){
+  var issues = currentIssues();
+  var confN = Confidential.countFilled(values);
+  var confNote = confN
+    ? '<div style="font-size:11px;color:#92400e;margin-top:4px">🔒 已隔离 '+confN+' 项内部字段（客户版不含）</div>'
+    : '';
+  $('gateBox').innerHTML = (gateRan || issues.length)
+    ? Gate.navigatorHTML(issues) + confNote
+    : confNote;
+}
+/** 闸门入口：打印/导出前调用；force=true 时即使首次也强制渲染导航器 */
+function runGate(force){
+  if (force) gateRan = true;
+  var issues = currentIssues();
+  $('gateBox').innerHTML = Gate.navigatorHTML(issues)
+    + (Confidential.countFilled(values)
+      ? '<div style="font-size:11px;color:#92400e;margin-top:4px">🔒 已隔离 '+Confidential.countFilled(values)+' 项内部字段（客户版不含）</div>' : '');
+  var res = Gate.enforce(issues);
+  if (!res.ok) {
+    var first = Gate.errorsOf(issues)[0];
+    if (first) setTimeout(function(){ Gate.jump(first.k); }, 60);
+  }
+  return res.ok;
+}
+
+/* ---------- 纸面模板 / 横竖版 / 语言（feature 8） ---------- */
 function initPaperTools(){
   $('paperTools').innerHTML = Paper.toolbarHTML();
 }
 function onPaperStyle(){
   Paper.setStyle($('paperStyle').value);
-  renderPaper();
+  renderPaper(); refreshGate();
 }
 function onPaperOrient(){
   Paper.setOrient($('paperOrient').value);
   renderPaper();
+}
+function onPaperLang(){
+  I18N.setLang($('paperLang').value);
+  renderList(); renderForm(); renderPaper(); refreshGate();
+  toast('单证语言：'+ ($('paperLang').selectedOptions[0] ? $('paperLang').selectedOptions[0].text : ''));
 }
 
 /* ---------- 商品库带入 ---------- */
@@ -443,11 +513,9 @@ function pickProduct(id){
   toast('已带入：'+p.name);
 }
 
-/* ---------- Excel 客户版 ---------- */
+/* ---------- Excel 客户版（Gate 拦截 + Confidential 剔除由 excel.js 兜底） ---------- */
 function exportDocXls(){
-  if (!values.no && !values.buyer && !values.product){
-    alert('先填单号/买方/品名再导出'); return;
-  }
+  if (!runGate(false)) return;
   ExcelExport.docClient(current, values, Brand.get());
 }
 
@@ -473,22 +541,27 @@ function applyBrand(){
   toast(n ? ('已带入品牌资料 '+n+' 项') : '品牌字段已存在或品牌资料为空');
 }
 
-/* ---------- AI 1：单单一致校验（矩阵落点 doc.aiCheck） ---------- */
+/* ---------- AI 1：单单一致校验（先过 Gate，再走 AI；矩阵落点 doc.aiCheck） ---------- */
 async function aiCheck(){
-  var empty = ['no','date','buyer','product','total'].filter(function(k){ return !values[k]; });
+  var issues = currentIssues();
   var out = $('aiOut'); out.style.display='block';
-  if (empty.length){ out.innerHTML = '⚠️ 先填关键字段：'+empty.join(', '); return; }
+  if (Gate.errorsOf(issues).length){
+    gateRan = true; refreshGate();
+    out.innerHTML = '⚠️ 先过输出校验：'+Gate.errorsOf(issues).map(function(i){return i.msg;}).join('；');
+    return;
+  }
   out.innerHTML = '⏳ AI 校验中…';
   try {
+    var pub = Confidential.strip(values);
     var txt = await AgnesAI.chat([
       {role:'system', content:'你是外贸单证审核员。输出 JSON：{"ok":true/false,"issues":["问题1"],"suggestion":"一句话建议"}。只查逻辑一致性，不挑措辞。'},
-      {role:'user', content:'请校验这张「'+current.title+'」的单据字段逻辑（金额=数量×单价、币种一致、港口一致、日期先后、付款条款完整性等）：\n'+JSON.stringify(values)}
+      {role:'user', content:'请校验这张「'+I18N.docTitle(current)+'」的单据字段逻辑（金额=数量×单价、币种一致、港口一致、日期先后、付款条款完整性等）：\n'+JSON.stringify(pub)}
     ], {json:true, temperature:0.2, maxTokens:500});
     var res = JSON.parse(txt);
     out.innerHTML = (res.ok?'✅ 校验通过':'⚠️ 发现问题')
       + (res.issues&&res.issues.length?'<br>· '+res.issues.map(esc).join('<br>· '):'')
       + (res.suggestion?'<br><b>建议：</b>'+esc(res.suggestion):'');
-    // 落库
+    // 落库（aiCheck 本身是 CONFIDENTIAL，不进客户版）
     if (editingSavedId) DataStore.saveAIResult('docs', editingSavedId, { aiCheck:{ok:res.ok, issues:res.issues, at:new Date().toISOString()} });
   } catch(e){ out.innerHTML = '校验失败：'+esc(e.message); }
 }
@@ -514,8 +587,11 @@ async function doPolish(){
 }
 function syncInput(k,v){ var el=document.querySelector('input[data-k="'+k+'"]'); if(el) el.value=v; }
 
-/* ---------- 打印（CSS @media print 只出 A4 预览区） ---------- */
-function printPaper(){ window.print(); }
+/* ---------- 打印（Gate 拦截；CSS @media print 只出 A4 预览区） ---------- */
+function printPaper(){
+  if (!runGate(false)) return;
+  window.print();
+}
 
 /* ---------- 保存 / 单证夹 ---------- */
 function saveDoc(){
@@ -528,7 +604,7 @@ function saveDoc(){
   }
   toast('已保存到单证夹');
 }
-function clearForm(){ values={}; editingSavedId=null; $('aiOut').style.display='none'; renderList(); renderChain(); renderForm(); renderPaper(); }
+function clearForm(){ values={}; editingSavedId=null; gateRan=false; $('aiOut').style.display='none'; $('gateBox').innerHTML=''; renderList(); renderChain(); renderForm(); renderPaper(); }
 function renderSaved(){
   var docs = DataStore.list('docs');
   $('savedList').innerHTML = docs.length ? docs.map(function(d){
@@ -548,7 +624,8 @@ function loadSaved(id){
   var d = DataStore.get('docs', id); if(!d) return;
   editingSavedId = id; values = d.values||{};
   current = DOCS_DEF.find(function(x){ return x.id===d.docId; }) || current;
-  dlgSaved.close(); renderList(); renderChain(); renderForm(); renderPaper();
+  gateRan = false;
+  dlgSaved.close(); renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
   if (d.aiCheck){ $('aiOut').style.display='block'; $('aiOut').innerHTML=(d.aiCheck.ok?'✅':'⚠️')+' 上次 AI 校验：'+esc((d.aiCheck.issues||[]).join('；')||'通过'); }
 }
 
@@ -578,7 +655,7 @@ $('agPanel').innerHTML = AgnesAI.settingsHTML();
 $('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
 Brand.initDialog('dlgBrand', function(){ renderPaper(); });
 initPaperTools();
-renderList(); renderChain(); renderForm(); renderPaper();
+renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
 </script>
 </body>
 </html>

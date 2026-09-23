@@ -63,6 +63,13 @@
   .btn-danger:hover { background:#fecaca; }
   .btnrow { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-top:var(--sp-3); align-items:center; }
   .paper-tools { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .paper-tools select { padding:4px 6px; border:1px solid var(--border-strong,#cfc9b8); border-radius:4px; font-size:12px; background:var(--bg-card); }
+  .conf-row { border:1px dashed #f0b429; background:#fffbeb; border-radius:var(--r-sm); padding:8px 10px; margin-top:var(--sp-3); }
+  .conf-badge { display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.04em; color:#92400e; background:#fde68a; border-radius:4px; padding:2px 7px; margin-bottom:6px; }
+  .conf-row label { font-size:12px; color:#92400e; display:block; margin-bottom:3px; }
+  .conf-row textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid #f0b429; border-radius:var(--r-sm); font-size:13.5px; font-family:var(--font-sans); background:#fff; min-height:48px; resize:vertical; }
+  .conf-hint { font-size:11px; color:#92400e; margin-top:4px; }
+  #gateBox { margin-top:var(--sp-2); }
   .ai-out { font-size:13px; line-height:1.7; padding:var(--sp-3); background:var(--bg-inset); border-radius:var(--r-sm); margin-top:var(--sp-3); display:none; white-space:pre-wrap; }
   /* 预览纸 */
   .preview-toggle { margin-left:auto; }
@@ -147,6 +154,14 @@
         <div class="full"><label>报价说明</label><textarea id="q_note" rows="2" placeholder="给客户的备注…"></textarea></div>
       </div>
 
+      <!-- CONFIDENTIAL 内部备注（feature 7：客户版纸面/Excel 不带出） -->
+      <div class="conf-row">
+        <div class="conf-badge">🔒 CONFIDENTIAL · 内部字段</div>
+        <label>内部备注 Internal Note（核价底线 / 工厂交期等）</label>
+        <textarea id="q_internal" rows="2" placeholder="仅内部可见：打印与「Excel 客户版」自动排除"></textarea>
+        <div class="conf-hint">仅出现在「Excel 数据版」，纸面预览 / 打印 / 客户版导出均隔离。</div>
+      </div>
+
       <!-- 报价明细 -->
       <div style="margin-top:var(--sp-3)">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
@@ -180,8 +195,10 @@
         <button class="btn-sm btn-ghost" onclick="printQuote()">🖨 打印</button>
         <button class="btn-sm btn-ghost" onclick="exportClientXls()" title="客户可改数量的单 sheet">⬇ Excel 客户版</button>
         <button class="btn-sm btn-ghost" onclick="exportDataXls()" title="多 sheet：报价头/明细/商品/客户">⬇ Excel 数据版</button>
+        <button class="btn-sm btn-ghost" onclick="runGate(true)" title="Formal Output Gate">🔎 输出校验</button>
         <button class="btn-sm btn-danger" id="btnDel" onclick="deleteQuote()" style="display:none">🗑 删除</button>
       </div>
+      <div id="gateBox"></div>
       <div class="status-bar">
         <span style="font-size:13px;color:var(--text-2)">状态：</span>
         <select id="q_status" onchange="onStatusChange()">
@@ -214,9 +231,11 @@
 
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
+<script src="../js/gate.js?v=1"></script>
+<script src="../js/i18n.js?v=1"></script>
 <script src="../js/brand.js?v=3"></script>
-<script src="../js/excel.js?v=1"></script>
-<script src="../js/paper.js?v=1"></script>
+<script src="../js/excel.js?v=2"></script>
+<script src="../js/paper.js?v=2"></script>
 <script>
 'use strict';
 
@@ -384,7 +403,7 @@ function consumePickedProduct() {
   } catch (e) {}
 }
 
-/* ========== 纸面模板 / 横竖版 ========== */
+/* ========== 纸面模板 / 横竖版 / 语言 ========== */
 function initPaperTools() {
   $('paperTools').innerHTML = Paper.toolbarHTML();
 }
@@ -395,6 +414,40 @@ function onPaperStyle() {
 function onPaperOrient() {
   Paper.setOrient($('paperOrient').value);
   if ($('paper').style.display === 'block') renderPaper();
+}
+function onPaperLang() {
+  I18N.setLang($('paperLang').value);
+  if ($('paper').style.display === 'block') renderPaper();
+  refreshGate();
+}
+
+/* ========== Formal Output Gate（feature 6） ========== */
+var gateRan = false;
+function gateQuoteData() {
+  var q = currentQuoteData();
+  return q;
+}
+function confNoteHTML() {
+  var hasConf = String(v('q_internal') || '').trim() !== '';
+  return hasConf
+    ? '<div style="font-size:11px;color:#92400e;margin-top:4px">🔒 已隔离 1 项内部字段（客户版不含）</div>' : '';
+}
+function refreshGate() {
+  var issues = Gate.checkQuote(gateQuoteData());
+  $('gateBox').innerHTML = (gateRan || issues.length)
+    ? Gate.navigatorHTML(issues) + confNoteHTML()
+    : confNoteHTML();
+}
+function runGate(force) {
+  if (force) gateRan = true;
+  var issues = Gate.checkQuote(gateQuoteData());
+  $('gateBox').innerHTML = Gate.navigatorHTML(issues) + confNoteHTML();
+  var res = Gate.enforce(issues);
+  if (!res.ok) {
+    var first = Gate.errorsOf(issues)[0];
+    if (first) setTimeout(function () { Gate.jump(first.k); }, 60);
+  }
+  return res.ok;
 }
 
 /* ========== Excel 导出 ========== */
@@ -414,12 +467,13 @@ function currentQuoteData() {
     payment: v('q_payment'), validity: v('q_validity'),
     portFrom: v('q_portFrom'), portTo: v('q_portTo'),
     delivery: v('q_delivery'), note: v('q_note'),
+    internalNote: v('q_internal'),
     status: v('q_status')
   };
 }
 function exportClientXls() {
+  if (!runGate(false)) return;
   var q = currentQuoteData();
-  if (!q.items.length) { alert('先填至少一行明细'); return; }
   ExcelExport.quoteClient(q, Brand.get());
 }
 function exportDataXls() {
@@ -455,7 +509,7 @@ function renderList() {
 
 /* ========== 新建/加载 ========== */
 function newQuote() {
-  S.current = null; S.editing = false;
+  S.current = null; S.editing = false; gateRan = false;
   $('editorTitle').textContent = '新建报价';
   $('btnDel').style.display = 'none';
   $('q_lead').value = '';
@@ -467,8 +521,10 @@ function newQuote() {
   $('q_portTo').value = '';
   $('q_delivery').value = '25 days after deposit';
   $('q_note').value = '';
+  $('q_internal').value = '';
   $('q_status').value = 'draft';
   $('aiOut').style.display = 'none';
+  $('gateBox').innerHTML = '';
   $('itemsBody').innerHTML = '';
   addItem();
   $('paper').style.display = 'none';
@@ -479,7 +535,7 @@ function newQuote() {
 function loadQuote(id) {
   var item = DataStore.get('quotes', id);
   if (!item) return;
-  S.current = id; S.editing = true;
+  S.current = id; S.editing = true; gateRan = false;
   $('editorTitle').textContent = '编辑报价 ' + esc(item.no || '');
   $('btnDel').style.display = 'inline-flex';
   $('q_lead').value = item.leadId || '';
@@ -492,12 +548,14 @@ function loadQuote(id) {
   $('q_portTo').value = item.portTo || '';
   $('q_delivery').value = item.delivery || '';
   $('q_note').value = item.note || '';
+  $('q_internal').value = item.internalNote || '';
   $('q_status').value = item.status || 'draft';
   $('aiOut').style.display = 'none';
   setItems(item.items);
   $('paper').style.display = 'none';
   $('editor').style.display = 'block';
   renderList();
+  refreshGate();
 }
 
 function onLeadPick() {
@@ -533,6 +591,7 @@ function saveQuote() {
     payment: v('q_payment'), validity: v('q_validity'),
     portFrom: v('q_portFrom'), portTo: v('q_portTo'),
     delivery: v('q_delivery'), note: v('q_note'),
+    internalNote: v('q_internal'),
     status: v('q_status')
   };
   if (S.current) {
@@ -545,6 +604,7 @@ function saveQuote() {
   $('editorTitle').textContent = '编辑报价 ' + esc(no);
   $('btnDel').style.display = 'inline-flex';
   renderList();
+  refreshGate();
   return S.current;
 }
 function saveAndPreview() {
@@ -573,6 +633,8 @@ function togglePreview() {
     $('btnPreview').textContent = '👁 预览';
     return;
   }
+  // 预览=客户版纸面：先过 Gate（仅提示，不强制阻断预览时也可看；阻断在打印/导出）
+  refreshGate();
   renderPaper();
   paper.style.display = 'block'; $('editor').style.display = 'none';
   $('btnPreview').textContent = '✏️ 编辑';
@@ -590,12 +652,13 @@ function renderPaper() {
       + '<td class="num">' + sym + it.amount.toFixed(2) + '</td></tr>';
   }).join('');
   var noteLines = [];
-  if (v('q_payment')) noteLines.push('Payment: ' + v('q_payment'));
-  if (v('q_delivery')) noteLines.push('Delivery: ' + v('q_delivery'));
-  if (v('q_portFrom')) noteLines.push('Port of Loading: ' + v('q_portFrom'));
-  if (v('q_portTo')) noteLines.push('Port of Discharge: ' + v('q_portTo'));
+  if (v('q_payment')) noteLines.push(I18N.t('f.payment') + ': ' + v('q_payment'));
+  if (v('q_delivery')) noteLines.push(I18N.t('f.delivery') + ': ' + v('q_delivery'));
+  if (v('q_portFrom')) noteLines.push(I18N.t('f.portFrom') + ': ' + v('q_portFrom'));
+  if (v('q_portTo')) noteLines.push(I18N.t('f.portTo') + ': ' + v('q_portTo'));
   if (v('q_validity')) noteLines.push('Validity: ' + v('q_validity'));
   if (v('q_note')) noteLines.push(v('q_note'));
+  // feature 7：q_internal（CONFIDENTIAL）永不进入纸面
 
   var brandHdr = Brand.headerHTML();
   var b = Brand.get();
@@ -609,18 +672,19 @@ function renderPaper() {
 
   var el = $('paper');
   el.innerHTML = brandHdr
-    + '<h2>QUOTATION</h2>'
-    + '<div class="no">No. ' + esc(v('q_no')) + '<br>Date: ' + esc(v('q_date')) + '</div>'
-    + '<div class="parties"><div><b>To:</b><br>' + esc(lead ? lead.name : '—') + (lead && lead.country ? '<br>' + esc(lead.country) : '') + '</div>'
+    + '<h2>' + esc(I18N.t('q.title')) + '</h2>'
+    + '<div class="no">' + esc(I18N.t('f.no')) + ' ' + esc(v('q_no')) + '<br>' + esc(I18N.t('f.date')) + ': ' + esc(v('q_date')) + '</div>'
+    + '<div class="parties"><div><b>' + esc(I18N.t('q.to')) + ':</b><br>' + esc(lead ? lead.name : '—') + (lead && lead.country ? '<br>' + esc(lead.country) : '') + '</div>'
     + '<div style="text-align:right">' + fromBlock + '</div></div>'
-    + '<table><thead><tr><th>#</th><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>'
+    + '<table><thead><tr><th>#</th><th>' + esc(I18N.t('t.desc')) + '</th><th style="text-align:right">' + esc(I18N.t('t.qty')) + '</th><th style="text-align:right">' + esc(I18N.t('t.unitPrice')) + '</th><th style="text-align:right">' + esc(I18N.t('t.amount')) + '</th></tr></thead>'
     + '<tbody>' + rows + '</tbody>'
-    + '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">TOTAL</td><td style="text-align:right;font-weight:600">' + sym + total.toFixed(2) + ' ' + esc(cur) + '</td></tr></tfoot></table>'
+    + '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">' + esc(I18N.t('q.total')) + '</td><td style="text-align:right;font-weight:600">' + sym + total.toFixed(2) + ' ' + esc(cur) + '</td></tr></tfoot></table>'
     + '<div class="notes">' + noteLines.map(function(l){ return esc(l); }).join('<br>') + '</div>'
     + '<div class="sig">' + Brand.signHTML() + '<div>_________________<br>Seller</div><div>_________________<br>Buyer</div></div>';
   Paper.apply(el);
 }
 function printQuote() {
+  if (!runGate(false)) return;
   renderPaper();
   $('paper').style.display = 'block';
   window.print();
@@ -689,6 +753,7 @@ Brand.initDialog('dlgBrand', function(){ if ($('paper').style.display === 'block
 initPaperTools();
 init();
 consumePickedProduct();
+refreshGate();
 </script>
 </body>
 </html>
