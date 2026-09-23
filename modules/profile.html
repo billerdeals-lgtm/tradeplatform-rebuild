@@ -74,10 +74,23 @@
     <button class="ft-btn-primary" onclick="save()">保存资料</button>
     <span class="saved" id="saved">✓ 已保存，各模块即刻生效</span>
   </div>
+
+  <!-- 品牌资料（Logo / 电子签名 / 公司公章 + 工商银行） -->
+  <section class="ft-card" style="padding:var(--sp-4);margin-top:var(--sp-6);margin-bottom:var(--sp-4)">
+    <h2 style="margin-top:0;font-size:14px">品牌与印章（单证/报价通用）</h2>
+    <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:var(--sp-3)">
+      Logo、电子签名、公司公章和收款资料保存一次，单证中心的报价、PI、合同、CI、装箱单自动盖章复用。
+      <button class="ft-btn-primary" style="margin-left:8px" onclick="openBrandDlg()">🏷 打开品牌资料</button>
+    </div>
+    <div id="brandSummary" style="display:flex;gap:var(--sp-4);flex-wrap:wrap;align-items:center;font-size:13px"></div>
+  </section>
 </main>
+
+<div id="brandHost"></div>
 
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
+<script src="../js/brand.js"></script>
 <script>
 /* 我的资料：单条记录（固定 id 'my'）存 profile 集合 */
 var FIELDS = ['p_name','p_role','p_company','p_wa','p_email','p_products','p_selling','p_port','p_payment','p_moq','p_site'];
@@ -105,7 +118,25 @@ async function aiPolish() {
     box.textContent = txt + '\n\n（点文本框可手动复制/修改，保存后全应用生效）';
   } catch (e) { box.textContent = '❌ ' + e.message; }
 }
+/* ---------- 品牌资料 ---------- */
+function openBrandDlg(){ Brand.open('dlgBrand', paintBrand); }
+function paintBrand(){
+  var b = Brand.get();
+  var box = document.getElementById('brandSummary');
+  var items = [];
+  items.push(b.logo ? '<img src="'+b.logo+'" style="max-height:38px">' : '<span style="color:var(--text-3)">Logo 未设置</span>');
+  items.push(b.sign ? '✍ 签名 ✓' : '<span style="color:var(--text-3)">签名未设置</span>');
+  items.push(b.seal ? '🔴 公章 ✓' : '<span style="color:var(--text-3)">公章未设置</span>');
+  items.push(b.sellerFull ? escTxt(b.sellerFull) : '');
+  items.push(b.bankAcct ? '🏦 '+escTxt(b.bankName||'')+' '+escTxt((b.bankAcct||'').slice(0,6)+'…') : '');
+  box.innerHTML = items.filter(Boolean).map(function(x){ return '<span>'+x+'</span>'; }).join('<span style="color:var(--text-3)">·</span>');
+}
+function escTxt(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
 fill();
+document.getElementById('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
+Brand.initDialog('dlgBrand', paintBrand);
+paintBrand();
 </script>
 </body>
 </html>
