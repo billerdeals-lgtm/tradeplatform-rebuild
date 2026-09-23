@@ -21,8 +21,12 @@
     + '.br-view{height:96px;border:1.5px dashed #cfc9b8;border-radius:6px;background:#f3f1ea;display:flex;align-items:center;justify-content:center;overflow:hidden}'
     + '.br-view img{max-width:92%;max-height:88px;object-fit:contain}'
     + '.br-view span{font-size:12px;color:#9aa5b1}'
-    + '.br-pick{padding:7px 0;border:1px solid #cfc9b8;border-radius:6px;background:#fff;cursor:pointer;font-size:13px}'
+    + '.br-pick{padding:7px 0;border:1px solid #cfc9b8;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;flex:1}'
     + '.br-pick:hover{border-color:#0b6e4f;color:#0b6e4f}'
+    + '.br-acts{display:flex;gap:6px}'
+    + '.br-clear{padding:7px 0;border:1px solid #cfc9b8;border-radius:6px;background:#fff;cursor:pointer;font-size:13px;color:#c2410c;flex:0 0 auto}'
+    + '.br-clear:hover{border-color:#c2410c;background:#fbe4d5}'
+    + '.br-clear[hidden]{display:none}'
     + '.br-hint{font-size:11px;color:#9aa5b1;line-height:1.45}'
     + '.br-name{font-size:11px;color:#17936c}'
     + '.br-two{display:grid;grid-template-columns:1fr 1fr;gap:12px}'
@@ -176,7 +180,10 @@
     _slotHTML: function (key, title, hint, maxDim, png) {
       return '<div class="br-slot" data-slot="' + key + '" data-max="' + maxDim + '" data-png="' + (png ? 1 : 0) + '">'
         + '<div class="br-view" data-view></div>'
+        + '<div class="br-acts">'
         + '<button type="button" class="br-pick">选择图片</button>'
+        + '<button type="button" class="br-clear" data-clear hidden>清除</button>'
+        + '</div>'
         + '<div class="br-hint">' + hint + '</div>'
         + '<div class="br-name" data-name></div>'
         + '<input type="file" accept="image/*" hidden>'
@@ -201,12 +208,15 @@
           var k = slot.dataset.slot;
           var view = slot.querySelector('[data-view]');
           var name = slot.querySelector('[data-name]');
+          var clr = slot.querySelector('[data-clear]');
           if (b[k]) {
             view.innerHTML = '<img src="' + b[k] + '" alt="' + k + '">';
             name.textContent = '✓ 已设置';
+            if (clr) clr.hidden = false;
           } else {
             view.innerHTML = '<span>未设置</span>';
             name.textContent = '';
+            if (clr) clr.hidden = true;
           }
         });
       }
@@ -215,6 +225,17 @@
       dlg.querySelectorAll('[data-slot]').forEach(function (slot) {
         var input = slot.querySelector('input[type=file]');
         slot.querySelector('.br-pick').addEventListener('click', function () { input.click(); });
+        var clr = slot.querySelector('[data-clear]');
+        if (clr) clr.addEventListener('click', function () {
+          var k = slot.dataset.slot;
+          var label = { logo: 'Logo', sign: '电子签名', seal: '公司公章' }[k] || k;
+          if (!confirm('清除已设置的' + label + '？')) return;
+          var patch = {};
+          patch[k] = '';
+          Brand.save(patch);
+          paint();
+          if (onChange) onChange(Brand.get(), k);
+        });
         input.addEventListener('change', function () {
           var f = input.files && input.files[0];
           if (!f) return;

@@ -19,6 +19,17 @@
   .docchip { font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--border-strong); background:var(--bg-card); cursor:pointer; }
   .docchip.on { background:var(--brand-700); color:#fff; border-color:var(--brand-700); }
   .catlbl { width:100%; font-size:11px; color:var(--text-3); margin-top:4px; }
+  /* ---- 单据链 ---- */
+  .chain { display:flex; align-items:center; gap:2px; padding:10px var(--sp-3); flex-wrap:wrap; }
+  .chain-step { font-size:11.5px; padding:4px 9px; border-radius:999px; border:1px solid var(--border-strong); background:var(--bg-card); cursor:pointer; color:var(--text-2); white-space:nowrap; }
+  .chain-step:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  .chain-step.done { background:var(--brand-100); border-color:var(--brand-500); color:var(--brand-700); }
+  .chain-step.on { background:var(--brand-700); border-color:var(--brand-700); color:#fff; font-weight:600; }
+  .chain-arrow { color:var(--text-3); font-size:11px; padding:0 1px; }
+  .chain-derive { margin-left:auto; font-size:12px; padding:5px 12px; border-radius:var(--r-sm); border:0; background:var(--accent-500); color:#4a3200; font-weight:600; cursor:pointer; white-space:nowrap; }
+  .chain-derive:hover { filter:brightness(1.06); }
+  .chain-derive:disabled { opacity:.45; cursor:not-allowed; }
+  .derived-line { font-size:11.5px; color:var(--text-3); margin:6px 0 0; }
   .form { padding:var(--sp-4); }
   .form h3 { margin:0 0 8px; font-size:15px; }
   .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
@@ -94,6 +105,7 @@
 <main>
   <div class="left">
     <div class="ft-card doclist" id="doclist"></div>
+    <div class="ft-card chain" id="chainBar"></div>
     <div class="ft-card form">
       <h3 id="formTitle">选择一张单证</h3>
       <div class="fgrid" id="formFields"></div>
@@ -195,7 +207,105 @@ function renderList(){
 function pick(id){
   current = DOCS_DEF.find(function(d){ return d.id===id; });
   editingSavedId = null; $('aiOut').style.display='none';
-  renderList(); renderForm(); renderPaper();
+  renderList(); renderChain(); renderForm(); renderPaper();
+}
+
+/* ---------- 单据链：面包屑 + 链式派生 ---------- */
+function renderChain(){
+  var idx = DOC_CHAIN.indexOf(current.id);
+  var html = DOC_CHAIN.map(function(id, i){
+    var lab = CHAIN_LABEL[id] || id;
+    var cls = 'chain-step' + (id === current.id ? ' on' : (idx >= 0 && i < idx ? ' done' : ''));
+    var arrow = i < DOC_CHAIN.length - 1 ? '<span class="chain-arrow">→</span>' : '';
+    return '<span class="'+cls+'" onclick="pick(\''+id+'\')" title="切换到 '+esc(lab)+'">'+esc(lab)+'</span>' + arrow;
+  }).join('');
+  var nextId = idx >= 0 && idx < DOC_CHAIN.length - 1 ? DOC_CHAIN[idx + 1] : null;
+  html += nextId
+    ? '<button class="chain-derive" onclick="deriveNext()" title="继承本单共享字段，生成 '+esc(CHAIN_LABEL[nextId]||nextId)+'">⛓ 派生下一单：'+esc(CHAIN_LABEL[nextId]||nextId)+' →</button>'
+    : '<span style="margin-left:auto;font-size:11.5px;color:var(--text-3)">'+(idx === DOC_CHAIN.length-1 ? '✓ 主链末端' : '非主链单证')+'</span>';
+  $('chainBar').innerHTML = html;
+}
+
+function todayStr(){ var d=new Date(); return d.toISOString().slice(0,10); }
+
+function genNo(docId){
+  var pfx = DOC_NO_PREFIX[docId] || 'DOC';
+  var ds = todayStr().replace(/-/g,'');
+  var all = DataStore.list('docs').map(function(d){ return String((d.values||{}).no || ''); });
+  if (values.no && String(values.no).indexOf(pfx + '-' + ds) === 0) all.push(String(values.no));
+  var n = 1;
+  var no = pfx + '-' + ds + '-' + String(n).padStart(3, '0');
+  while (all.indexOf(no) >= 0){ n++; no = pfx + '-' + ds + '-' + String(n).padStart(3, '0'); }
+  return no;
+}
+
+/* 链式派生：共享字段继承 → 按目标策略 clear/preset → 血缘 derivedFrom */
+function deriveNext(){
+  var idx = DOC_CHAIN.indexOf(current.id);
+  if (idx < 0 || idx >= DOC_CHAIN.length - 1){ toast('当前单证不在主链上或已是末端'); return; }
+  var nextId = DOC_CHAIN[idx + 1];
+  var nextDef = DOCS_DEF.find(function(d){ return d.id === nextId; });
+  if (!nextDef) return;
+
+  // 源单关键字段缺失时提醒（不阻断）
+  var miss = ['buyer','product','total'].filter(function(k){ return !values[k]; });
+
+  // 1) 记录血缘（基于当前值）
+  var lineage = {
+    fromDocId: current.id,
+    fromTitle: current.title,
+    fromNo: values.no || '',
+    fromSavedId: editingSavedId,
+    at: new Date().toISOString()
+  };
+
+  // 2) 继承：共享字段全保留（no/date 重开），删掉策略要求 clear 的专有字段
+  var next = {};
+  Object.keys(values).forEach(function(k){ next[k] = values[k]; });
+  var policy = CHAIN_DERIVE[nextId] || { clearKeys: [], presets: {} };
+  (policy.clearKeys || []).forEach(function(k){ delete next[k]; });
+
+  // 3) 新单号 + 新日期 + 派生备注
+  next.no = genNo(nextId);
+  next.date = todayStr();
+  next.derivedFrom = lineage;
+
+  // 4) 目标字段空则用 preset
+  var presets = policy.presets || {};
+  Object.keys(presets).forEach(function(k){
+    if (!next[k]) next[k] = presets[k];
+  });
+
+  // 5) 若当前源单已保存，确保血缘可回溯（保存源单最新值）
+  if (editingSavedId){
+    DataStore.update('docs', editingSavedId, { docId: current.id, docTitle: current.title, values: values });
+  }
+
+  // 6) 切换到目标单
+  values = next;
+  current = nextDef;
+  editingSavedId = null;
+  $('aiOut').style.display = 'none';
+  renderList(); renderChain(); renderForm(); renderPaper();
+
+  var msg = '⛓ 已派生：' + (lineage.fromTitle.split(' / ')[0]) + (lineage.fromNo ? ' No.'+lineage.fromNo : '')
+    + ' → ' + nextDef.title.split(' / ')[0] + ' No.' + next.no;
+  if (miss.length) msg += '（源单缺：' + miss.join('/') + '，请补全）';
+  toast(msg);
+}
+
+/* 单证夹：从已保存单据直接派生下一单 */
+function deriveFromSaved(id){
+  var d = DataStore.get('docs', id);
+  if (!d) return;
+  dlgSaved.close();
+  // 载入源单
+  editingSavedId = id;
+  values = d.values || {};
+  current = DOCS_DEF.find(function(x){ return x.id === d.docId; }) || current;
+  renderList(); renderChain(); renderForm(); renderPaper();
+  // 立即派生
+  deriveNext();
 }
 
 /* ---------- 表单：共享字段 + 专有字段 ---------- */
@@ -209,6 +319,7 @@ function renderForm(){
   $('formTitle').textContent = current.title;
   var all = SHARED_FIELDS.concat((current.rows||[]).map(function(r){ return {k:r[0], label:r[1], ph:r[2]}; }));
   $('formFields').innerHTML = all.map(fieldInput).join('');
+  renderChain();
 }
 function onVal(input){
   values[input.dataset.k] = input.value;
@@ -239,10 +350,21 @@ function renderPaper(){
   }
   // 签章区：电子签名 + 公司公章 叠在 Seller 签名线上
   var stamp = Brand.signHTML();
+  // 链式派生血缘
+  var lineage = '';
+  if (values.derivedFrom && values.derivedFrom.fromTitle){
+    var df = values.derivedFrom;
+    lineage = '<div class="derived-line">⛓ Derived from '
+      + esc(String(df.fromTitle).split(' / ')[0])
+      + (df.fromNo ? ' No. ' + esc(df.fromNo) : '')
+      + (df.at ? ' · ' + esc(String(df.at).slice(0,10)) : '')
+      + '</div>';
+  }
   $('paper').innerHTML =
     brandHdr
     + '<h2>'+esc(d.title.split(' / ')[1]||d.title)+'</h2>'
     + '<div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:10px">'+esc(d.title.split(' / ')[0])+'</div>'
+    + lineage
     + '<div class="no">No. '+fill('no')+'<br>Date: '+fill('date')+'</div>'
     + '<div class="party"><div><b>Seller 卖方</b><br>'+sellerBlock+'</div>'
     + '<div style="text-align:right"><b>Buyer 买方</b><br>'+fill('buyer')+'<br>'+fill('buyerAddr')+'</div></div>'
@@ -330,14 +452,18 @@ function saveDoc(){
   }
   toast('已保存到单证夹');
 }
-function clearForm(){ values={}; editingSavedId=null; $('aiOut').style.display='none'; renderForm(); renderPaper(); }
+function clearForm(){ values={}; editingSavedId=null; $('aiOut').style.display='none'; renderList(); renderChain(); renderForm(); renderPaper(); }
 function renderSaved(){
   var docs = DataStore.list('docs');
   $('savedList').innerHTML = docs.length ? docs.map(function(d){
+    var chIdx = DOC_CHAIN.indexOf(d.docId);
+    var canDerive = chIdx >= 0 && chIdx < DOC_CHAIN.length - 1;
     return '<div class="ft-card" style="padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px">'
       + '<div style="flex:1"><b style="font-size:13px">'+esc(d.docTitle)+'</b>'
-      + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(d.values.no||'—')+' · '+esc(d.values.buyer||'—')+' · '+esc((d.updatedAt||'').slice(0,10))
-      + (d.aiCheck?' · <span style="color:'+(d.aiCheck.ok?'var(--ok)':'var(--danger)')+'">AI 校验'+(d.aiCheck.ok?'通过':'有问题')+'</span>':'')+'</div></div>'
+      + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(d.values.no||'—')+' · '+esc(d.values.buyer||'—')+' · '+esc((d.updatedAt||d.createdAt||'').slice(0,10))
+      + (d.aiCheck?' · <span style="color:'+(d.aiCheck.ok?'var(--ok)':'var(--danger)')+'">AI 校验'+(d.aiCheck.ok?'通过':'有问题')+'</span>':'')
+      + ((d.values||{}).derivedFrom?' · <span style="color:var(--brand-700)">⛓ 派生</span>':'')+'</div></div>'
+      + (canDerive?'<button class="iconbtn" onclick="deriveFromSaved(\''+d.id+'\')" title="从此单派生下一环">⛓ 派生</button>':'')
       + '<button class="iconbtn" onclick="loadSaved(\''+d.id+'\')">打开</button>'
       + '<button class="iconbtn" onclick="DataStore.remove(\'docs\',\''+d.id+'\');renderSaved()">🗑</button></div>';
   }).join('') : '<div style="color:var(--text-3);text-align:center;padding:20px">单证夹是空的</div>';
@@ -346,7 +472,7 @@ function loadSaved(id){
   var d = DataStore.get('docs', id); if(!d) return;
   editingSavedId = id; values = d.values||{};
   current = DOCS_DEF.find(function(x){ return x.id===d.docId; }) || current;
-  dlgSaved.close(); renderList(); renderForm(); renderPaper();
+  dlgSaved.close(); renderList(); renderChain(); renderForm(); renderPaper();
   if (d.aiCheck){ $('aiOut').style.display='block'; $('aiOut').innerHTML=(d.aiCheck.ok?'✅':'⚠️')+' 上次 AI 校验：'+esc((d.aiCheck.issues||[]).join('；')||'通过'); }
 }
 
@@ -375,7 +501,7 @@ function doImport(){
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
 $('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
 Brand.initDialog('dlgBrand', function(){ renderPaper(); });
-renderList(); renderForm(); renderPaper();
+renderList(); renderChain(); renderForm(); renderPaper();
 </script>
 </body>
 </html>

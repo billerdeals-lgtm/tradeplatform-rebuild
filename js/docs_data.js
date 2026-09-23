@@ -1,9 +1,10 @@
 /* ============================================================
-   FT Compass · 单证中心数据 v1.0
+   FT Compass · 单证中心数据 v1.1
    20 张出口常用单证（行业标准格式，独立编写）。
    结构化 schema：共享字段一次填写全单联动，通用渲染器出单。
    共享字段：no/date/seller/sellerAddr/buyer/buyerAddr/product/
    qty/unit/price/currency/total/payment/portFrom/portTo/delivery
+   v1.1：单据链（报价→PI→合同→CI→装箱单→出货通知）链式派生
    ============================================================ */
 var SHARED_FIELDS = [
   {k:'no', label:'单号 No.'},
@@ -163,3 +164,53 @@ var DOCS_DEF = [
    notes:['Between {{seller}} and {{buyer}}','Annual target: {{target}}',
           'Price policy: {{pricePolicy}}','Review: {{review}}']}
 ];
+
+/* ---------- 单据链：主链顺序 + 派生时的目标字段策略 ----------
+   HUIDI 式链式派生：从上一张单续做下一张，共享字段自动继承，
+   单号/日期刷新，源单据血缘写入 derivedFrom。 */
+var DOC_CHAIN = ['quotation', 'pi', 'sc', 'ci', 'pl', 'sa'];
+
+var CHAIN_LABEL = {
+  quotation: '报价单', pi: 'PI', sc: '合同',
+  ci: 'CI', pl: '装箱单', sa: '出货通知'
+};
+
+/* 派生到目标单时的字段策略
+   keepKeys: 额外保留的专有字段（共享字段默认全保留，no/date 除外）
+   clearKeys: 必须清空的源单专有字段
+   presets: 目标字段默认值（仅当目标字段当前为空时写入） */
+var CHAIN_DERIVE = {
+  quotation: {
+    clearKeys: [],
+    presets: { valid: '15 days' }
+  },
+  pi: {
+    clearKeys: [],
+    presets: { valid: '15 days' }
+  },
+  sc: {
+    clearKeys: ['bank', 'valid', 'poNo', 'confirmBy', 'sampleFee', 'courier', 'deduct'],
+    presets: {
+      quality: 'As per confirmed sample / SGS inspection before shipment',
+      claim: 'Within 30 days after arrival'
+    }
+  },
+  ci: {
+    clearKeys: ['bank', 'valid', 'quality', 'claim', 'poNo', 'confirmBy'],
+    presets: {}
+  },
+  pl: {
+    clearKeys: ['bank', 'valid', 'quality', 'claim', 'lcNo', 'hsCode'],
+    presets: { mark: 'N/M or per customer' }
+  },
+  sa: {
+    clearKeys: ['bank', 'valid', 'quality', 'claim', 'lcNo', 'hsCode', 'ctns', 'gw', 'nw', 'meas', 'mark'],
+    presets: { freight: 'Prepaid' }
+  }
+};
+
+/* 单号前缀（派生时生成新单号） */
+var DOC_NO_PREFIX = {
+  quotation: 'QT', pi: 'PI', sc: 'SC', oc: 'OC',
+  ci: 'CI', pl: 'PL', sa: 'SA', si: 'SI'
+};
