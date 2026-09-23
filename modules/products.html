@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 商品库</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
+  main { max-width:1100px; margin:0 auto; padding:var(--sp-4) var(--sp-4) 80px; }
+  .toolbar { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-3); align-items:center; }
+  .toolbar input, .toolbar select { padding:8px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar input[type=search] { flex:1; min-width:180px; }
+  .stats { display:flex; gap:var(--sp-6); margin-bottom:var(--sp-3); }
+  .stat { text-align:center; } .stat b { display:block; font-size:22px; font-weight:700; color:var(--brand-700); } .stat span { font-size:11.5px; color:var(--text-3); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:var(--sp-3); }
+  .pcard { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-md); box-shadow:var(--shadow-card); overflow:hidden; display:flex; flex-direction:column; }
+  .pimg { height:120px; background:var(--bg-inset); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .pimg img { max-width:100%; max-height:100%; object-fit:contain; }
+  .pimg .ph { color:var(--text-3); font-size:24px; }
+  .pbody { padding:10px 12px; flex:1; }
+  .pname { font-weight:600; font-size:14px; line-height:1.35; }
+  .psku { font-size:11px; color:var(--brand-700); font-family:var(--font-mono); margin-top:2px; }
+  .pmeta { font-size:12px; color:var(--text-2); margin-top:6px; line-height:1.55; }
+  .pprice { font-size:15px; font-weight:700; color:var(--brand-700); margin-top:6px; }
+  .ppack { font-size:11px; color:var(--text-3); margin-top:4px; }
+  .pacts { display:flex; gap:6px; padding:8px 10px; border-top:1px solid var(--border); }
+  .pacts button { flex:1; padding:6px 0; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--bg-inset); font-size:12px; cursor:pointer; }
+  .pacts button:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  .pacts .del:hover { border-color:var(--danger); color:var(--danger); }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; font-size:14px; grid-column:1/-1; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:640px; width:94%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .dlg-b { padding:var(--sp-4); max-height:64vh; overflow:auto; }
+  .f2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+  .f2 .full { grid-column:1/-1; }
+  .dlg-b label { display:block; font-size:12px; color:var(--text-2); margin-bottom:3px; }
+  .dlg-b input, .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
+  .dlg-b textarea { min-height:56px; resize:vertical; }
+  .imgrow { display:flex; gap:var(--sp-3); align-items:flex-start; }
+  .imgprev { width:110px; height:90px; border:1.5px dashed var(--border-strong); border-radius:var(--r-sm); background:var(--bg-inset); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0; }
+  .imgprev img { max-width:100%; max-height:100%; object-fit:contain; }
+  .imgprev span { font-size:11px; color:var(--text-3); }
+  .df { display:flex; gap:var(--sp-3); padding:0 var(--sp-4) var(--sp-4); justify-content:flex-end; }
+  .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
+  .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
+</style>
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="">
+  <h1>商品库 <span style="font-size:12px;opacity:.7;font-weight:400">商品只建一次 · 报价/单证/目录复用 · 装箱数据直出</span></h1>
+  <button onclick="dlgXls.showModal()">⬇ Excel</button>
+  <button onclick="openEdit()">＋ 新建商品</button>
+</header>
+<main>
+  <div class="stats">
+    <div class="stat"><b id="sN">0</b><span>商品总数</span></div>
+    <div class="stat"><b id="sC">0</b><span>分类</span></div>
+    <div class="stat"><b id="sH">0</b><span>有装箱数据</span></div>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="搜索名称 / SKU / 分类…" oninput="render()">
+    <select id="fCat" onchange="render()"><option value="">全部分类</option></select>
+    <select id="fSort" onchange="render()">
+      <option value="upd">最近更新</option>
+      <option value="name">按名称</option>
+      <option value="price">按价格</option>
+    </select>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<!-- 编辑商品 -->
+<dialog id="dlgEdit">
+  <div class="dlg-h"><span id="dlgTitle">新建商品</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
+  <div class="dlg-b">
+    <div class="f2">
+      <div class="full imgrow">
+        <div class="imgprev" id="imgPrev"><span>商品图片</span></div>
+        <div style="flex:1">
+          <label>商品图片（可选，自动压缩）</label>
+          <input type="file" accept="image/*" id="fImg" onchange="pickImg(this)">
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">会带到报价明细与目录；建议白底产品图</div>
+          <button type="button" class="iconbtn" style="margin-top:6px;font-size:12px" onclick="clearImg()">清除图片</button>
+        </div>
+      </div>
+      <div class="full"><label>商品名称 *</label><input id="e_name" placeholder="LED Panel Light 600x600"></div>
+      <div><label>SKU / 型号</label><input id="e_sku" placeholder="LP-6060-40W"></div>
+      <div><label>分类</label><input id="e_cat" list="catList" placeholder="照明 / LED"><datalist id="catList"></datalist></div>
+      <div class="full"><label>规格描述 Spec</label><input id="e_spec" placeholder="600×600mm, 40W, 4000K"></div>
+      <div><label>单位 Unit</label><input id="e_unit" value="pcs"></div>
+      <div><label>参考价 Price</label><input id="e_price" type="number" step="0.01" min="0"></div>
+      <div><label>币种</label><select id="e_cur"><option>USD</option><option>EUR</option><option>CNY</option><option>GBP</option></select></div>
+      <div><label>MOQ</label><input id="e_moq" type="number" min="0"></div>
+      <div><label>HS 编码</label><input id="e_hs" placeholder="9405.40"></div>
+      <div><label>供应商（可选）</label><input id="e_sup"></div>
+      <div class="full" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:4px;font-size:12px;color:var(--text-2)">📦 装箱数据（出装箱单/算柜用，可留空）</div>
+      <div><label>每箱数量 Qty/Ctn</label><input id="e_perCtn" type="number" min="0"></div>
+      <div><label>箱数 Cartons</label><input id="e_ctns" type="number" min="0"></div>
+      <div><label>净重 N.W. (kg/箱)</label><input id="e_nw" type="number" step="0.01" min="0"></div>
+      <div><label>毛重 G.W. (kg/箱)</label><input id="e_gw" type="number" step="0.01" min="0"></div>
+      <div><label>体积 CBM/箱</label><input id="e_cbm" type="number" step="0.001" min="0"></div>
+      <div><label>外箱尺寸 Meas (cm)</label><input id="e_meas" placeholder="50×40×30"></div>
+      <div class="full"><label>唛头 Shipping Mark</label><input id="e_mark" placeholder="N/M or per customer"></div>
+      <div class="full"><label>备注 Notes</label><textarea id="e_notes" rows="2"></textarea></div>
+    </div>
+  </div>
+  <div class="df"><button class="dx" onclick="dlgEdit.close()">取消</button><button class="ds" onclick="saveP()">保存商品</button></div>
+</dialog>
+
+<!-- Excel 导出 -->
+<dialog id="dlgXls">
+  <div class="dlg-h"><span>导出 Excel（数据版 .xls）</span><button class="iconbtn" onclick="dlgXls.close()">✕</button></div>
+  <div class="dlg-b">
+    <p style="font-size:13px;color:var(--text-2);line-height:1.7;margin-top:0">全部商品主数据一个多 sheet 工作簿，适合导入采购/财务/ERP。客户版报价 Excel 在「报价管理」内导出。</p>
+    <button class="ft-btn-primary" onclick="exportXls()">⬇ 导出全部商品</button>
+  </div>
+</dialog>
+
+<script src="../js/datastore.js"></script>
+<script src="../js/brand.js?v=3"></script>
+<script src="../js/excel.js?v=1"></script>
+<script>
+'use strict';
+var editingId = null;
+var imgData = '';
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
+  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+
+function list(){ return DataStore.list('products'); }
+
+function render(){
+  var all = list();
+  var q = $('q').value.trim().toLowerCase();
+  var cat = $('fCat').value;
+  var sort = $('fSort').value;
+
+  // 分类筛选项
+  var cats = [];
+  all.forEach(function(p){ if(p.category && cats.indexOf(p.category)<0) cats.push(p.category); });
+  cats.sort();
+  var curCat = $('fCat').value;
+  $('fCat').innerHTML = '<option value="">全部分类</option>' + cats.map(function(c){
+    return '<option value="'+esc(c)+'"'+(c===curCat?' selected':'')+'>'+esc(c)+'</option>';
+  }).join('');
+
+  var rows = all.filter(function(p){
+    if (cat && p.category !== cat) return false;
+    if (!q) return true;
+    return [p.name,p.sku,p.category,p.spec].join(' ').toLowerCase().indexOf(q) >= 0;
+  });
+  if (sort==='name') rows.sort(function(a,b){ return String(a.name).localeCompare(String(b.name)); });
+  else if (sort==='price') rows.sort(function(a,b){ return (Number(b.price)||0)-(Number(a.price)||0); });
+  else rows.sort(function(a,b){ return String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||'')); });
+
+  $('sN').textContent = all.length;
+  $('sC').textContent = cats.length;
+  $('sH').textContent = all.filter(function(p){ return p.perCtn||p.gw||p.cbm; }).length;
+
+  if (!rows.length){
+    $('grid').innerHTML = '<div class="empty">'+(all.length?'没有匹配的商品':'商品库是空的<br><br><button class="ft-btn-primary" onclick="openEdit()">＋ 新建第一个商品</button>')+'</div>';
+    return;
+  }
+  $('grid').innerHTML = rows.map(function(p){
+    var pack = [];
+    if (p.perCtn) pack.push(p.perCtn+'/ctn');
+    if (p.gw) pack.push('G.W.'+p.gw+'kg');
+    if (p.cbm) pack.push(p.cbm+'CBM');
+    if (p.meas) pack.push(p.meas);
+    return '<div class="pcard">'
+      + '<div class="pimg">'+(p.image?'<img src="'+p.image+'" alt="">':'<span class="ph">📦</span>')+'</div>'
+      + '<div class="pbody">'
+      + '<div class="pname">'+esc(p.name)+'</div>'
+      + (p.sku?'<div class="psku">'+esc(p.sku)+'</div>':'')
+      + '<div class="pmeta">'+[p.category,p.spec].filter(Boolean).map(esc).join(' · ')+'</div>'
+      + (p.price?'<div class="pprice">'+esc(p.currency||'USD')+' '+esc(p.price)+(p.moq?' <span style="font-size:11px;color:var(--text-3);font-weight:400">MOQ '+esc(p.moq)+'</span>':'')+'</div>':'')
+      + (pack.length?'<div class="ppack">📦 '+esc(pack.join(' · '))+'</div>':'')
+      + '</div>'
+      + '<div class="pacts">'
+      + '<button onclick="openEdit(\''+p.id+'\')">编辑</button>'
+      + '<button onclick="toQuote(\''+p.id+'\')" title="带着这个商品去报价管理">→ 报价</button>'
+      + '<button class="del" onclick="delP(\''+p.id+'\')">删除</button>'
+      + '</div></div>';
+  }).join('');
+}
+
+function openEdit(id){
+  editingId = id || null;
+  $('dlgTitle').textContent = id ? '编辑商品' : '新建商品';
+  var p = id ? DataStore.get('products', id) : null;
+  imgData = (p && p.image) || '';
+  paintImg();
+  var map = { name:'e_name', sku:'e_sku', category:'e_cat', spec:'e_spec', unit:'e_unit',
+    price:'e_price', currency:'e_cur', moq:'e_moq', hsCode:'e_hs', supplier:'e_sup',
+    perCtn:'e_perCtn', ctns:'e_ctns', nw:'e_nw', gw:'e_gw', cbm:'e_cbm', meas:'e_meas',
+    mark:'e_mark', notes:'e_notes' };
+  Object.keys(map).forEach(function(k){ $(map[k]).value = p && p[k] != null ? p[k] : ''; });
+  if (!p) $('e_unit').value = 'pcs';
+  dlgEdit.showModal();
+}
+
+function paintImg(){
+  $('imgPrev').innerHTML = imgData ? '<img src="'+imgData+'" alt="">' : '<span>商品图片</span>';
+}
+
+function pickImg(input){
+  var f = input.files && input.files[0];
+  if (!f) return;
+  Brand.compress(f, 480, false).then(function(url){
+    imgData = url; paintImg();
+  }).catch(function(e){ alert(e.message); });
+  input.value = '';
+}
+function clearImg(){ imgData = ''; paintImg(); }
+
+function saveP(){
+  var name = $('e_name').value.trim();
+  if (!name){ alert('商品名称必填'); $('e_name').focus(); return; }
+  var rec = {
+    name: name,
+    sku: $('e_sku').value.trim(),
+    category: $('e_cat').value.trim(),
+    spec: $('e_spec').value.trim(),
+    unit: $('e_unit').value.trim() || 'pcs',
+    price: parseFloat($('e_price').value) || 0,
+    currency: $('e_cur').value,
+    moq: parseFloat($('e_moq').value) || 0,
+    hsCode: $('e_hs').value.trim(),
+    supplier: $('e_sup').value.trim(),
+    perCtn: parseFloat($('e_perCtn').value) || 0,
+    ctns: parseFloat($('e_ctns').value) || 0,
+    nw: parseFloat($('e_nw').value) || 0,
+    gw: parseFloat($('e_gw').value) || 0,
+    cbm: parseFloat($('e_cbm').value) || 0,
+    meas: $('e_meas').value.trim(),
+    mark: $('e_mark').value.trim(),
+    notes: $('e_notes').value.trim(),
+    image: imgData
+  };
+  try {
+    if (editingId) DataStore.update('products', editingId, rec);
+    else DataStore.add('products', rec);
+  } catch(e){
+    alert('保存失败（可能图片过大）：'+e.message); return;
+  }
+  dlgEdit.close(); render();
+  toast(editingId ? '商品已更新' : '商品已入库 ✓ 报价/单证可直接调用');
+  editingId = null;
+}
+
+function delP(id){
+  var p = DataStore.get('products', id);
+  if (!p) return;
+  if (!confirm('删除「'+p.name+'」？不影响已生成的报价/单证。')) return;
+  DataStore.remove('products', id); render();
+}
+
+function toQuote(id){
+  var p = DataStore.get('products', id);
+  if (!p) return;
+  try { sessionStorage.setItem('ftc_pick_product', JSON.stringify(p)); } catch(e){}
+  try {
+    if (parent && typeof parent.go === 'function') { parent.go('modules/quotes.html'); return; }
+  } catch(e){}
+  location.href = 'quotes.html';
+}
+
+function exportXls(){
+  if (!list().length){ toast('商品库是空的'); return; }
+  ExcelExport.products(list(), Brand.get());
+  dlgXls.close(); toast('Excel 已下载');
+}
+
+render();
+</script>
+</body>
+</html>

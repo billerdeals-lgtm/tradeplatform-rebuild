@@ -54,6 +54,7 @@
     <div class="navitem" data-view="modules/templates.html"><span class="em">🗨</span>话术库</div>
     <div class="navitem" data-view="modules/maillog.html"><span class="em">📧</span>发送记录</div>
     <div class="navitem" data-view="modules/quotes.html"><span class="em">💰</span>报价管理</div>
+    <div class="navitem" data-view="modules/products.html"><span class="em">📦</span>商品库</div>
     <div class="navitem" data-view="modules/calculator.html"><span class="em">🧮</span>利润计算器</div>
     <div class="navitem" data-view="modules/docs.html"><span class="em">📄</span>单证中心</div>
     <div class="navitem" data-view="modules/review.html"><span class="em">📊</span>复盘增长</div>
@@ -91,6 +92,7 @@
       <button class="ft-btn-primary" onclick="go('modules/leads.html')">＋ 录入线索</button>
       <button class="ft-btn-primary" onclick="go('modules/quotes.html')">💰 新建报价</button>
       <button class="ft-btn-primary" onclick="go('modules/calculator.html')">🧮 利润计算器</button>
+      <button class="ft-btn-primary" onclick="go('modules/products.html')">📦 商品库</button>
       <button class="ft-btn-primary" onclick="go('modules/templates.html')">翻开话术库</button>
       <button class="ft-btn-ai" onclick="dlgSettings.showModal()">⚙ AI 设置</button>
     </div>
@@ -167,7 +169,7 @@ function backupAll(){
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type:'application/json'}));
   a.download = 'ftcompass_backup_' + new Date().toISOString().slice(0,10) + '.json';
   a.click();
-  toast('备份已下载（含线索/待办/触达/报价/单证/复盘/竞品全部数据）');
+  toast('备份已下载（含线索/待办/触达/报价/单证/商品/复盘/竞品全部数据）');
 }
 function restoreAll(input){
   var f = input.files && input.files[0];

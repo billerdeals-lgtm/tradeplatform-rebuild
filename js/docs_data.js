@@ -1,10 +1,11 @@
 /* ============================================================
-   FT Compass · 单证中心数据 v1.1
+   FT Compass · 单证中心数据 v1.2
    20 张出口常用单证（行业标准格式，独立编写）。
    结构化 schema：共享字段一次填写全单联动，通用渲染器出单。
    共享字段：no/date/seller/sellerAddr/buyer/buyerAddr/product/
    qty/unit/price/currency/total/payment/portFrom/portTo/delivery
    v1.1：单据链（报价→PI→合同→CI→装箱单→出货通知）链式派生
+   v1.2：纸面模板/横竖版见 js/paper.js
    ============================================================ */
 var SHARED_FIELDS = [
   {k:'no', label:'单号 No.'},
@@ -214,3 +215,5 @@ var DOC_NO_PREFIX = {
   quotation: 'QT', pi: 'PI', sc: 'SC', oc: 'OC',
   ci: 'CI', pl: 'PL', sa: 'SA', si: 'SI'
 };
+
+/* 纸面模板/横竖版见 js/paper.js（Paper.PAPER_STYLES / Paper.PAPER_ORIENTS） */

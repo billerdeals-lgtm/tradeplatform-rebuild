@@ -33,6 +33,7 @@
     + '.br-dr{margin-bottom:12px}'
     + '.br-dr label{display:block;font-size:12px;color:#52606d;margin-bottom:4px}'
     + '.br-dr input,.br-dr textarea{width:100%;box-sizing:border-box;padding:8px 10px;border:1px solid #cfc9b8;border-radius:6px;font-size:14px;font-family:inherit}'
+    + '.br-dr input[type=color]{padding:2px;cursor:pointer}'
     + '.br-f{display:flex;gap:12px;justify-content:flex-end;padding:0 16px 16px}'
     + '.br-top{display:flex;align-items:center;gap:10px;margin-bottom:8px;border-bottom:1px dashed #cfc9b8;padding-bottom:6px}'
     + '.br-top-logo{max-height:44px;max-width:170px;object-fit:contain}'
@@ -41,7 +42,8 @@
     + '.br-stamp{position:absolute;object-fit:contain}'
     + '.br-stamp-sign{left:36px;bottom:18px;max-height:54px;max-width:150px;transform:rotate(-6deg)}'
     + '.br-stamp-seal{left:120px;bottom:6px;width:88px;height:88px;transform:rotate(-10deg);opacity:.9}'
-    + '.paper .sig{position:relative;display:flex;justify-content:space-between;align-items:flex-end;min-height:24px}';
+    + '.paper .sig{position:relative;display:flex;justify-content:space-between;align-items:flex-end;min-height:24px}'
+    + '@media print{.paper.orient-landscape{width:297mm;height:210mm}.paper.orient-portrait{width:210mm;min-height:297mm}}';
   if (!document.getElementById('brand-style')) {
     var st = document.createElement('style');
     st.id = 'brand-style';
@@ -62,6 +64,7 @@
     addr: '',
     taxNo: '',
     currency: 'USD',
+    brandColor: '#0b6e4f',
     bankAcctName: '',
     bankName: '',
     bankAcct: '',
@@ -169,6 +172,10 @@
         + Brand._slotHTML('seal', '公司公章', '建议透明 PNG；会带到编辑器签章区。', 400, true)
         + '</div>'
         + '<div class="br-two">' + fhtml + '</div>'
+        + '<div class="br-dr"><label>品牌主色（表头/标题联动）</label>'
+        + '<div style="display:flex;gap:8px;align-items:center">'
+        + '<input type="color" data-bk="brandColor" value="' + (Brand.get().brandColor || '#0b6e4f') + '" style="width:48px;height:34px;padding:2px;border:1px solid #cfc9b8;border-radius:6px;background:#fff;cursor:pointer">'
+        + '<span style="font-size:12px;color:#52606d">用于「品牌展示」模板表头与 Excel 主题色</span></div></div>'
         + '<div class="br-dr"><label>公司地址</label><textarea data-bk="addr" rows="2"></textarea></div>'
         + '<div class="br-dr"><label>银行地址 / 付款备注</label><textarea data-bk="bankAddr" rows="2"></textarea></div>'
         + '</div>'
