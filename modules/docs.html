@@ -38,6 +38,39 @@
   .paper .notes { font-size:13px; line-height:1.9; margin-top:10px; }
   .paper .sig { display:flex; justify-content:space-between; margin-top:48px; font-size:13px; }
   .aicheck { margin-top:var(--sp-3); font-size:13px; line-height:1.7; }
+  /* ---- 品牌：纸面顶部 / 签章区 ---- */
+  .br-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+  .br-top-logo { max-height:46px; max-width:180px; object-fit:contain; }
+  .br-top-name { font-size:13px; font-weight:600; color:var(--text-2); letter-spacing:.04em; }
+  .br-stamps { position:relative; height:96px; min-width:200px; margin-bottom:4px; }
+  .sig-sell { position:relative; }
+  .br-stamp { position:absolute; object-fit:contain; pointer-events:none; }
+  .br-stamp-sign { left:4px; bottom:14px; max-height:64px; max-width:150px; transform:rotate(-4deg); }
+  .br-stamp-seal { left:70px; bottom:2px; width:92px; height:92px; transform:rotate(-8deg); opacity:.92; }
+  .br-top-in-paper { border-bottom:1px dashed var(--border-strong); padding-bottom:6px; }
+  /* ---- 品牌资料弹窗 ---- */
+  dialog.br-dlg { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:640px; width:94%; }
+  dialog.br-dlg::backdrop { background:rgba(31,41,51,.45); }
+  .br-h { background:var(--brand-900); color:#fff; padding:var(--sp-4); display:flex; justify-content:space-between; gap:var(--sp-3); }
+  .br-h h3 { margin:0 0 4px; font-size:16px; }
+  .br-h p { margin:0; font-size:12px; opacity:.75; line-height:1.5; }
+  .br-h .iconbtn { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:4px 10px; cursor:pointer; height:fit-content; }
+  .br-b { padding:var(--sp-4); max-height:64vh; overflow:auto; }
+  .br-shots { display:grid; grid-template-columns:1fr 1fr 1fr; gap:var(--sp-3); margin-bottom:var(--sp-4); }
+  .br-slot { display:flex; flex-direction:column; gap:6px; }
+  .br-view { height:96px; border:1.5px dashed var(--border-strong); border-radius:var(--r-sm); background:var(--bg-inset); display:flex; align-items:center; justify-content:center; overflow:hidden; }
+  .br-view img { max-width:92%; max-height:88px; object-fit:contain; }
+  .br-view span { font-size:12px; color:var(--text-3); }
+  .br-pick { padding:7px 0; border:1px solid var(--border-strong); border-radius:var(--r-sm); background:var(--bg-card); cursor:pointer; font-size:13px; }
+  .br-pick:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  .br-hint { font-size:11px; color:var(--text-3); line-height:1.45; }
+  .br-name { font-size:11px; color:var(--ok); }
+  .br-two { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+  .br-dr { margin-bottom:var(--sp-3); }
+  .br-dr label { display:block; font-size:12px; color:var(--text-2); margin-bottom:4px; }
+  .br-dr input, .br-dr textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  .br-dr input:focus, .br-dr textarea:focus { outline:none; border-color:var(--brand-600, var(--brand-700)); }
+  .br-f { display:flex; gap:var(--sp-3); justify-content:flex-end; padding:0 var(--sp-4) var(--sp-4); }
   @media print {
     body * { visibility:hidden; }
     .paper, .paper * { visibility:visible; }
@@ -55,6 +88,7 @@
 <header>
   <img src="../assets/logo.svg" alt="">
   <h1>单证中心 <span style="font-size:12px;opacity:.7;font-weight:400">20 张出口单证 · 共享字段一次填写全单联动 · AI 单单一致校验</span></h1>
+  <button onclick="openBrand()">🏷 品牌资料</button>
   <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
 </header>
 <main>
@@ -68,6 +102,7 @@
         <button class="iconbtn" onclick="saveDoc()">💾 保存到单证夹</button>
         <button class="iconbtn" onclick="dlgSaved.showModal()">📂 单证夹</button>
         <button class="iconbtn" onclick="importLead()">👤 从线索带入</button>
+        <button class="iconbtn" onclick="applyBrand()" title="用品牌资料填充卖方/地址/银行/币种">🏷 带入品牌</button>
         <button class="iconbtn" onclick="clearForm()">清空</button>
       </div>
       <div class="btnrow">
@@ -117,9 +152,13 @@
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
+<!-- 品牌资料（Logo / 电子签名 / 公司公章 + 工商银行信息） -->
+<div id="brandHost"></div>
+
 <script src="../agnes-ai.js"></script>
 <script src="../js/datastore.js"></script>
 <script src="../js/docs_data.js"></script>
+<script src="../js/brand.js"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -187,16 +226,53 @@ function renderPaper(){
       + '<tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></table>';
   }
   var notes = (d.notes||[]).map(function(n){ return '<div>'+rep(n)+'</div>'; }).join('');
+  // 品牌：顶部 Logo + 卖方信息增强（全称/地址/税号）
+  var brandHdr = Brand.headerHTML();
+  if (brandHdr) brandHdr = '<div class="br-top-in-paper">'+brandHdr+'</div>';
+  var sellerBlock = Brand.sellerHTML(values.seller, values.sellerAddr);
+  if (!sellerBlock) sellerBlock = fill('seller')+'<br>'+fill('sellerAddr');
+  // 银行信息：PI 等有 bank 字段时，未手填则用品牌银行自动带出
+  var bankBlock = '';
+  if ((current.rows||[]).some(function(r){return r[0]==='bank'})){
+    var bankVal = values.bank || Brand.bankText();
+    if (bankVal) bankBlock = '<div class="notes"><b>Bank Info 收款信息:</b><br>'+esc(bankVal)+'</div>';
+  }
+  // 签章区：电子签名 + 公司公章 叠在 Seller 签名线上
+  var stamp = Brand.signHTML();
   $('paper').innerHTML =
-    '<h2>'+esc(d.title.split(' / ')[1]||d.title)+'</h2>'
+    brandHdr
+    + '<h2>'+esc(d.title.split(' / ')[1]||d.title)+'</h2>'
     + '<div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:10px">'+esc(d.title.split(' / ')[0])+'</div>'
     + '<div class="no">No. '+fill('no')+'<br>Date: '+fill('date')+'</div>'
-    + '<div class="party"><div><b>Seller 卖方</b><br>'+fill('seller')+'<br>'+fill('sellerAddr')+'</div>'
+    + '<div class="party"><div><b>Seller 卖方</b><br>'+sellerBlock+'</div>'
     + '<div style="text-align:right"><b>Buyer 买方</b><br>'+fill('buyer')+'<br>'+fill('buyerAddr')+'</div></div>'
     + rowsHtml
     + '<div class="notes">'+notes+'</div>'
+    + bankBlock
     + (values.remark ? '<div class="notes"><b>Remarks:</b> '+esc(values.remark)+'</div>' : '')
-    + '<div class="sig"><div>Seller: ______________</div><div>Buyer: ______________</div></div>';
+    + '<div class="sig"><div class="sig-sell">'+stamp+'Seller: ______________</div><div>Buyer: ______________</div></div>';
+}
+
+/* ---------- 品牌资料：打开 / 带入 ---------- */
+function openBrand(){
+  Brand.open('dlgBrand', function(){ renderPaper(); });
+}
+function applyBrand(){
+  var b = Brand.get();
+  var n = 0;
+  function fillIf(k, v){ if (v && !values[k]){ values[k] = v; n++; } }
+  fillIf('seller', b.sellerFull);
+  fillIf('sellerAddr', b.addr);
+  fillIf('currency', b.currency);
+  var bank = Brand.bankText();
+  fillIf('bank', bank);
+  if (b.taxNo && (!values.sellerAddr || values.sellerAddr.indexOf(b.taxNo) < 0)) {
+    var tag = 'Tax/VAT: ' + b.taxNo;
+    values.sellerAddr = values.sellerAddr ? (values.sellerAddr + ' / ' + tag) : tag;
+    n++;
+  }
+  renderForm(); renderPaper();
+  toast(n ? ('已带入品牌资料 '+n+' 项') : '品牌字段已存在或品牌资料为空');
 }
 
 /* ---------- AI 1：单单一致校验（矩阵落点 doc.aiCheck） ---------- */
@@ -297,6 +373,8 @@ function doImport(){
 
 /* ---------- 初始化 ---------- */
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
+$('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
+Brand.initDialog('dlgBrand', function(){ renderPaper(); });
 renderList(); renderForm(); renderPaper();
 </script>
 </body>

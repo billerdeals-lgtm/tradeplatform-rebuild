@@ -74,6 +74,15 @@
   .paper th { background:#f5f3ee; font-size:12px; }
   .paper .notes { font-size:13px; line-height:1.8; margin-top:10px; }
   .paper .sig { display:flex; justify-content:space-between; margin-top:40px; font-size:13px; }
+  /* 品牌：顶部 Logo / 签章区 */
+  .br-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; border-bottom:1px dashed var(--border-strong); padding-bottom:6px; }
+  .br-top-logo { max-height:44px; max-width:170px; object-fit:contain; }
+  .br-top-name { font-size:13px; font-weight:600; color:var(--text-2); }
+  .br-stamps { position:relative; height:92px; min-width:190px; }
+  .sig-sell { position:relative; }
+  .br-stamp { position:absolute; object-fit:contain; pointer-events:none; }
+  .br-stamp-sign { left:2px; bottom:16px; max-height:60px; max-width:140px; transform:rotate(-4deg); }
+  .br-stamp-seal { left:66px; bottom:4px; width:88px; height:88px; transform:rotate(-8deg); opacity:.92; }
   @media print {
     body * { visibility:hidden; }
     .paper, .paper * { visibility:visible; }
@@ -117,6 +126,7 @@
       <h3 id="editorTitle">
         新建报价
         <span class="preview-toggle">
+          <button class="btn-sm btn-ghost" onclick="Brand.open('dlgBrand', function(){ if($('paper').style.display==='block') renderPaper(); })" title="Logo/签名/公章，报价单自动盖章">🏷 品牌</button>
           <button class="btn-sm btn-ghost" id="btnPreview" onclick="togglePreview()">👁 预览</button>
         </span>
       </h3>
@@ -185,8 +195,11 @@
   </div>
 </main>
 
+<div id="brandHost"></div>
+
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
+<script src="../js/brand.js"></script>
 <script>
 'use strict';
 
@@ -463,15 +476,26 @@ function renderPaper() {
   if (v('q_validity')) noteLines.push('Validity: ' + v('q_validity'));
   if (v('q_note')) noteLines.push(v('q_note'));
 
-  $('paper').innerHTML = '<h2>QUOTATION</h2>'
+  var brandHdr = Brand.headerHTML();
+  var b = Brand.get();
+  var hasBrand = !!(b.sellerFull || b.logo || b.brandName || b.sign || b.seal);
+  var fromBlock = hasBrand
+    ? '<b>From:</b><br>' + Brand.sellerHTML('', b.addr)
+    : '<b>From:</b><br>' + esc($('q_portFrom').value ? 'Seller' : '—');
+  if (hasBrand && !b.sellerFull && !b.addr && !b.taxNo) {
+    fromBlock = '<b>From:</b><br>' + esc($('q_portFrom').value ? 'Seller' : '—');
+  }
+
+  $('paper').innerHTML = brandHdr
+    + '<h2>QUOTATION</h2>'
     + '<div class="no">No. ' + esc(v('q_no')) + '<br>Date: ' + esc(v('q_date')) + '</div>'
     + '<div class="parties"><div><b>To:</b><br>' + esc(lead ? lead.name : '—') + (lead && lead.country ? '<br>' + esc(lead.country) : '') + '</div>'
-    + '<div style="text-align:right"><b>From:</b><br>' + esc($('q_portFrom').value ? 'Seller' : '—') + '</div></div>'
+    + '<div style="text-align:right">' + fromBlock + '</div></div>'
     + '<table><thead><tr><th>#</th><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit Price</th><th style="text-align:right">Amount</th></tr></thead>'
     + '<tbody>' + rows + '</tbody>'
     + '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">TOTAL</td><td style="text-align:right;font-weight:600">' + sym + total.toFixed(2) + ' ' + esc(cur) + '</td></tr></tfoot></table>'
     + '<div class="notes">' + noteLines.map(function(l){ return esc(l); }).join('<br>') + '</div>'
-    + '<div class="sig"><div>_________________<br>Seller</div><div>_________________<br>Buyer</div></div>';
+    + '<div class="sig"><div class="sig-sell">' + Brand.signHTML() + '_________________<br>Seller</div><div>_________________<br>Buyer</div></div>';
 }
 function printQuote() {
   renderPaper();
@@ -537,6 +561,8 @@ async function aiAnalyzeQuote() {
   }
 }
 
+$('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
+Brand.initDialog('dlgBrand', function(){ if ($('paper').style.display === 'block') renderPaper(); });
 init();
 </script>
 </body>
