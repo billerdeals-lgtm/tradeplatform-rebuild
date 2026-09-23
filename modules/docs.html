@@ -47,17 +47,17 @@
   .paper th, .paper td { border:1px solid #cfc9b8; padding:7px 10px; text-align:left; }
   .paper th { background:var(--bg-inset); font-size:12px; }
   .paper .notes { font-size:13px; line-height:1.9; margin-top:10px; }
-  .paper .sig { display:flex; justify-content:space-between; margin-top:48px; font-size:13px; }
+  .paper .sig { display:flex; justify-content:space-between; align-items:flex-end; margin-top:48px; font-size:13px; }
   .aicheck { margin-top:var(--sp-3); font-size:13px; line-height:1.7; }
-  /* ---- 品牌：纸面顶部 / 签章区 ---- */
+  /* ---- 品牌：纸面顶部 / 签章区（绝对定位叠在签名线上，Buyer/Seller 底部对齐） ---- */
   .br-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .br-top-logo { max-height:46px; max-width:180px; object-fit:contain; }
   .br-top-name { font-size:13px; font-weight:600; color:var(--text-2); letter-spacing:.04em; }
-  .br-stamps { position:relative; height:96px; min-width:200px; margin-bottom:4px; }
-  .sig-sell { position:relative; }
-  .br-stamp { position:absolute; object-fit:contain; pointer-events:none; }
-  .br-stamp-sign { left:4px; bottom:14px; max-height:64px; max-width:150px; transform:rotate(-4deg); }
-  .br-stamp-seal { left:70px; bottom:2px; width:92px; height:92px; transform:rotate(-8deg); opacity:.92; }
+  .br-stamps { position:absolute; left:-4px; bottom:-10px; width:230px; height:96px; margin:0; pointer-events:none; z-index:2; }
+  .sig-sell { position:relative; display:inline-block; }
+  .br-stamp { position:absolute; object-fit:contain; }
+  .br-stamp-sign { left:18px; bottom:16px; max-height:56px; max-width:140px; transform:rotate(-6deg); }
+  .br-stamp-seal { left:96px; bottom:4px; width:86px; height:86px; transform:rotate(-10deg); opacity:.9; }
   .br-top-in-paper { border-bottom:1px dashed var(--border-strong); padding-bottom:6px; }
   /* ---- 品牌资料弹窗 ---- */
   dialog.br-dlg { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:640px; width:94%; }
