@@ -50,6 +50,8 @@
   .paper { position:relative; }
   .paper .sig { position:relative; display:flex; justify-content:space-between; align-items:flex-end; margin-top:48px; font-size:13px; min-height:24px; }
   .aicheck { margin-top:var(--sp-3); font-size:13px; line-height:1.7; }
+  .paper-tools { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .paper-tools select { padding:5px 8px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:12px; background:var(--bg-card); }
   /* ---- 品牌：纸面顶部 / 签章（.br-stamps 是 .sig 的绝对子元素，不参与 flex，不撑高度） ---- */
   .br-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
   .br-top-logo { max-height:46px; max-width:180px; object-fit:contain; }
@@ -114,9 +116,12 @@
         <button class="iconbtn" onclick="saveDoc()">💾 保存到单证夹</button>
         <button class="iconbtn" onclick="dlgSaved.showModal()">📂 单证夹</button>
         <button class="iconbtn" onclick="importLead()">👤 从线索带入</button>
+        <button class="iconbtn" onclick="openPicker()" title="从商品库填入品名/数量/单价/HS">📦 商品库</button>
         <button class="iconbtn" onclick="applyBrand()" title="用品牌资料填充卖方/地址/银行/币种">🏷 带入品牌</button>
+        <button class="iconbtn" onclick="exportDocXls()" title="导出客户版 Excel">⬇ Excel</button>
         <button class="iconbtn" onclick="clearForm()">清空</button>
       </div>
+      <div class="btnrow paper-tools" id="paperTools"></div>
       <div class="btnrow">
         <button class="ft-btn-ai" onclick="aiCheck()">🧭 AI 单单一致校验</button>
         <button class="ft-btn-ai" onclick="aiPolish()">✨ AI 润色英文备注</button>
@@ -164,6 +169,12 @@
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
+<!-- 从商品库选 -->
+<dialog id="dlgPicker">
+  <div class="dlg-h"><span>📦 从商品库带入</span><button class="iconbtn" onclick="dlgPicker.close()">✕</button></div>
+  <div class="dlg-b" id="pickerList" style="max-height:60vh;overflow:auto"></div>
+</dialog>
+
 <!-- 品牌资料（Logo / 电子签名 / 公司公章 + 工商银行信息） -->
 <div id="brandHost"></div>
 
@@ -171,6 +182,8 @@
 <script src="../js/datastore.js"></script>
 <script src="../js/docs_data.js"></script>
 <script src="../js/brand.js?v=3"></script>
+<script src="../js/excel.js?v=1"></script>
+<script src="../js/paper.js?v=1"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -373,6 +386,69 @@ function renderPaper(){
     + bankBlock
     + (values.remark ? '<div class="notes"><b>Remarks:</b> '+esc(values.remark)+'</div>' : '')
     + '<div class="sig">'+stamp+'<div>Seller: ______________</div><div>Buyer: ______________</div></div>';
+  Paper.apply($('paper'));
+}
+
+/* ---------- 纸面模板 / 横竖版 ---------- */
+function initPaperTools(){
+  $('paperTools').innerHTML = Paper.toolbarHTML();
+}
+function onPaperStyle(){
+  Paper.setStyle($('paperStyle').value);
+  renderPaper();
+}
+function onPaperOrient(){
+  Paper.setOrient($('paperOrient').value);
+  renderPaper();
+}
+
+/* ---------- 商品库带入 ---------- */
+function openPicker(){
+  var prods = DataStore.list('products');
+  if (!prods.length){
+    alert('商品库是空的。先到「商品库」建档。');
+    return;
+  }
+  $('pickerList').innerHTML = prods.map(function(p){
+    return '<div class="ft-card" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\''+p.id+'\')">'
+      + (p.image?'<img src="'+p.image+'" style="width:44px;height:44px;object-fit:contain;background:var(--bg-inset);border-radius:4px" alt="">':'<span style="font-size:22px">📦</span>')
+      + '<div style="flex:1;min-width:0"><b style="font-size:13px;display:block">'+esc(p.name)+'</b>'
+      + '<span style="font-size:11px;color:var(--text-3)">'
+      + [p.sku, p.spec, p.price?(p.currency||'USD')+' '+p.price:'', p.moq?'MOQ '+p.moq:''].filter(Boolean).map(esc).join(' · ')
+      + '</span></div>'
+      + '<span class="iconbtn">选入</span></div>';
+  }).join('');
+  dlgPicker.showModal();
+}
+function pickProduct(id){
+  var p = DataStore.get('products', id);
+  if (!p) return;
+  values.product = p.name || values.product;
+  if (p.spec && !values.productSpec) { /* 规格并入备注不覆盖 */ }
+  if (p.price && !values.price) values.price = p.price;
+  if (p.unit && !values.unit) values.unit = p.unit;
+  if (p.moq && !values.qty) values.qty = p.moq;
+  if (p.currency && !values.currency) values.currency = p.currency;
+  if (p.hsCode && !values.hsCode) values.hsCode = p.hsCode;
+  if (p.perCtn && !values.ctns && values.qty) {
+    values.ctns = Math.ceil(Number(values.qty) / Number(p.perCtn));
+  }
+  if (p.gw && !values.gw) values.gw = p.gw;
+  if (p.nw && !values.nw) values.nw = p.nw;
+  if (p.cbm && !values.meas) values.meas = p.cbm;
+  if (p.mark && !values.mark) values.mark = p.mark;
+  if (p.spec && !values.remark) values.remark = 'Spec: ' + p.spec;
+  dlgPicker.close();
+  renderForm(); renderPaper();
+  toast('已带入：'+p.name);
+}
+
+/* ---------- Excel 客户版 ---------- */
+function exportDocXls(){
+  if (!values.no && !values.buyer && !values.product){
+    alert('先填单号/买方/品名再导出'); return;
+  }
+  ExcelExport.docClient(current, values, Brand.get());
 }
 
 /* ---------- 品牌资料：打开 / 带入 ---------- */
@@ -501,6 +577,7 @@ function doImport(){
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
 $('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
 Brand.initDialog('dlgBrand', function(){ renderPaper(); });
+initPaperTools();
 renderList(); renderChain(); renderForm(); renderPaper();
 </script>
 </body>

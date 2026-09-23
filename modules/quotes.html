@@ -62,6 +62,7 @@
   .btn-danger { background:#fee2e2; color:#991b1b; }
   .btn-danger:hover { background:#fecaca; }
   .btnrow { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-top:var(--sp-3); align-items:center; }
+  .paper-tools { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
   .ai-out { font-size:13px; line-height:1.7; padding:var(--sp-3); background:var(--bg-inset); border-radius:var(--r-sm); margin-top:var(--sp-3); display:none; white-space:pre-wrap; }
   /* 预览纸 */
   .preview-toggle { margin-left:auto; }
@@ -125,6 +126,7 @@
     <div class="ft-card form-card" id="editor">
       <h3 id="editorTitle">
         新建报价
+        <span class="preview-toggle paper-tools" id="paperTools"></span>
         <span class="preview-toggle">
           <button class="btn-sm btn-ghost" onclick="Brand.open('dlgBrand', function(){ if($('paper').style.display==='block') renderPaper(); })" title="Logo/签名/公章，报价单自动盖章">🏷 品牌</button>
           <button class="btn-sm btn-ghost" id="btnPreview" onclick="togglePreview()">👁 预览</button>
@@ -147,23 +149,25 @@
 
       <!-- 报价明细 -->
       <div style="margin-top:var(--sp-3)">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap">
           <b style="font-size:13.5px">报价明细</b>
           <button class="btn-sm btn-ghost" onclick="addItem()">＋ 添加行</button>
+          <button class="btn-sm btn-ghost" onclick="openPicker()" title="从商品库选择，自动带规格/单价">📦 从商品库</button>
         </div>
         <table class="items-table" id="itemsTable">
           <thead><tr>
-            <th style="width:30%">产品名称</th>
-            <th style="width:18%">规格</th>
-            <th style="width:10%">数量</th>
-            <th style="width:8%">单位</th>
-            <th style="width:14%">单价</th>
-            <th style="width:14%">小计</th>
-            <th style="width:6%"></th>
+            <th style="width:26%">产品名称</th>
+            <th style="width:11%">SKU</th>
+            <th style="width:17%">规格</th>
+            <th style="width:9%">数量</th>
+            <th style="width:7%">单位</th>
+            <th style="width:13%">单价</th>
+            <th style="width:12%">小计</th>
+            <th style="width:5%"></th>
           </tr></thead>
           <tbody id="itemsBody"></tbody>
           <tfoot><tr class="total-row">
-            <td colspan="5" style="text-align:right">合计 Total</td>
+            <td colspan="6" style="text-align:right">合计 Total</td>
             <td id="totalCell" class="num">$0.00</td>
             <td></td>
           </tr></tfoot>
@@ -174,6 +178,8 @@
         <button class="btn-sm btn-primary" onclick="saveQuote()">💾 保存</button>
         <button class="btn-sm btn-primary" onclick="saveAndPreview()">💾 保存并预览</button>
         <button class="btn-sm btn-ghost" onclick="printQuote()">🖨 打印</button>
+        <button class="btn-sm btn-ghost" onclick="exportClientXls()" title="客户可改数量的单 sheet">⬇ Excel 客户版</button>
+        <button class="btn-sm btn-ghost" onclick="exportDataXls()" title="多 sheet：报价头/明细/商品/客户">⬇ Excel 数据版</button>
         <button class="btn-sm btn-danger" id="btnDel" onclick="deleteQuote()" style="display:none">🗑 删除</button>
       </div>
       <div class="status-bar">
@@ -195,11 +201,22 @@
   </div>
 </main>
 
+<!-- 从商品库选 -->
+<dialog id="dlgPicker" style="border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);padding:0;max-width:560px;width:94%">
+  <div style="background:var(--bg-inset);padding:var(--sp-3) var(--sp-4);font-weight:600;display:flex;justify-content:space-between;align-items:center">
+    <span>📦 从商品库选入明细</span>
+    <button class="iconbtn" onclick="dlgPicker.close()">✕</button>
+  </div>
+  <div style="padding:var(--sp-4);max-height:60vh;overflow:auto" id="pickerList"></div>
+</dialog>
+
 <div id="brandHost"></div>
 
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
 <script src="../js/brand.js?v=3"></script>
+<script src="../js/excel.js?v=1"></script>
+<script src="../js/paper.js?v=1"></script>
 <script>
 'use strict';
 
@@ -241,6 +258,7 @@ function addItem() {
   var tbody = $('itemsBody');
   var tr = document.createElement('tr');
   tr.innerHTML = '<td><input class="it-name" placeholder="LED Panel Light 60x60"></td>'
+    + '<td><input class="it-sku" placeholder="SKU"></td>'
     + '<td><input class="it-spec" placeholder="600x600mm, 40W"></td>'
     + '<td><input class="it-qty num" type="number" value="100" min="1" oninput="calcRow(this)"></td>'
     + '<td><input class="it-unit" value="pcs" style="width:50px"></td>'
@@ -283,6 +301,7 @@ function getItems() {
     if (!name) return;
     items.push({
       name: name,
+      sku: tr.querySelector('.it-sku') ? tr.querySelector('.it-sku').value.trim() : '',
       spec: tr.querySelector('.it-spec').value.trim(),
       qty: parseFloat(tr.querySelector('.it-qty').value) || 0,
       unit: tr.querySelector('.it-unit').value.trim() || 'pcs',
@@ -299,12 +318,114 @@ function setItems(items) {
     addItem();
     var tr = $('itemsBody').lastElementChild;
     tr.querySelector('.it-name').value = it.name || '';
+    if (tr.querySelector('.it-sku') && it.sku) tr.querySelector('.it-sku').value = it.sku;
     tr.querySelector('.it-spec').value = it.spec || '';
     tr.querySelector('.it-qty').value = it.qty || 0;
     tr.querySelector('.it-unit').value = it.unit || 'pcs';
     tr.querySelector('.it-price').value = it.unitPrice || 0;
     calcRow(tr.querySelector('.it-qty'));
   });
+}
+
+/* ========== 商品库选择器 ========== */
+function openPicker() {
+  var prods = DataStore.list('products');
+  if (!prods.length) {
+    alert('商品库是空的。先到「商品库」建档，或点「＋ 添加行」手工填。');
+    return;
+  }
+  $('pickerList').innerHTML = prods.map(function(p) {
+    return '<div class="ft-card" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\'' + p.id + '\')">'
+      + (p.image ? '<img src="' + p.image + '" style="width:44px;height:44px;object-fit:contain;background:var(--bg-inset);border-radius:4px" alt="">' : '<span style="font-size:22px">📦</span>')
+      + '<div style="flex:1;min-width:0"><b style="font-size:13px;display:block">' + esc(p.name) + '</b>'
+      + '<span style="font-size:11px;color:var(--text-3)">' + esc(p.sku || '') + (p.spec ? ' · ' + esc(p.spec) : '') + (p.price ? ' · ' + esc(p.currency || 'USD') + ' ' + esc(p.price) : '') + '</span></div>'
+      + '<span class="btn-sm btn-ghost" style="border:1px solid var(--border);border-radius:4px;padding:4px 10px">选入</span>'
+      + '</div>';
+  }).join('');
+  dlgPicker.showModal();
+}
+function pickProduct(id) {
+  var p = DataStore.get('products', id);
+  if (!p) return;
+  // 找第一个空行，没有则新增
+  var target = null;
+  $('itemsBody').querySelectorAll('tr').forEach(function(tr) {
+    if (!target && !tr.querySelector('.it-name').value.trim()) target = tr;
+  });
+  if (!target) { addItem(); target = $('itemsBody').lastElementChild; }
+  target.querySelector('.it-name').value = p.name || '';
+  if (target.querySelector('.it-sku')) target.querySelector('.it-sku').value = p.sku || '';
+  target.querySelector('.it-spec').value = p.spec || '';
+  target.querySelector('.it-unit').value = p.unit || 'pcs';
+  target.querySelector('.it-price').value = p.price || 0;
+  if (p.moq && !(parseFloat(target.querySelector('.it-qty').value) > 0)) target.querySelector('.it-qty').value = p.moq;
+  calcRow(target.querySelector('.it-qty'));
+  dlgPicker.close();
+}
+/* 从商品库页面「→ 报价」跳转带入 */
+function consumePickedProduct() {
+  try {
+    var raw = sessionStorage.getItem('ftc_pick_product');
+    if (!raw) return;
+    sessionStorage.removeItem('ftc_pick_product');
+    var p = JSON.parse(raw);
+    if (p && p.name) pickProduct(p.id || '');
+    // pickProduct 需要 id；若无 id 直接填一行
+    if (p && !DataStore.get('products', p.id || '')) {
+      var tr = $('itemsBody').querySelector('tr');
+      if (tr) {
+        tr.querySelector('.it-name').value = p.name || '';
+        tr.querySelector('.it-spec').value = p.spec || '';
+        tr.querySelector('.it-unit').value = p.unit || 'pcs';
+        tr.querySelector('.it-price').value = p.price || 0;
+        calcRow(tr.querySelector('.it-qty'));
+      }
+    }
+  } catch (e) {}
+}
+
+/* ========== 纸面模板 / 横竖版 ========== */
+function initPaperTools() {
+  $('paperTools').innerHTML = Paper.toolbarHTML();
+}
+function onPaperStyle() {
+  Paper.setStyle($('paperStyle').value);
+  if ($('paper').style.display === 'block') renderPaper();
+}
+function onPaperOrient() {
+  Paper.setOrient($('paperOrient').value);
+  if ($('paper').style.display === 'block') renderPaper();
+}
+
+/* ========== Excel 导出 ========== */
+function currentQuoteData() {
+  var items = getItems();
+  var total = items.reduce(function(s, it){ return s + it.amount; }, 0);
+  var lid = v('q_lead');
+  var lead = lid ? DataStore.get('leads', lid) : null;
+  return {
+    no: v('q_no'), date: v('q_date'),
+    leadId: lid, leadName: lead ? lead.name : (v('q_lead') || ''),
+    leadCountry: lead ? lead.country : '',
+    leadEmail: lead ? lead.email : '',
+    leadWa: lead ? lead.whatsapp || lead.wa || '' : '',
+    leadSite: lead ? lead.website || lead.site || '' : '',
+    currency: v('q_currency'), items: items, total: total,
+    payment: v('q_payment'), validity: v('q_validity'),
+    portFrom: v('q_portFrom'), portTo: v('q_portTo'),
+    delivery: v('q_delivery'), note: v('q_note'),
+    status: v('q_status')
+  };
+}
+function exportClientXls() {
+  var q = currentQuoteData();
+  if (!q.items.length) { alert('先填至少一行明细'); return; }
+  ExcelExport.quoteClient(q, Brand.get());
+}
+function exportDataXls() {
+  var q = currentQuoteData();
+  if (!q.items.length) { alert('先填至少一行明细'); return; }
+  ExcelExport.quoteData(q, Brand.get(), DataStore.list('products'));
 }
 
 /* ========== 列表渲染 ========== */
@@ -486,7 +607,8 @@ function renderPaper() {
     fromBlock = '<b>From:</b><br>' + esc($('q_portFrom').value ? 'Seller' : '—');
   }
 
-  $('paper').innerHTML = brandHdr
+  var el = $('paper');
+  el.innerHTML = brandHdr
     + '<h2>QUOTATION</h2>'
     + '<div class="no">No. ' + esc(v('q_no')) + '<br>Date: ' + esc(v('q_date')) + '</div>'
     + '<div class="parties"><div><b>To:</b><br>' + esc(lead ? lead.name : '—') + (lead && lead.country ? '<br>' + esc(lead.country) : '') + '</div>'
@@ -496,6 +618,7 @@ function renderPaper() {
     + '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">TOTAL</td><td style="text-align:right;font-weight:600">' + sym + total.toFixed(2) + ' ' + esc(cur) + '</td></tr></tfoot></table>'
     + '<div class="notes">' + noteLines.map(function(l){ return esc(l); }).join('<br>') + '</div>'
     + '<div class="sig">' + Brand.signHTML() + '<div>_________________<br>Seller</div><div>_________________<br>Buyer</div></div>';
+  Paper.apply(el);
 }
 function printQuote() {
   renderPaper();
@@ -563,7 +686,9 @@ async function aiAnalyzeQuote() {
 
 $('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
 Brand.initDialog('dlgBrand', function(){ if ($('paper').style.display === 'block') renderPaper(); });
+initPaperTools();
 init();
+consumePickedProduct();
 </script>
 </body>
 </html>
