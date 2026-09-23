@@ -73,16 +73,16 @@
   .paper th, .paper td { border:1px solid #cfc9b8; padding:6px 10px; }
   .paper th { background:#f5f3ee; font-size:12px; }
   .paper .notes { font-size:13px; line-height:1.8; margin-top:10px; }
-  .paper .sig { display:flex; justify-content:space-between; align-items:flex-end; margin-top:40px; font-size:13px; }
-  /* 品牌：顶部 Logo / 签章区（绝对定位叠线，Buyer/Seller 对齐） */
+  .paper { position:relative; }
+  .paper .sig { position:relative; display:flex; justify-content:space-between; align-items:flex-end; margin-top:40px; font-size:13px; min-height:24px; }
+  /* 品牌：章绝对定位于 .sig，不进 flex 流 */
   .br-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; border-bottom:1px dashed var(--border-strong); padding-bottom:6px; }
   .br-top-logo { max-height:44px; max-width:170px; object-fit:contain; }
   .br-top-name { font-size:13px; font-weight:600; color:var(--text-2); }
-  .br-stamps { position:absolute; left:-4px; bottom:-10px; width:230px; height:96px; margin:0; pointer-events:none; z-index:2; }
+  .br-stamps { position:absolute; left:0; bottom:0; width:260px; height:100px; margin:0; padding:0; pointer-events:none; z-index:2; }
   .br-stamp { position:absolute; object-fit:contain; }
-  .br-stamp-sign { left:18px; bottom:16px; max-height:56px; max-width:140px; transform:rotate(-6deg); }
-  .br-stamp-seal { left:96px; bottom:4px; width:86px; height:86px; transform:rotate(-10deg); opacity:.9; }
-  .sig-sell { position:relative; display:inline-block; }
+  .br-stamp-sign { left:36px; bottom:18px; max-height:54px; max-width:150px; transform:rotate(-6deg); }
+  .br-stamp-seal { left:120px; bottom:6px; width:88px; height:88px; transform:rotate(-10deg); opacity:.9; }
   @media print {
     body * { visibility:hidden; }
     .paper, .paper * { visibility:visible; }
@@ -199,7 +199,7 @@
 
 <script src="../js/datastore.js"></script>
 <script src="../agnes-ai.js"></script>
-<script src="../js/brand.js"></script>
+<script src="../js/brand.js?v=3"></script>
 <script>
 'use strict';
 
@@ -495,7 +495,7 @@ function renderPaper() {
     + '<tbody>' + rows + '</tbody>'
     + '<tfoot><tr><td colspan="4" style="text-align:right;font-weight:600">TOTAL</td><td style="text-align:right;font-weight:600">' + sym + total.toFixed(2) + ' ' + esc(cur) + '</td></tr></tfoot></table>'
     + '<div class="notes">' + noteLines.map(function(l){ return esc(l); }).join('<br>') + '</div>'
-    + '<div class="sig"><div class="sig-sell">' + Brand.signHTML() + '_________________<br>Seller</div><div>_________________<br>Buyer</div></div>';
+    + '<div class="sig">' + Brand.signHTML() + '<div>_________________<br>Seller</div><div>_________________<br>Buyer</div></div>';
 }
 function printQuote() {
   renderPaper();
