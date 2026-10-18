@@ -11,7 +11,7 @@
  * ⚙️ 配置说明（三要素，均有默认值，可在设置面板里改）：
  *   - AGNES_KEY：API 密钥（已按用户要求直接内联为默认值）
  *   - AGNES_BASE：接口地址（默认占位，首次使用前请在设置里确认！）
- *   - AGNES_MODEL：模型名（默认 agnes-2.5-flash，可在设置里改）
+ *   - AGNES_MODEL：模型名（默认 agnes-3.0-flash，可在设置里改）
  * ============================================================ */
 
 (function (global) {
@@ -23,8 +23,8 @@
     base: 'https://apihub.agnes-ai.com/v1',
     // API 密钥（预填，用户可在设置面板替换为其它服务商）
     key: 'sk-UdVNk3Hb7IQ224xvYPH2swglK1XfNbLdL6Ua14c9fCh9OgoM',
-    // 模型名：默认 agnes 2.5 flash，可在面板改为其它模型
-    model: 'agnes-2.5-flash',
+    // 模型名：默认 agnes 3.0 flash，可在面板改为其它模型
+    model: 'agnes-3.0-flash',
     // 每日调用上限（防失控烧钱，达到后弹提示）
     dailyLimit: 100
   };
@@ -306,7 +306,7 @@
       + '<div style="margin-bottom:10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534">✅ 已预填 Agnes AI 配置，开箱即用。如需切换其它 OpenAI 兼容服务，修改下方内容并保存即可。</div>'
       + '<label>接口地址（/v1 结尾）</label><input id="ag_base" value="' + c.base + '" placeholder="https://你的网关/v1" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">API 密钥</label><input id="ag_key" value="' + c.key + '" placeholder="sk-..." type="password" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
-      + '<label style="display:block;margin-top:8px">模型名</label><input id="ag_model" value="' + c.model + '" placeholder="agnes-2.5-flash" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
+      + '<label style="display:block;margin-top:8px">模型名</label><input id="ag_model" value="' + c.model + '" placeholder="agnes-3.0-flash" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">每日上限：<input id="ag_limit" type="number" value="' + c.dailyLimit + '" style="width:80px"></label>'
       + '<div style="margin-top:6px;color:#888;font-size:12px">今日已调用 ' + todayCount() + ' 次</div>'
       + '<div style="display:flex;gap:8px;margin-top:10px">'
