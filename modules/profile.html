@@ -148,8 +148,8 @@ function paintBrand(){
   out.push(b.logo
     ? pill(true, '<img src="'+b.logo+'" alt="logo" style="height:15px;width:auto;display:block"> <span>Logo ✓</span>')
     : pill(false, 'Logo 未设置'));
-  out.push(b.sign ? pill(true, '✍ 签名 ✓') : pill(false, '签名未设置'));
-  out.push(b.seal ? pill(true, '🔖 公章 ✓') : pill(false, '公章未设置'));
+  out.push(b.sign ? pill(true, '签名 ✓') : pill(false, '签名未设置'));
+  out.push(b.seal ? pill(true, '公章 ✓') : pill(false, '公章未设置'));
   out.push(b.bankAcct
     ? pill(true, '🏦 ' + escTxt(b.bankName || '收款') + ' · ' + escTxt(String(b.bankAcct).slice(-4)))
     : pill(false, '收款资料未设置'));
