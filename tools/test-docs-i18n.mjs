@@ -11,12 +11,13 @@ import url from 'node:url';
 const root = path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const sandbox = {};
 vm.createContext(sandbox);
-for (const f of ['js/docs_data.js', 'js/docs_i18n.js']) {
+sandbox.window = sandbox;
+for (const f of ['js/docs_data.js', 'js/docs_i18n.js', 'js/docs_i18n_more.js']) {
   vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), sandbox, { filename: f });
 }
 
 const { DOCS_DEF, SHARED_FIELDS, DOC_NOTES } = sandbox;
-const LANGS = ['zh', 'es', 'fr', 'de', 'pt', 'ru', 'ar'];
+const LANGS = ['zh', 'es', 'fr', 'de', 'pt', 'ru', 'ar', 'it', 'nl', 'pl', 'tr', 'vi', 'id', 'th', 'ja', 'ko'];
 
 let pass = 0;
 let fail = 0;

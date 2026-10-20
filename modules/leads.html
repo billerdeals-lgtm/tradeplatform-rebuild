@@ -89,6 +89,7 @@
       <option>试样</option><option>报价</option><option>成交</option>
     </select>
     <button class="btn" onclick="openEdit()">＋ 添加线索</button>
+    <button class="btn ghost" onclick="addDemoRu()" title="插入一条圣彼得堡进口商演示线索，用于俄语单证导出演示">🇷🇺 俄语演示</button>
     <button class="btn ghost" onclick="exportCsv()">导出 CSV</button>
   </div>
 
@@ -192,6 +193,33 @@ function load() {
 function save() { DataStore.saveAll('leads', S.leads); }
 function uid() { return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
 function iso(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
+
+/* 俄语演示线索：一键插入，供单证中心「从线索带入」后导出俄语单据 */
+function addDemoRu() {
+  var exists = S.leads.filter(function (l) { return l.demo === 'ru'; })[0];
+  if (exists) {
+    alert('俄语演示线索已存在：\n' + exists.name + '\n\n可直接到「单证中心 → 从线索带入」使用。');
+    return;
+  }
+  DataStore.add('leads', {
+    name: 'ООО «Балтийский Торг»',
+    country: 'Россия',
+    addr: '191119, Россия, г. Санкт-Петербург, ул. Правды, д. 10, оф. 412',
+    market: '其他',
+    stage: '报价',
+    wa: '+7 812 000-00-00',
+    email: 'sales@balt-torg.ru',
+    product: 'Подушки для молитвы, подарочные коробки',
+    amount: 18600,
+    last: iso(-2),
+    note: '演示数据：圣彼得堡进口商，等 PI（可删）',
+    score: null,
+    demo: 'ru'
+  });
+  S.leads = DataStore.list('leads');
+  render();
+  alert('已添加俄语演示线索。\n\n下一步：单证中心 → 从线索带入 → 选择 ООО «Балтийский Торг»\n系统会自动切到俄语并填好数量/单价/付款/港口，直接打印或导出即可。');
+}
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 function show(id) { document.getElementById(id).classList.add('show'); }
 function hide(id) { document.getElementById(id).classList.remove('show'); }
