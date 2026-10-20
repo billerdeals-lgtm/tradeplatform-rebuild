@@ -134,7 +134,7 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js"></script><script src="../js/sources.js?v=3"></script><script src="../agnes-ai.js"></script><script>
+<script src="../js/datastore.js"></script><script src="../js/sources.js?v=3"></script><script src="../agnes-ai.js"></script><script src="../js/license.js"></script><script>
 'use strict';
 var S={all:[],results:[],convIds:{},round:0,seq:0,_p:null};
 
@@ -185,7 +185,10 @@ function dedupe(list){
 }
 
 /* ---------- 主流程 ---------- */
-async function doSearch(){S.round++;S.seq=0;S.all=[];S.results=[];S.convIds={};$('rB').innerHTML='';$('fbar').style.display='none';await runPipeline(false)}
+async function doSearch(){
+  if(typeof License!=='undefined'&&!(await License.consume('find')))return;
+  S.round++;S.seq=0;S.all=[];S.results=[];S.convIds={};$('rB').innerHTML='';$('fbar').style.display='none';await runPipeline(false)
+}
 async function doMore(){S.round++;document.getElementById('btnM').disabled=true;await runPipeline(true);document.getElementById('btnM').disabled=false}
 
 async function runPipeline(append){
@@ -323,6 +326,7 @@ async function runPipeline(append){
   }catch(e){
     $('st').textContent='❌ '+e.message;
     log('失败: '+e.message,false);
+    if(!append&&S.all.length===0&&typeof License!=='undefined'){try{License.refund('find')}catch(_){}}
   }
   $('btnS').disabled=false;$('btnS').innerHTML='🔍 开始挖掘';
   setTimeout(function(){setP(0)},2000);

@@ -63,6 +63,7 @@
   </div>
   <div class="navfoot">
     数据 100% 本机存储<br>AI：Agnes 3.0 Flash<br><span id="aiCnt"></span>
+    <div id="licBadge" style="margin-top:8px;font-size:11px;line-height:1.6"></div>
     <div style="display:flex;gap:6px;margin-top:8px">
       <button onclick="backupAll()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">⬇ 备份</button>
       <button onclick="document.getElementById('restoreFile').click()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">⬆ 恢复</button>
@@ -111,6 +112,7 @@
 
 <script src="agnes-ai.js"></script>
 <script src="js/datastore.js"></script>
+<script src="js/license.js"></script>
 <script>
 'use strict';
 function go(view){
@@ -232,6 +234,7 @@ function restoreAll(input){
 }
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
 refresh();
+License.ready();
 </script>
 </body>
 </html>

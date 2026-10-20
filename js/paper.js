@@ -63,11 +63,15 @@
     + '.paper.tpl-customs tbody tr:nth-child(even) td{background:#f3f1ea}'
     + '.paper.tpl-customs .notes{font-size:12px;line-height:1.6}'
 
+    + /* 授权水印（文案由 License.watermark() 写入 data-wm） */
+    + '.paper::after{content:attr(data-wm);display:block;margin-top:16px;padding-top:8px;border-top:1px dashed #d9e2ec;font-size:9pt;color:#9aa5b1;text-align:center;letter-spacing:.02em}'
+
     + /* 横版打印适配 */
     + '@media print{'
     + 'body>*:not(main){visibility:hidden}'
     + '.paper.orient-landscape{width:297mm;height:210mm;aspect-ratio:auto;border:0;box-shadow:none;padding:16mm 18mm;overflow:visible}'
     + '.paper.orient-portrait{width:210mm;min-height:297mm;border:0;box-shadow:none}'
+    + '.paper::after{position:fixed;bottom:6mm;left:0;right:0;margin:0;padding:0;border-top:0}'
     + '}';
 
   function injectCSS() {
@@ -113,6 +117,10 @@
     var color = '#0b6e4f';
     try { color = (Brand.get() && Brand.get().brandColor) || color; } catch (e) {}
     el.style.setProperty('--paper-brand', color);
+    try {
+      var wm = (typeof License !== 'undefined' && License.watermark) ? License.watermark() : '';
+      if (wm) el.setAttribute('data-wm', wm); else el.removeAttribute('data-wm');
+    } catch (e) {}
   }
 
   /** 工具条 HTML（select 模板 + 方向 + 语言），onchange 调本页钩子 */
