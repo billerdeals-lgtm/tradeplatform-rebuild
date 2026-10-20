@@ -270,7 +270,17 @@
     docClient: function (def, values, brand) {
       var pub = publicValues(values);
       var rows = brandBlock(brand);
-      rows.push(row([{ v: def.title, style: 'h1' }]));
+      var NOTE_LABELS = {
+        payment: I('f.payment', 'Payment'),
+        portFrom: I('f.portFrom', 'Port of Loading'),
+        portTo: I('f.portTo', 'Port of Discharge'),
+        delivery: I('f.delivery', 'Delivery'),
+        bank: I('p.bank', 'Bank Info'),
+        remark: I('p.remarks', 'Remarks')
+      };
+      var docTitle = def.title;
+      try { if (typeof I18N !== 'undefined' && I18N.docTitle) docTitle = I18N.docTitle(def); } catch (e) {}
+      rows.push(row([{ v: docTitle, style: 'h1' }]));
       rows.push(blankRow(4));
       rows.push(row([{ v: I('f.no', 'No.'), style: 'lbl' }, pub.no || '', { v: I('f.date', 'Date'), style: 'lbl' }, pub.date || '']));
       rows.push(row([{ v: I('f.seller', 'Seller'), style: 'lbl' }, brand && brand.sellerFull || pub.seller || '',
@@ -287,7 +297,9 @@
       ], { style: 'td' }));
       rows.push(blankRow(8));
       ['payment', 'portFrom', 'portTo', 'delivery', 'bank', 'remark'].forEach(function (k) {
-        if (pub[k]) rows.push(row([k + ':', pub[k]], { style: 'note' }));
+        if (!pub[k]) return;
+        var lbl = NOTE_LABELS[k] || k;
+        rows.push(row([lbl + ':', pub[k]], { style: 'note' }));
       });
       rows.push(blankRow(12));
       rows.push(row([{ v: I('p.sellerSign', 'Seller Signature/Stamp'), style: 'h2' }, '', { v: I('p.buyerSign', 'Buyer Signature'), style: 'h2' }]));
