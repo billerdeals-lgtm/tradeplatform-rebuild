@@ -522,7 +522,7 @@
   /** Paper.toolbarHTML 用的语言 select */
   function toolbarSelectHTML() {
     return '<span class="lang-lbl" style="font-size:12px;color:var(--text-3,#8a8578);margin-left:4px">单据语言</span>'
-      + '<select id="paperLang" onchange="onPaperLang()" title="只切换单据上的标题/字段/表头；正文条款固定英文"'
+      + '<select id="paperLang" onchange="onPaperLang()" title="切换单据上的标题/字段/表头/正文条款，界面保持中文"'
       + ' style="padding:4px 6px;border:1px solid var(--border-strong,#cfc9b8);border-radius:4px;font-size:12px">'
       + optionsHTML() + '</select>';
   }
