@@ -194,6 +194,7 @@
 <script src="../js/gate.js?v=1"></script>
 <script src="../js/i18n.js?v=3"></script>
 <script src="../js/docs_i18n.js?v=1"></script>
+<script src="../js/docs_i18n_more.js?v=1"></script>
 <script src="../js/brand.js?v=3"></script>
 <script src="../js/excel.js?v=4"></script>
 <script src="../js/paper.js?v=2"></script>
@@ -651,10 +652,26 @@ function doImport(){
   var l = DataStore.get('leads', $('impLead').value);
   if (!l){ dlgImport.close(); return; }
   values.buyer = values.buyer || l.name;
-  values.buyerAddr = values.buyerAddr || (l.country||'');
+  values.buyerAddr = values.buyerAddr || (l.addr || l.country || '');
   values.product = values.product || l.product || '';
-  renderForm(); renderPaper(); dlgImport.close();
-  toast('已带入：'+l.name+'（金额/数量需手工确认）');
+
+  /* 俄语演示线索：补齐一套可直接导出的示例数据，并把单据语言切到俄语 */
+  var demoRu = l.demo === 'ru';
+  if (demoRu) {
+    var preset = {
+      qty:'6000', unit:'шт.', price:'3.10', currency:'USD', total:'18600.00',
+      payment:'30% предоплата, 70% до отгрузки',
+      delivery:'25 дней после предоплаты',
+      portFrom:'Нинбо', portTo:'Санкт-Петербург',
+      valid:'30 дней', hsCode:'6307.90',
+      ctns:'300', gw:'1200', nw:'1000', meas:'12.5', mark:'N/M'
+    };
+    Object.keys(preset).forEach(function(k){ if (!values[k]) values[k] = preset[k]; });
+    I18N.setLang('ru');
+  }
+
+  renderForm(); initPaperTools(); renderPaper(); dlgImport.close();
+  toast(demoRu ? '已带入俄语演示数据，单据语言已切到 Русский' : '已带入：'+l.name+'（金额/数量需手工确认）');
 }
 
 /* ---------- 初始化 ---------- */
