@@ -97,7 +97,7 @@ payload = { "v":1, "id":"FT-A7F3", "co":"XX贸易有限公司", "iat":1792493422
 | `id` | 授权编号（台账用） | 非空字符串 |
 | `co` | 公司名（水印用） | 非空，≤ 60 字 |
 | `iat` | 签发时间（秒） | 仅记录 |
-| `ver` | 适用大版本 | 必须等于当前 `APP_MAJOR` |
+| `ver` | 适用大版本 | 必须 ≤ 当前 `APP_MAJOR`（永久买断：旧码在新大版本继续有效） |
 
 签名规则（**必须两端一致**）：
 
@@ -141,7 +141,7 @@ payload = { "v":1, "id":"FT-A7F3", "co":"XX贸易有限公司", "iat":1792493422
 { code: "FT1....", payload: {id, co, iat, ver}, activatedAt: 1792493422000 }
 ```
 
-同时写入 IndexedDB `kv.license` 与 localStorage `_c5d8e1`（值按 5.3 的规则混淆）。验签失败或 `ver` 不匹配时**不删除**，仅视为未激活，便于用户升级后重新激活。
+同时写入 IndexedDB `kv.license` 与 localStorage `_c5d8e1`（值按 5.3 的规则混淆）。验签失败或 `ver` 高于当前大版本时**不删除**，仅视为未激活，便于用户升级后重新激活。
 
 ## 6. 状态机
 
@@ -160,7 +160,7 @@ payload = { "v":1, "id":"FT-A7F3", "co":"XX贸易有限公司", "iat":1792493422
        PRO  ──► 全解锁，水印换公司名
 ```
 
-- `PRO` 优先级最高：只要 `license` 验签通过且 `ver` 匹配，忽略试用状态。
+- `PRO` 优先级最高：只要 `license` 验签通过且 `ver` ≤ 当前大版本，忽略试用状态。
 - 激活成功时**不重置**试用计数（保留用于统计），但不再读取。
 - **试用初始化**：`ready()` 首次运行时，若四处副本都不存在，写入 `firstSeen = now`。
 - `TRIAL_OVER` 时弹出**不可关闭**的锁屏遮罩，遮罩覆盖全站，因此导出、打印、找客户全部被拦下（无需在 excel/paper 里单独写拦截逻辑）。
@@ -286,13 +286,17 @@ License.onChange(fn)             // 状态变化回调（更新徽章）
 
 - `--id` 缺省时自动生成 `FT-` + 4 位 base32
 - 输出：完整激活码（单行，便于复制）
-- 台账：追加到 `%USERPROFILE%\.ftcompass\licenses.csv`（公司,编号,签发时间,版本）
+- 台账：追加到 `%USERPROFILE%\.ftcompass\licenses.csv`（时间,公司,编号,版本,激活码）
+  - 存整行激活码，客户丢码时直接回发，不必重签
+  - 旧版 4 列台账首次运行会自动升级表头，历史行补空列
+  - 台账被 Excel/WPS 占用时只提示、不阻断：激活码照常打印，退出码仍为 0
 - 不写数据库、不联网
 
 ### 11.3 版本规则
 
 - `APP_MAJOR` 定义在 `license.js`，当前 `"1"`。
-- 大版本升级（如 2.0）时，旧码 `ver:"1"` 仍可继续用旧版本；新版本需要新码。第一期不实现多版本共存，仅在 `activate` 时做等值校验。
+- **永久买断**：`activate` 校验 `ver ≤ APP_MAJOR`。将来升到 2.x，老客户 `ver:"1"` 的码继续有效；只有高于当前版本的码才提示“请升级软件”。
+- 若某次升级确实要让老码失效（例如换了签名密钥），必须显式改 `APP_MAJOR` 的语义或轮换公钥，并在发布说明里写清。
 
 ### 11.4 `.gitignore`
 
@@ -331,7 +335,7 @@ licenses.csv
 1. 签发 → 验签通过，payload 字段一致
 2. 篡改 payload 一个字符 → `SIGNATURE`
 3. 篡改签名一个字符 → `SIGNATURE`
-4. `ver:"2"` → `VERSION`
+4. `ver:"2"`（高于当前）→ `VERSION`；`ver:"0"`（低于当前）→ 放行
 5. 缺字段 / 非 `FT1.` 前缀 → `FORMAT`
 6. 签名格式为 64 字节 raw（防止误用 DER）
 
@@ -358,7 +362,7 @@ licenses.csv
 
 - **可选心跳**：Cloudflare Worker 校验 `id` 是否在黑名单（退款/滥用），失败不阻断使用，仅提示。
 - **多档位**：payload 增加 `plan`（`lite`/`pro`），水印与模块开关按档位区分。
-- **年度大版本**：`APP_MAJOR` 升级 + 老客户优惠码。
+- **年度大版本**：`APP_MAJOR` 升级，老客户旧码自动继续有效（`ver ≤ APP_MAJOR`）。
 - **单文件离线版**：若将来做，需替换 WebCrypto 验签为纯 JS 实现（`file://` 下 `crypto.subtle` 不可用）。
 
 ## 17. 验收标准
@@ -377,8 +381,8 @@ licenses.csv
 
 - `js/license.js`：公钥内置（SPKI base64）；四重冗余（IndexedDB `ft_license/kv` + localStorage `_9f3a2c`/`_b71c4e` + cookie `_ftc9`）；`loadState(autoLock, writeBack)` 区分「启动初始化」与「跨窗口软同步」，软同步只更新内存与徽章、不落盘；`persistTrial()` 值未变化时跳过写入。
 - `tools/gen-key.mjs`：一次性生成 P-256 密钥对，私钥写入 `%USERPROFILE%\.ftcompass\private.pem`（仓库外，已 gitignore）。
-- `tools/sign-license.mjs`：`--company "公司名" [--id FT-XXXX] [--ver 1]`；签名原文是 payload 的 **base64url 段字符串**；Node 端 `dsaEncoding:'ieee-p1363'` 输出 raw `r||s` 64 字节；自动追加台账 `licenses.csv`。
-- `tools/test-license.mjs`：28 项离线自测（格式、签名篡改、payload 篡改、版本不匹配、带换行粘贴、扣次/返还、30 次上限、水印）。
+- `tools/sign-license.mjs`：`--company "公司名" [--id FT-XXXX] [--ver 1]`；签名原文是 payload 的 **base64url 段字符串**；Node 端 `dsaEncoding:'ieee-p1363'` 输出 raw `r||s` 64 字节；台账 `licenses.csv` 记 5 列（含整行激活码），旧 4 列台账自动升级；台账被占用时只告警、不吞码。
+- `tools/test-license.mjs`：30 项离线自测（格式、签名篡改、payload 篡改、版本高低、带换行粘贴、扣次/返还、30 次上限、水印）。
 - `index.html`：侧边栏新增 `#licBadge`（试用剩余 / 已授权公司名，点击打开激活框）；`.navlist` 可收缩滚动，小窗口下备份/恢复按钮不再被挤出。
 - `modules/find.html`：`doSearch()` 先 `License.consume('find')`，零结果（`S.all.length===0`）在 catch 中 `License.refund('find')`；`doMore()` 不扣次。
 - `modules/quotes.html` / `modules/docs.html` / `modules/products.html`：加载 `license.js` 并在启动时 `License.ready()`（否则首屏导出可能取不到水印文案）。

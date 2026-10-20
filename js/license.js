@@ -207,8 +207,11 @@
     if (!pj || pj.v !== 1 || !pj.id || !pj.co) {
       return Promise.resolve({ ok: false, code: 'FORMAT', msg: '激活码内容不完整' });
     }
-    if (String(pj.ver) !== String(APP_MAJOR)) {
-      return Promise.resolve({ ok: false, code: 'VERSION', msg: '此激活码适用于 ' + pj.ver + '.x 版本' });
+    /* 永久买断：允许旧版本（ver ≤ 当前大版本）的码继续使用，只有更高版本的码才拒绝 */
+    var codeMajor = parseInt(pj.ver, 10);
+    var appMajor = parseInt(APP_MAJOR, 10);
+    if (!isFinite(codeMajor) || codeMajor > appMajor) {
+      return Promise.resolve({ ok: false, code: 'VERSION', msg: '此激活码适用于 ' + pj.ver + '.x 版本，请升级软件' });
     }
     if (!hasCrypto()) {
       return Promise.resolve({ ok: false, code: 'CRYPTO', msg: '当前环境不支持离线验签，请通过 https 网址打开' });
