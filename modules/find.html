@@ -134,7 +134,7 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js"></script><script src="../js/sources.js?v=2"></script><script src="../agnes-ai.js"></script><script>
+<script src="../js/datastore.js"></script><script src="../js/sources.js?v=3"></script><script src="../agnes-ai.js"></script><script>
 'use strict';
 var S={all:[],results:[],convIds:{},round:0,seq:0,_p:null};
 
@@ -197,10 +197,10 @@ async function runPipeline(append){
     product:prod,
     region:regionText(),
     type:v('k_type'),
-    queries:Sources.buildQueries(prod,regionText(),v('k_type'),12),
+    queries:Sources.buildQueries(prod,regionText(),v('k_type'),14,S.round),
     exclude:append?S.all.map(function(r){return (r.name||'').toLowerCase()}):[]
   };
-  log('关键词矩阵：'+ctx.queries.length+' 条询盘式查询',true);
+  log('关键词矩阵：'+ctx.queries.length+' 条 · '+ctx.queries.slice(0,3).map(function(o){return o.q}).join(' ｜ '),true);
 
   $('btnS').disabled=true;$('btnS').innerHTML='⏳ 挖掘中…';
   if(!append){$('btnM').style.display='none';$('rB').innerHTML='';$('log').innerHTML=''}
@@ -237,7 +237,7 @@ async function runPipeline(append){
     setP(32);
 
     /* 3. 抓取页面（官网/目录页），提取联系方式与国家 */
-    var pool=merged.filter(function(c){return c.website||c.profileUrl}).slice(0,18);
+    var pool=merged.filter(function(c){return c.website||c.profileUrl}).slice(0,20);
     await inBatches(pool,4,async function(c){
       var url=c.website||c.profileUrl;
       try{
@@ -350,6 +350,7 @@ function srcClass(s){
 function flagsOf(r){
   var f='';
   if(r._price)f+='🔥';
+  if(r._inquiry)f+='📋';
   if(/distributor|importer|wholesaler|dealer|trader/i.test(r.type||''))f+='⭐';
   if(r.email)f+='📧';
   if(r.phone)f+='💬';
@@ -379,7 +380,7 @@ function render(){
       +'<td><span class="score" title="'+esc(tip)+'">'+r.score+'<small>/12</small></span><span class="tier t-'+(r.tier?r.tier.key:'d')+'">'+(r.tier?r.tier.label:'低')+'</span>'+(flagsOf(r)?'<div class="flags">'+flagsOf(r)+'</div>':'')+'</td>'
       +'<td class="cc">'+ch+'</td>'
       +'<td>'+badges+'</td>'
-      +'<td>'+(imp?'<span class="imp">✓ 已导入</span>':(hasC(r)?'<button class="bs bi" onclick="openConv(\''+r._id+'\')">→ 导入</button>':(r.website?'<button class="bs bd" onclick="digOne(\''+r._id+'\')">⛏ 深挖</button>':'')))+'</td></tr>';
+      +'<td>'+(imp?'<span class="imp">✓ 已导入</span>':((hasC(r)||r._inquiry)?'<button class="bs bi" onclick="openConv(\''+r._id+'\')">→ 导入</button>':(r.website?'<button class="bs bd" onclick="digOne(\''+r._id+'\')">⛏ 深挖</button>':'')))+'</td></tr>';
   }).join('');
 }
 
@@ -410,7 +411,8 @@ function convSave(){
   if(!S._p)return;var name=$('c_name').value.trim();
   if(!name){alert('公司名必填');return}
   var email=$('c_email').value.trim(),phone=$('c_wa').value.trim();
-  if(!email&&!phone){alert('邮箱或电话至少填一个');return}
+  var lead=leadById(S._p);
+  if(!email&&!phone&&!(lead&&lead._inquiry)){alert('邮箱或电话至少填一个');return}
   DataStore.add('leads',{name:name,country:$('c_country').value.trim(),person:$('c_person').value.trim(),market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:phone,email:email,product:v('k_prod').trim(),website:$('c_web').value.trim(),amount:0,last:new Date().toISOString().slice(0,10),note:$('c_note').value.trim(),source:'multi_source'});
   S.convIds[S._p]=name;dlg.close();render();
 }
