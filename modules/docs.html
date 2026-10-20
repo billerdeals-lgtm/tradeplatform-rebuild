@@ -192,7 +192,7 @@
 <script src="../js/license.js"></script>
 <script src="../js/docs_data.js"></script>
 <script src="../js/gate.js?v=1"></script>
-<script src="../js/i18n.js?v=1"></script>
+<script src="../js/i18n.js?v=2"></script>
 <script src="../js/brand.js?v=3"></script>
 <script src="../js/excel.js?v=2"></script>
 <script src="../js/paper.js?v=2"></script>
@@ -224,7 +224,7 @@ function renderList(){
   cats.forEach(function(c){
     html += '<div class="catlbl">'+esc(c)+'</div>';
     html += DOCS_DEF.filter(function(d){ return d.cat===c; }).map(function(d){
-      return '<span class="docchip'+(d.id===current.id?' on':'')+'" onclick="pick(\''+d.id+'\')">'+esc(I18N.docChipTitle(d))+'</span>';
+      return '<span class="docchip'+(d.id===current.id?' on':'')+'" onclick="pick(\''+d.id+'\')">'+esc(String(d.title||'').split(' / ')[0])+'</span>';
     }).join('');
   });
   $('doclist').innerHTML = html;
@@ -339,7 +339,7 @@ function deriveFromSaved(id){
 function fieldInput(f){
   var ph = f.ph ? ' placeholder="'+esc(f.ph)+'"' : '';
   var cls = (['seller','buyer','product','remark'].indexOf(f.k)>=0) ? 'full' : '';
-  var label = I18N.fieldLabel(f);
+  var label = f.label || I18N.fieldLabel(f);
   return '<div class="'+cls+'"><label>'+esc(label)+'</label>'
     + '<input data-k="'+f.k+'" type="'+(f.type||'text')+'"'+ph+' value="'+esc(values[f.k]||'')+'" oninput="onVal(this)"></div>';
 }
@@ -363,7 +363,7 @@ function confidentialHTML(){
     + '</div>';
 }
 function renderForm(){
-  $('formTitle').textContent = I18N.docTitle(current);
+  $('formTitle').textContent = String(current.title||'').split(' / ')[0];
   var all = SHARED_FIELDS.concat((current.rows||[]).map(function(r){ return {k:r[0], label:r[1], ph:r[2]}; }));
   $('formFields').innerHTML = all.map(fieldInput).join('') + confidentialHTML();
   renderChain();

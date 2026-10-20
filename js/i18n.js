@@ -1,8 +1,9 @@
 /* ============================================================
-   FT Compass · i18n v1.0
+   FT Compass · i18n v1.1
    HUIDI Feature 8：18 种单证语言模式（规范词典）
    - 只翻译固定标题 / 字段标签 / 表头（canonical dictionary）
    - 用户自由文本不机翻
+   - 界面固定中文；单据语言默认英文（见 LANG_DEFAULT）
    - 偏好存 DataStore cfg：docLang
    语言：bilingual 中英双语 / zh / en / es / pt / de / fr / it /
         ru / ar / ja / ko / tr / nl / pl / vi / id / th
@@ -411,14 +412,27 @@
     }
   };
 
+  /* 单据语言默认英文：外贸单据发给海外买家，英文是通用语言。
+     中文只留在界面（左侧单证列表、表单标签、按钮），不进入纸面。 */
+  var LANG_DEFAULT = 'en';
+
   function cfgLang() {
-    try { return (DataStore.getCfg() || {}).docLang || 'bilingual'; }
-    catch (e) { return 'bilingual'; }
+    var c;
+    try { c = DataStore.getCfg() || {}; }
+    catch (e) { return LANG_DEFAULT; }
+    /* 一次性迁移：旧版本可能把单证语言留在了小语种（如 nl），
+       导致界面和单据语言割裂。升级后统一回英文，之后用户可再手动切换。 */
+    if (!c.docLangV2) {
+      c.docLang = LANG_DEFAULT;
+      try { DataStore.setCfg({ docLang: LANG_DEFAULT, docLangV2: 1 }); } catch (e) {}
+      return LANG_DEFAULT;
+    }
+    return c.docLang || LANG_DEFAULT;
   }
 
   function setLang(id) {
     var ok = LANGS.some(function (l) { return l.id === id; });
-    if (!ok) id = 'bilingual';
+    if (!ok) id = LANG_DEFAULT;
     try { DataStore.setCfg({ docLang: id }); } catch (e) {}
     return id;
   }
@@ -485,7 +499,8 @@
 
   /** Paper.toolbarHTML 用的语言 select */
   function toolbarSelectHTML() {
-    return '<select id="paperLang" onchange="onPaperLang()" title="单证语言"'
+    return '<span class="lang-lbl" style="font-size:12px;color:var(--text-3,#8a8578);margin-left:4px">单据语言</span>'
+      + '<select id="paperLang" onchange="onPaperLang()" title="只切换单据上的标题/字段/表头；正文条款固定英文"'
       + ' style="padding:4px 6px;border:1px solid var(--border-strong,#cfc9b8);border-radius:4px;font-size:12px">'
       + optionsHTML() + '</select>';
   }
