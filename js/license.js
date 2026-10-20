@@ -34,6 +34,7 @@
   var _pubKey = null;
   var _listeners = [];
   var _lockReason = null;
+  var _lastRaw = null;
 
   /* ---------------- 编码工具 ---------------- */
   function utf8Encode(s) { return new TextEncoder().encode(s); }
@@ -167,6 +168,9 @@
     if (!_trial) return;
     var raw = seal(_trial);
     if (!raw) return;
+    /* 值没变就不写，避免父子窗口 storage 事件互相触发 */
+    if (raw === _lastRaw) return;
+    _lastRaw = raw;
     K_TRIAL_LS.forEach(function (k) { lsSet(k, raw); });
     setCookie(K_TRIAL_CK, raw);
     idbSet('state', raw);
@@ -281,11 +285,11 @@
   }
 
   function init() {
-    return loadState(true);
+    return loadState(true, true);
   }
 
-  /** autoLock=true 时才在试用结束时弹锁屏（避免第 30 次刚扣完就被挡住） */
-  function loadState(autoLock) {
+  /** autoLock：试用结束时是否弹锁屏；writeBack：是否把合并结果落盘 */
+  function loadState(autoLock, writeBack) {
     return readLicense()
       .then(function (lic) {
         _lic = lic;
@@ -303,11 +307,14 @@
         var now = Date.now();
         if (!_trial) {
           _trial = { v: 1, firstSeen: now, lastSeen: now, uses: 0, tampered: false };
-        } else {
-          if (now < _trial.lastSeen - DAY) _trial.tampered = true;
-          _trial.lastSeen = Math.max(now, _trial.lastSeen);
+        } else if (now < _trial.lastSeen - DAY) {
+          _trial.tampered = true;
         }
-        persistTrial();
+        if (writeBack) {
+          if (!_trial.lastSeen) _trial.lastSeen = now;
+          _trial.lastSeen = Math.max(now, _trial.lastSeen);
+          persistTrial();
+        }
         _status = computeStatus();
         if (autoLock && _status.state === 'trial_over') {
           var reason = _status.usesLeft <= 0 ? 'uses' : 'expired';
@@ -330,9 +337,9 @@
     return ready();
   }
 
-  /* 跨 iframe 同步：别的文档改了 localStorage → 本窗口只更新徽章，不弹锁屏 */
+  /* 跨 iframe 同步：别的文档改了 localStorage → 本窗口只更新徽章，不写回、不弹锁屏 */
   function reloadSoft() {
-    return loadState(false);
+    return loadState(false, false);
   }
 
   try {
