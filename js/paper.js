@@ -106,6 +106,16 @@
     return id;
   }
 
+  /** 写授权水印；返回是否已写入 */
+  function paintWatermark(el) {
+    try {
+      var wm = (typeof License !== 'undefined' && License.watermark) ? License.watermark() : '';
+      if (wm) { el.setAttribute('data-wm', wm); return true; }
+      el.removeAttribute('data-wm');
+    } catch (e) {}
+    return false;
+  }
+
   /** 应用模板+方向+品牌色到 .paper 元素 */
   function apply(el) {
     if (!el) return;
@@ -117,10 +127,10 @@
     var color = '#0b6e4f';
     try { color = (Brand.get() && Brand.get().brandColor) || color; } catch (e) {}
     el.style.setProperty('--paper-brand', color);
-    try {
-      var wm = (typeof License !== 'undefined' && License.watermark) ? License.watermark() : '';
-      if (wm) el.setAttribute('data-wm', wm); else el.removeAttribute('data-wm');
-    } catch (e) {}
+    /* 首屏渲染可能早于 IndexedDB 读取完成，未取到水印时等 License 就绪后补写 */
+    if (!paintWatermark(el) && typeof License !== 'undefined' && License.ready) {
+      License.ready().then(function () { paintWatermark(el); }).catch(function () {});
+    }
   }
 
   /** 工具条 HTML（select 模板 + 方向 + 语言），onchange 调本页钩子 */
