@@ -38,24 +38,32 @@
   .progress-bar { height:100%; background:linear-gradient(90deg,var(--brand-600),#f59e0b); border-radius:3px; transition:width .4s; width:0%; }
   .stats { display:flex; gap:var(--sp-6); margin:var(--sp-3) 0; }
   .stat { text-align:center; } .stat b { display:block; font-size:22px; font-weight:700; } .stat span { font-size:11.5px; color:var(--text-3); }
+  .filterbar { display:none; align-items:center; gap:12px; flex-wrap:wrap; background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:10px 14px; margin-bottom:10px; font-size:12.5px; color:var(--text-2); }
+  .filterbar input[type=range] { width:160px; }
+  .filterbar b { color:var(--brand-700); font-size:15px; }
   .tw { overflow-x:auto; }
   table { width:100%; border-collapse:collapse; font-size:13px; background:var(--bg-card); border-radius:var(--r-md); overflow:hidden; box-shadow:var(--shadow-card); }
   th { background:var(--brand-900); color:#fff; text-align:left; padding:10px 12px; font-size:12px; white-space:nowrap; }
   td { padding:10px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
   tr:hover td { background:var(--bg-inset); }
   .cn { font-weight:600; color:var(--brand-700); } .cn a { color:var(--brand-700); text-decoration:none; } .cn a:hover { text-decoration:underline; }
-  .cd { font-size:12px; color:var(--text-3); margin-top:2px; max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .cd { font-size:12px; color:var(--text-3); margin-top:2px; max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .cc { font-size:12.5px; line-height:1.6; } .cc a { color:var(--brand-700); text-decoration:none; } .cc a:hover { text-decoration:underline; }
   .badge { font-size:10.5px; padding:2px 7px; border-radius:999px; white-space:nowrap; display:inline-block; margin:1px 2px 1px 0; }
   .b-ddg { background:#dbeafe; color:#1d4ed8; } .b-li { background:#e0e7ff; color:#3730a3; }
   .b-eu { background:#dcfce7; color:#166534; } .b-dir { background:#fef3c7; color:#92400e; }
   .b-ai { background:#fae8ff; color:#86198f; } .b-web { background:#d1fae5; color:#065f46; }
+  .score { font-size:16px; font-weight:700; } .score small { font-size:10px; font-weight:400; color:var(--text-3); }
+  .tier { font-size:10px; padding:1px 6px; border-radius:999px; margin-left:4px; white-space:nowrap; }
+  .t-a { background:#fee2e2; color:#991b1b; } .t-b { background:#ffedd5; color:#9a3412; }
+  .t-c { background:#fef9c3; color:#854d0e; } .t-d { background:#f1f5f9; color:#475569; }
+  .flags { font-size:11px; color:var(--text-2); margin-top:3px; letter-spacing:1px; }
   .bs { font-size:12px; padding:5px 12px; border-radius:var(--r-sm); border:0; cursor:pointer; white-space:nowrap; }
   .bi { background:var(--brand-700); color:#fff; } .bi:hover { background:var(--brand-800); }
   .bd { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
   .imp { font-size:11px; color:var(--ok); }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; font-size:14px; }
-  .log { font-size:12px; color:var(--text-3); margin-top:var(--sp-3); max-height:130px; overflow:auto; background:var(--bg-inset); border-radius:var(--r-sm); padding:8px 12px; display:none; }
+  .log { font-size:12px; color:var(--text-3); margin-top:var(--sp-3); max-height:140px; overflow:auto; background:var(--bg-inset); border-radius:var(--r-sm); padding:8px 12px; display:none; }
   .log div { margin-bottom:1px; } .log .ok { color:var(--ok); } .log .fail { color:var(--danger); }
   dialog { border:0; border-radius:var(--r-lg); box-shadow:0 20px 60px rgba(0,0,0,.3); padding:0; max-width:420px; width:90%; overflow:hidden; }
   dialog::backdrop { background:rgba(0,0,0,.5); backdrop-filter:blur(4px); }
@@ -98,16 +106,22 @@
   </div>
   <div class="stats">
     <div class="stat"><b id="sN">0</b><span>找到公司</span></div>
-    <div class="stat"><b id="sV">0</b><span>已验证</span></div>
+    <div class="stat"><b id="sH" style="color:#c2410c">0</b><span>高意向(≥7)</span></div>
     <div class="stat"><b id="sC" style="color:var(--ok)">0</b><span>有联系方式</span></div>
     <div class="stat"><b id="sI" style="color:var(--brand-700)">0</b><span>已转线索</span></div>
+  </div>
+  <div class="filterbar" id="fbar">
+    <span>最低意向分</span>
+    <input type="range" id="minScore" min="0" max="12" step="1" value="4" oninput="applyFilter()">
+    <b id="minVal">4</b><span>/12</span>
+    <span id="fInfo" style="color:var(--text-3)"></span>
   </div>
   <div class="acts" id="bR" style="display:none;margin-top:0">
     <button class="btn-main btn-ai" onclick="bulkImp()">⬇ 一键导入有联系方式的</button>
     <span class="status" id="bS"></span>
   </div>
-  <div class="tw"><table id="rT" style="display:none"><thead><tr><th>公司</th><th>国家</th><th>联系方式</th><th>来源</th><th></th></tr></thead><tbody id="rB"></tbody></table></div>
-  <div id="eS"><div class="empty">输入产品关键词，选择来源，点击「开始挖掘」<br>系统从搜索引擎 + B2B 目录 + 领英反查多源抓取真实公司，AI 补充联系方式</div></div>
+  <div class="tw"><table id="rT" style="display:none"><thead><tr><th>公司</th><th>国家</th><th>意向</th><th>联系方式</th><th>来源</th><th></th></tr></thead><tbody id="rB"></tbody></table></div>
+  <div id="eS"><div class="empty">输入产品关键词，选择来源，点击「开始挖掘」<br>系统用询盘式关键词多源搜索，规则引擎剔除供应商页，AI 给出买家意向分</div></div>
   <div class="log" id="log"></div>
 </main>
 <dialog id="dlg"><div class="dh"><h3>导入线索</h3><button class="dc" onclick="dlg.close()">✕</button></div>
@@ -120,9 +134,9 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js"></script><script src="../js/sources.js"></script><script src="../agnes-ai.js"></script><script>
+<script src="../js/datastore.js"></script><script src="../js/sources.js?v=2"></script><script src="../agnes-ai.js"></script><script>
 'use strict';
-var S={results:[],convIds:{},round:0};
+var S={all:[],results:[],convIds:{},round:0,seq:0,_p:null};
 
 function v(i){return document.getElementById(i).value}
 function $(i){return document.getElementById(i)}
@@ -138,42 +152,17 @@ function renderSrcList(){
   $('srclist').innerHTML=Sources.META.map(function(s){
     return '<label class="srcchip"><input type="checkbox" id="src_'+s.id+'"'+(s.def?' checked':'')+'> <b>'+esc(s.name)+'</b><span>'+esc(s.desc)+'</span></label>';
   }).join('')
-    +'<label class="srcchip"><input type="checkbox" id="optEnrich" checked> <b>AI 补充</b><span>官网/邮箱/WhatsApp</span></label>';
+    +'<label class="srcchip"><input type="checkbox" id="optEnrich" checked> <b>AI 评分/补充</b><span>买家意向分 + 联系方式</span></label>';
 }
 function selectedSources(){return Sources.META.filter(function(s){return $('src_'+s.id).checked}).map(function(s){return s.id})}
 
-/* ---------- 抓取工具 ---------- */
-async function scrapeWebsite(url){
-  try{var body=await Sources.fetchRaw(url,15000);return Sources.extractContacts(body.text)}
-  catch(e){return{emails:[],phones:[],was:[]}}
-}
-async function enrichProfile(c){
-  if(!c.profileUrl||c.website)return;
-  try{
-    var body=await Sources.fetchRaw(c.profileUrl,15000);
-    var links=Sources.extractLinks(body,c.profileUrl);
-    for(var i=0;i<links.length;i++){
-      var d=Sources.domainOf(links[i].url);
-      if(d&&!Sources.isBlocked(d)&&!/europages/i.test(d)){c.website='https://'+d;break}
-    }
-    var txt=body.text||'';
-    if(!c.country){var cm=txt.match(/(?:Poland|France|Germany|Italy|Spain|Turkey|Netherlands|Belgium|United Kingdom|USA|China|India|Thailand|Vietnam|Indonesia|Malaysia|Philippines|Saudi Arabia|UAE|Nigeria|South Africa|Brazil|Mexico|Egypt|Pakistan|Bangladesh|Sri Lanka|Morocco|Tunisia|Kenya|Ghana|Colombia|Chile|Peru|Argentina)/i);if(cm)c.country=cm[0]}
-    var ct=Sources.extractContacts(txt);
-    if(ct.emails.length&&!c.email)c.email=ct.emails[0];
-    if(!c.phone){if(ct.was.length)c.phone='+'+ct.was[0];else if(ct.phones.length)c.phone=ct.phones[0]}
-  }catch(e){}
-}
-async function aiEnrich(prod,companies){
-  if(!companies.length)return[];
-  var p='基于以下从多来源获取的公司信息，补充官网URL和联系方式（邮箱/WhatsApp/电话）。产品：'+prod+'\n\n'
-    +companies.map(function(c,i){return (i+1)+'.'+c.name+' | '+(c.country||'未知')+' | '+(c.desc||'')}).join('\n')
-    +'\n\n输出JSON：{"companies":[{"i":序号,"website":"官网URL","email":"邮箱","phone":"电话/WhatsApp","why":"一句话评估"}]}'
-    +'\n只输出JSON，尽量提供真实信息，不确定的留空。';
-  try{
-    var txt=await AgnesAI.ask(p,{json:true,temperature:0.2,maxTokens:2000});
-    var res=AgnesAI.parseLoose(txt);
-    return(res&&res.companies)||[];
-  }catch(e){return[]}
+/* ---------- 批处理 ---------- */
+async function inBatches(list,size,fn,label){
+  for(var i=0;i<list.length;i+=size){
+    var batch=list.slice(i,i+size);
+    if(label)$('st').textContent=label+' '+(i+1)+'-'+Math.min(i+size,list.length)+'/'+list.length+'…';
+    await Promise.all(batch.map(function(x){return fn(x)}));
+  }
 }
 
 /* ---------- 合并去重 ---------- */
@@ -196,8 +185,7 @@ function dedupe(list){
 }
 
 /* ---------- 主流程 ---------- */
-async function doSearch(){S.round++;S.results=[];S.convIds={};await runPipeline(false)}
-
+async function doSearch(){S.round++;S.seq=0;S.all=[];S.results=[];S.convIds={};$('rB').innerHTML='';$('fbar').style.display='none';await runPipeline(false)}
 async function doMore(){S.round++;document.getElementById('btnM').disabled=true;await runPipeline(true);document.getElementById('btnM').disabled=false}
 
 async function runPipeline(append){
@@ -205,14 +193,21 @@ async function runPipeline(append){
   if(!prod){alert('请填写产品关键词');return}
   var ids=selectedSources();
   if(!ids.length){alert('请至少选择一个数据来源');return}
-  var ctx={product:prod,region:regionText(),type:v('k_type'),exclude:append?S.results.map(function(r){return (r.name||'').toLowerCase()}):[]};
+  var ctx={
+    product:prod,
+    region:regionText(),
+    type:v('k_type'),
+    queries:Sources.buildQueries(prod,regionText(),v('k_type'),12),
+    exclude:append?S.all.map(function(r){return (r.name||'').toLowerCase()}):[]
+  };
+  log('关键词矩阵：'+ctx.queries.length+' 条询盘式查询',true);
 
   $('btnS').disabled=true;$('btnS').innerHTML='⏳ 挖掘中…';
-  if(!append){$('btnM').style.display='none';S.results=[];S.convIds={};$('rB').innerHTML=''}
-  $('log').innerHTML='';setP(5);
+  if(!append){$('btnM').style.display='none';$('rB').innerHTML='';$('log').innerHTML=''}
+  setP(5);
 
   try{
-    // 1. 并行多源抓取
+    /* 1. 多源并行抓取 */
     var done=0,all=[];
     await Promise.all(ids.map(async function(id){
       var nm=Sources.meta(id).name;
@@ -222,63 +217,109 @@ async function runPipeline(append){
         cs.forEach(function(c){all.push(c)});
         log(nm+': '+cs.length+' 家',cs.length>0);
       }catch(e){log(nm+': 失败 '+e.message,false)}
-      done++;setP(5+Math.round(done/ids.length*35));
+      done++;setP(5+Math.round(done/ids.length*20));
     }));
 
     var merged=dedupe(all).filter(function(c){return c.name.length>2&&ctx.exclude.indexOf((c.name||'').toLowerCase())<0});
     if(!merged.length)throw new Error('所有来源均未找到公司，请换个关键词或增加来源');
     log('合并去重后 '+merged.length+' 家',true);
-    setP(42);
+    setP(27);
 
-    // 2. 目录页公司 → 官网/国家
-    var toProfile=merged.filter(function(c){return c.profileUrl&&!c.website}).slice(0,20);
-    for(var i=0;i<toProfile.length;i+=3){
-      var b1=toProfile.slice(i,i+3);
-      $('st').textContent='🔍 验证公司信息 '+(i+1)+'-'+Math.min(i+3,toProfile.length)+'/'+toProfile.length+'…';
-      setP(42+Math.round(i/toProfile.length*13));
-      await Promise.all(b1.map(enrichProfile));
-    }
+    /* 2. 规则预筛（名称+摘要） */
+    var before=merged.length;
+    merged=merged.filter(function(c){
+      var rc=Sources.ruleCheck((c.name||'')+' '+(c.desc||''),false);
+      if(rc.skip)return false;
+      c._rule=rc;return true;
+    });
+    if(before-merged.length)log('规则预筛剔除 '+(before-merged.length)+' 家供应商/电商页');
+    if(!merged.length)throw new Error('候选全部被规则判为供应商页，请换个关键词');
+    setP(32);
 
-    // 3. AI 补充
-    if($('optEnrich').checked){
-      $('st').textContent='🧠 AI 补充联系方式…';setP(58);
-      var aiData=await aiEnrich(prod,merged.slice(0,15));
-      aiData.forEach(function(a){
-        var idx=parseInt(a.i,10)-1;
-        if(merged[idx]){
-          if(a.website&&!merged[idx].website)merged[idx].website=a.website;
-          if(a.email&&!merged[idx].email)merged[idx].email=a.email;
-          if(a.phone&&!merged[idx].phone)merged[idx].phone=a.phone;
-          if(a.why&&!merged[idx].desc)merged[idx].desc=a.why;
+    /* 3. 抓取页面（官网/目录页），提取联系方式与国家 */
+    var pool=merged.filter(function(c){return c.website||c.profileUrl}).slice(0,18);
+    await inBatches(pool,4,async function(c){
+      var url=c.website||c.profileUrl;
+      try{
+        var info=await Sources.pageInfo(url,15000);
+        c._text=info.text;
+        if(!c.website&&c.profileUrl){
+          var w=Sources.pickWebsite(info.links,Sources.domainOf(c.profileUrl));
+          if(w)c.website=w;
         }
-      });
-      log('AI 补充完成');
-    }
-    setP(72);
-
-    // 4. 抓取官网联系方式
-    var toScrape=merged.filter(function(c){return c.website&&!c.email}).slice(0,15);
-    for(var j=0;j<toScrape.length;j+=3){
-      var b2=toScrape.slice(j,j+3);
-      $('st').textContent='🌐 抓取官网 '+(j+1)+'-'+Math.min(j+3,toScrape.length)+'/'+toScrape.length+'…';
-      setP(72+Math.round(j/toScrape.length*24));
-      await Promise.all(b2.map(async function(c){
-        var contacts=await scrapeWebsite(c.website);
-        if(contacts.emails.length)c.email=contacts.emails[0];
-        if(contacts.was.length)c.phone='+'+contacts.was[0];else if(contacts.phones.length&&!c.phone)c.phone=contacts.phones[0];
+        if(!c.country)c.country=Sources.detectCountry(info.text,'');
+        var ct=info.contacts;
+        if(ct.emails.length&&!c.email)c.email=ct.emails[0];
+        if(!c.phone){if(ct.was.length)c.phone='+'+ct.was[0];else if(ct.phones.length)c.phone=ct.phones[0]}
+        if(!c.desc&&info.text)c.desc=info.text.replace(/\s+/g,' ').slice(0,160);
         c._verified=true;
-      }));
-    }
+      }catch(e){c._fetchFail=true}
+    },'🌐 抓取页面');
+    setP(52);
 
-    // 5. 合并结果
-    merged.forEach(function(c){S.results.push(c)});
+    /* 4. 规则复筛（正文强信号） */
+    var live=[];
+    merged.forEach(function(c){
+      var rc=Sources.ruleCheck((c.name||'')+' '+(c.desc||'')+' '+String(c._text||'').slice(0,4000),true);
+      if(rc.skip){log('剔除 '+c.name+'：'+rc.reason);return}
+      c._rule=rc;live.push(c);
+    });
+    merged=live;
+    if(!merged.length)throw new Error('域名页全部被判为供应商，请换个关键词');
+    log('规则复筛后剩 '+merged.length+' 家',true);
+    setP(58);
+
+    /* 5. AI 买家意向评分 */
+    var toScore=merged.slice(0,15),aiMap={};
+    if($('optEnrich').checked&&toScore.length&&typeof AgnesAI!=='undefined'){
+      $('st').textContent='🧠 AI 买家意向评分…';
+      try{
+        var arr=await Sources.aiScoreBatch(prod,regionText(),toScore);
+        arr.forEach(function(a){var i=parseInt(a.i,10)-1;if(i>=0&&i<toScore.length)aiMap[i]=a});
+        log('AI 评分完成 '+Object.keys(aiMap).length+' 家',true);
+      }catch(e){log('AI 评分失败：'+e.message,false)}
+    }
+    merged.forEach(function(c,i){
+      var a=aiMap[i];
+      var aiScore=a?(Number(a.score)||0):(c._rule?c._rule.score:5);
+      c._ai=a?aiScore:null;
+      c._price=!!(c._rule&&c._rule.isPriceInquiry)||!!(a&&/price|quotation|rfq|tender|procurement|询价|采购/i.test((a.why||'')+(a.approach||'')));
+      c.score=Sources.compositeScore(aiScore,c._price);
+      c.tier=Sources.tierOf(c.score);
+      if(a){
+        if(a.country&&!c.country)c.country=a.country;
+        if(a.type&&!c.type)c.type=a.type;
+        if(a.why)c.why=a.why;
+        if(a.approach)c.approach=a.approach;
+      }
+    });
+    setP(74);
+
+    /* 6. 二次补全（高分且缺邮箱） */
+    var need=merged.filter(function(c){return c.score>=7&&!c.email}).slice(0,6);
+    if(need.length){
+      await inBatches(need,2,async function(c){
+        var ex=await Sources.enrichContacts(c.name,c.website?Sources.domainOf(c.website):'');
+        if(ex.emails.length&&!c.email)c.email=ex.emails[0];
+        if(!c.phone){if(ex.was.length)c.phone='+'+ex.was[0];else if(ex.phones.length)c.phone=ex.phones[0]}
+        if(ex.country&&!c.country)c.country=ex.country;
+      },'🔎 二次补全联系方式');
+    }
+    setP(94);
+
+    /* 7. 入库 + 过滤 */
+    merged.forEach(function(c){
+      if(S.all.some(function(x){return x.name.toLowerCase()===c.name.toLowerCase()}))return;
+      c._id='L'+(S.seq++);
+      S.all.push(c);
+    });
     setP(100);
-    var nC=S.results.filter(hasC).length;
-    $('st').textContent='✅ '+(append?'追加':'完成')+'：共 '+S.results.length+' 家，'+nC+' 家有联系方式';
-    log('总计 '+S.results.length+' 家，'+nC+' 家有联系方式',true);
-    DataStore.add('searches',{query:prod,via:ids.join('+'),n:S.results.length,contacts:nC,round:S.round});
-    if(merged.length>5)$('btnM').style.display='inline-flex';
-    render();
+    var hi=S.all.filter(function(r){return r.score>=7}).length;
+    $('st').textContent='✅ '+(append?'追加':'完成')+'：共 '+S.all.length+' 家，高意向 '+hi+' 家';
+    log('总计 '+S.all.length+' 家，高意向 '+hi+' 家',true);
+    DataStore.add('searches',{query:prod,via:ids.join('+'),n:S.all.length,contacts:S.all.filter(hasC).length,round:S.round});
+    if(S.all.length>5)$('btnM').style.display='inline-flex';
+    applyFilter();
   }catch(e){
     $('st').textContent='❌ '+e.message;
     log('失败: '+e.message,false);
@@ -287,7 +328,16 @@ async function runPipeline(append){
   setTimeout(function(){setP(0)},2000);
 }
 
-/* ---------- 渲染 ---------- */
+/* ---------- 过滤 + 渲染 ---------- */
+function applyFilter(){
+  var min=parseInt($('minScore').value,10)||0;
+  $('minVal').textContent=min;
+  S.results=S.all.filter(function(r){return (r.score||0)>=min}).sort(function(a,b){return (b.score||0)-(a.score||0)});
+  $('fInfo').textContent='共 '+S.all.length+' 家，显示 '+S.results.length+' 家';
+  $('fbar').style.display=S.all.length?'flex':'none';
+  render();
+}
+
 function srcClass(s){
   s=String(s||'');
   if(/DuckDuckGo/i.test(s))return 'b-ddg';
@@ -297,52 +347,67 @@ function srcClass(s){
   if(/AI/i.test(s))return 'b-ai';
   return 'b-web';
 }
+function flagsOf(r){
+  var f='';
+  if(r._price)f+='🔥';
+  if(/distributor|importer|wholesaler|dealer|trader/i.test(r.type||''))f+='⭐';
+  if(r.email)f+='📧';
+  if(r.phone)f+='💬';
+  return f;
+}
 function render(){
-  var nC=S.results.filter(hasC).length;
-  var nV=S.results.filter(function(r){return r._verified}).length;
-  $('sN').textContent=S.results.length;$('sV').textContent=nV;$('sC').textContent=nC;$('sI').textContent=Object.keys(S.convIds).length;
+  var nC=S.all.filter(hasC).length;
+  var nH=S.all.filter(function(r){return r.score>=7}).length;
+  $('sN').textContent=S.all.length;$('sH').textContent=nH;$('sC').textContent=nC;$('sI').textContent=Object.keys(S.convIds).length;
   $('bR').style.display=nC?'flex':'none';
   if(!S.results.length){$('rT').style.display='none';$('eS').style.display='block';return}
   $('rT').style.display='table';$('eS').style.display='none';
-  function sc(r){var s=0;if(hasC(r))s+=100;if(r._verified)s+=50;return-s}
-  var list=S.results.map(function(r,i){return{r:r,i:i}}).sort(function(a,b){return sc(a.r)-sc(b.r)});
-  $('rB').innerHTML=list.map(function(it){
-    var r=it.r,i=it.i,imp=S.convIds[i];
+  $('rB').innerHTML=S.results.map(function(r){
+    var imp=S.convIds[r._id];
     var badges=(r._sources||[r.source||'目录']).map(function(s){return '<span class="badge '+srcClass(s)+'">'+esc(s)+'</span>'}).join('');
     var ch='';
     if(hasC(r)){
       var items=[];
       if(r.email)items.push('<a href="mailto:'+esc(r.email)+'">✉ '+esc(r.email)+'</a>');
-      if(r.phone){var ph=r.phone.replace(/\s/g,'');if(ph.startsWith('+'))items.push('<a href="https://wa.me/'+esc(ph.replace('+',''))+'" target="_blank">🟢 '+esc(r.phone)+'</a>');else items.push('☎ '+esc(r.phone))}
+      if(r.phone){var ph=r.phone.replace(/\s/g,'');if(ph.charAt(0)==='+')items.push('<a href="https://wa.me/'+esc(ph.slice(1))+'" target="_blank">🟢 '+esc(r.phone)+'</a>');else items.push('☎ '+esc(r.phone))}
       ch=items.join('<br>');
     }else{ch='<span style="color:var(--text-3)">—</span>'}
     var link=r.website||r.linkedin||'';
+    var tip='理由：'+(r.why||'—')+(r.approach?' ｜ 建议：'+r.approach:'');
     return '<tr><td><div class="cn">'+(link?'<a href="'+esc(link)+'" target="_blank">'+esc(r.name)+'</a>':esc(r.name))+'</div>'+(r.desc?'<div class="cd" title="'+esc(r.desc)+'">'+esc(r.desc.slice(0,80))+'</div>':'')+'</td>'
-      +'<td>'+esc(r.country||'—')+'</td><td class="cc">'+ch+'</td>'
+      +'<td>'+esc(r.country||'—')+'</td>'
+      +'<td><span class="score" title="'+esc(tip)+'">'+r.score+'<small>/12</small></span><span class="tier t-'+(r.tier?r.tier.key:'d')+'">'+(r.tier?r.tier.label:'低')+'</span>'+(flagsOf(r)?'<div class="flags">'+flagsOf(r)+'</div>':'')+'</td>'
+      +'<td class="cc">'+ch+'</td>'
       +'<td>'+badges+'</td>'
-      +'<td>'+(imp?'<span class="imp">✓ 已导入</span>':(hasC(r)?'<button class="bs bi" onclick="openConv('+i+')">→ 导入</button>':(r.website?'<button class="bs bd" onclick="digOne('+i+')">⛏ 深挖</button>':'')))+'</td></tr>';
+      +'<td>'+(imp?'<span class="imp">✓ 已导入</span>':(hasC(r)?'<button class="bs bi" onclick="openConv(\''+r._id+'\')">→ 导入</button>':(r.website?'<button class="bs bd" onclick="digOne(\''+r._id+'\')">⛏ 深挖</button>':'')))+'</td></tr>';
   }).join('');
 }
 
-async function digOne(i){
-  var r=S.results[i];if(!r.website)return;
+function leadById(id){for(var i=0;i<S.all.length;i++)if(S.all[i]._id===id)return S.all[i];return null}
+
+async function digOne(id){
+  var r=leadById(id);if(!r||!r.website)return;
   $('st').textContent='⛏ 抓取 '+Sources.host(r.website)+'…';
-  var c=await scrapeWebsite(r.website);
-  if(c.emails.length)r.email=c.emails[0];
-  if(c.was.length)r.phone='+'+c.was[0];else if(c.phones.length)r.phone=c.phones[0];
-  r._verified=true;
+  try{
+    var info=await Sources.pageInfo(r.website,15000);
+    if(info.contacts.emails.length)r.email=info.contacts.emails[0];
+    if(!r.phone){if(info.contacts.was.length)r.phone='+'+info.contacts.was[0];else if(info.contacts.phones.length)r.phone=info.contacts.phones[0]}
+    if(!r.country)r.country=Sources.detectCountry(info.text,'');
+    r._verified=true;
+  }catch(e){}
   $('st').textContent=hasC(r)?'✓ 挖到联系方式':'未提取到';render();
 }
 
-function openConv(i){
-  S._p=i;var r=S.results[i];
+function openConv(id){
+  var r=leadById(id);if(!r)return;
+  S._p=id;
   $('c_name').value=r.name||'';$('c_country').value=r.country||'';$('c_email').value=r.email||'';
   $('c_wa').value=r.phone||'';$('c_person').value='';$('c_web').value=r.website||'';
-  $('c_note').value='来源：'+((r._sources||[r.source||'']).join('/'))+(r.linkedin?' | 领英：'+r.linkedin:'')+(r.desc?' — '+r.desc.slice(0,80):'');
+  $('c_note').value='来源：'+((r._sources||[r.source||'']).join('/'))+(r.why?' | 意向：'+r.why:'')+(r.linkedin?' | 领英：'+r.linkedin:'');
   dlg.showModal();
 }
 function convSave(){
-  if(S._p==null)return;var name=$('c_name').value.trim();
+  if(!S._p)return;var name=$('c_name').value.trim();
   if(!name){alert('公司名必填');return}
   var email=$('c_email').value.trim(),phone=$('c_wa').value.trim();
   if(!email&&!phone){alert('邮箱或电话至少填一个');return}
@@ -350,9 +415,11 @@ function convSave(){
   S.convIds[S._p]=name;dlg.close();render();
 }
 function bulkImp(){
-  var n=0;S.results.forEach(function(r,i){if(!hasC(r)||S.convIds[i])return;
-    DataStore.add('leads',{name:r.name||'未知',country:r.country||'',person:'',market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:r.phone||'',email:r.email||'',website:r.website||'',product:v('k_prod').trim(),amount:0,last:new Date().toISOString().slice(0,10),note:'来源：'+((r._sources||[r.source||'']).join('/')),source:'multi_source'});
-    S.convIds[i]='bulk';n++});
+  var n=0;S.results.forEach(function(r){
+    if(!hasC(r)||S.convIds[r._id])return;
+    DataStore.add('leads',{name:r.name||'未知',country:r.country||'',person:'',market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:r.phone||'',email:r.email||'',website:r.website||'',product:v('k_prod').trim(),amount:0,last:new Date().toISOString().slice(0,10),note:'来源：'+((r._sources||[r.source||'']).join('/'))+(r.why?' | '+r.why:''),source:'multi_source'});
+    S.convIds[r._id]='bulk';n++;
+  });
   $('bS').textContent='已导入 '+n+' 条 ✓';render();
 }
 renderSrcList();

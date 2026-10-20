@@ -158,47 +158,307 @@
     return out;
   }
 
-  /* ---------- 6. 连接器 ---------- */
-  async function srcDdg(ctx) {
-    var q = '"' + ctx.product + '" (' + (ctx.type || 'distributor') + ' OR wholesaler OR importer OR buyer) ' + (ctx.region || '');
-    var body = await fetchRaw('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q.trim()), 25000);
-    var links = extractLinks(body, 'https://html.duckduckgo.com/');
-    var out = [], seen = {};
-    links.forEach(function (l) {
-      var d = domainOf(l.url);
-      if (!d || isBlocked(d) || seen[d]) return;
-      seen[d] = 1;
-      out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'DuckDuckGo' });
+  /* ---------- 5.5 询盘式关键词矩阵（借鉴 b2b-buyer-discovery） ---------- */
+  var INTENT_TEMPLATES = {
+    en: [
+      '"{p}" {t} {r}',
+      '"{p}" importer OR buyer {r}',
+      '"{p}" "request for quotation" OR RFQ {r}',
+      '"{p}" tender OR procurement {r}',
+      '"{p}" "looking for supplier" OR "supplier wanted" {r}',
+      '"{p}" purchase order {r}',
+      '"{p}" distributor OR dealer OR wholesaler {r}'
+    ],
+    es: [
+      'cotizacion "{p}" {r}',
+      '"{p}" importador OR mayorista {r}',
+      'solicitud presupuesto "{p}"',
+      'necesitamos proveedor "{p}"',
+      'licitacion "{p}" {r}'
+    ],
+    pt: [
+      'cotacao "{p}" importador {r}',
+      '"{p}" atacadista OR distribuidor {r}'
+    ],
+    de: [
+      'Angebot "{p}" Großhändler {r}',
+      '"{p}" Lieferant gesucht {r}'
+    ],
+    fr: [
+      'devis "{p}" grossiste {r}',
+      '"{p}" fournisseur recherche {r}'
+    ],
+    it: ['preventivo "{p}" grossista {r}'],
+    id: ['"{p}" distributor OR grosir {r}'],
+    vi: ['"{p}" nhà phân phối {r}']
+  };
+
+  var REGION_LANG = {
+    'Latin America': ['es', 'en', 'pt'],
+    'Europe': ['en', 'de', 'fr', 'es', 'it'],
+    'Southeast Asia': ['en', 'id', 'vi'],
+    'Middle East': ['en'],
+    'Africa': ['en', 'fr'],
+    'USA': ['en'],
+    '': ['en', 'es', 'pt']
+  };
+
+  /** 生成询盘式关键词（多语言轮转，带市场词） */
+  function buildQueries(prod, region, type, limit) {
+    var p = String(prod || '').trim();
+    var r = String(region || '').trim();
+    var t = String(type || 'distributor').trim();
+    if (!p) return [];
+    var langs = REGION_LANG[r] || REGION_LANG[''];
+    var lists = langs.map(function (lang) {
+      return (INTENT_TEMPLATES[lang] || []).map(function (tpl) {
+        return tpl.replace(/\{p\}/g, p).replace(/\{t\}/g, t).replace(/\{r\}/g, r).replace(/\s+/g, ' ').trim();
+      });
     });
-    return out.slice(0, 25);
+    var out = [], seen = {}, round = 0, more = true;
+    while (more && out.length < (limit || 12)) {
+      more = false;
+      for (var i = 0; i < lists.length; i++) {
+        var q = lists[i][round];
+        if (!q) continue;
+        more = true;
+        if (seen[q]) continue;
+        seen[q] = 1;
+        out.push({ q: q, lang: langs[i] });
+        if (out.length >= (limit || 12)) break;
+      }
+      round++;
+      if (round > 20) break;
+    }
+    return out;
+  }
+
+  /* ---------- 5.6 规则引擎（11 条供应商过滤 + 价格询盘识别） ---------- */
+  var SKIP_RULES = [
+    { re: /we are (a )?(manufacturer|factory|supplier|producer)/i, why: '制造商页面', strong: true },
+    { re: /alibaba\.com|made-in-china\.com|global\s*sources|indiamart\.com/i, why: '供应商平台', strong: true },
+    { re: /FOB price|CIF price|factory direct|ex.?works|EXW price/i, why: '工厂报价页', strong: true },
+    { re: /出售|转让|低价卖|急售|厂家直销/, why: '中文出售广告', strong: true },
+    { re: /\bjual\b|\bdijual\b/i, why: '印尼语出售', strong: true },
+    { re: /#(?:stonecrushersupplier|crushersupplier|suppliers?|wholesale)/i, why: '卖家标签', strong: true },
+    { re: /our (factory|company|products?|machines?|plant) (offer|provide|supply|manufacture|export)/i, why: '供应商推广', strong: false },
+    { re: /in stock|available (now|for immediate delivery|to ship)/i, why: '现货销售页', strong: false },
+    { re: /add to cart|buy now|product catalog(ue)?/i, why: '电商产品页', strong: false },
+    { re: /\$[\d,.]+\s*\/\s*(unit|piece|pcs|ton|mt)\b/i, why: '价格列表页', strong: false }
+  ];
+  var PRICE_INQUIRY_RE = /\bprice\b|how much|quotation|\bquote\b|price ?list|pricelist|\bMOQ\b|minimum order|per unit|per piece|per ton|per kg|RFQ|request for quotation|tender|procurement/i;
+
+  /** 返回 {skip, reason, score(0/5/7), isPriceInquiry}；strongOnly 只判强信号 */
+  function ruleCheck(text, strongOnly) {
+    var s = String(text || '');
+    for (var i = 0; i < SKIP_RULES.length; i++) {
+      if (strongOnly && !SKIP_RULES[i].strong) continue;
+      if (SKIP_RULES[i].re.test(s)) {
+        return { skip: true, reason: SKIP_RULES[i].why, score: 0, isPriceInquiry: false };
+      }
+    }
+    if (PRICE_INQUIRY_RE.test(s)) {
+      return { skip: false, reason: '价格/采购询问', score: 7, isPriceInquiry: true };
+    }
+    return { skip: false, reason: '', score: 5, isPriceInquiry: false };
+  }
+
+  /** 综合分 0-12：AI 0-10 + 价格询盘 +2 */
+  function compositeScore(aiScore, isPriceInquiry) {
+    var v = Math.round(Number(aiScore) || 0) + (isPriceInquiry ? 2 : 0);
+    return Math.max(0, Math.min(12, v));
+  }
+  function tierOf(score) {
+    if (score >= 10) return { key: 'a', label: '极高' };
+    if (score >= 7) return { key: 'b', label: '高' };
+    if (score >= 4) return { key: 'c', label: '中' };
+    return { key: 'd', label: '低' };
+  }
+
+  /* ---------- 5.7 国家识别（城市 + 域名后缀） ---------- */
+  var COUNTRY_MAP = {
+    'Peru': ['peru', 'perú', 'lima', 'arequipa', '.pe'],
+    'Chile': ['chile', 'santiago', '.cl'],
+    'Colombia': ['colombia', 'bogota', 'bogotá', '.co'],
+    'Mexico': ['mexico', 'méxico', 'cdmx', 'monterrey', '.mx'],
+    'Brazil': ['brazil', 'brasil', 'sao paulo', 'são paulo', '.br'],
+    'Argentina': ['argentina', 'buenos aires', '.ar'],
+    'Ecuador': ['ecuador', 'quito', 'guayaquil', '.ec'],
+    'Indonesia': ['indonesia', 'jakarta', 'surabaya', '.id'],
+    'Vietnam': ['vietnam', 'hanoi', 'ho chi minh', '.vn'],
+    'Thailand': ['thailand', 'bangkok', '.th'],
+    'Malaysia': ['malaysia', 'kuala lumpur', '.my'],
+    'Philippines': ['philippines', 'manila', '.ph'],
+    'India': ['india', 'mumbai', 'delhi', 'chennai', '.in'],
+    'Pakistan': ['pakistan', 'karachi', 'lahore', '.pk'],
+    'Bangladesh': ['bangladesh', 'dhaka', '.bd'],
+    'Sri Lanka': ['sri lanka', 'colombo', '.lk'],
+    'UAE': ['united arab emirates', 'dubai', 'abu dhabi', '.ae'],
+    'Saudi Arabia': ['saudi arabia', 'riyadh', 'jeddah', '.sa'],
+    'Turkey': ['turkey', 'türkiye', 'istanbul', '.tr'],
+    'Egypt': ['egypt', 'cairo', '.eg'],
+    'Nigeria': ['nigeria', 'lagos', 'abuja', '.ng'],
+    'Ghana': ['ghana', 'accra', '.gh'],
+    'Kenya': ['kenya', 'nairobi', '.ke'],
+    'South Africa': ['south africa', 'johannesburg', 'cape town', '.za'],
+    'Morocco': ['morocco', 'casablanca', '.ma'],
+    'Poland': ['poland', 'warsaw', '.pl'],
+    'Germany': ['germany', 'deutschland', 'berlin', 'hamburg', '.de'],
+    'France': ['france', 'paris', 'lyon', '.fr'],
+    'Italy': ['italy', 'italia', 'milan', 'milano', '.it'],
+    'Spain': ['spain', 'españa', 'madrid', 'barcelona', '.es'],
+    'Netherlands': ['netherlands', 'amsterdam', 'rotterdam', '.nl'],
+    'Belgium': ['belgium', 'brussels', '.be'],
+    'United Kingdom': ['united kingdom', 'england', 'london', 'manchester', '.uk'],
+    'USA': ['united states', 'u.s.a', 'usa', 'new york', 'houston', 'chicago', '.us'],
+    'Canada': ['canada', 'toronto', 'vancouver', '.ca'],
+    'Australia': ['australia', 'sydney', 'melbourne', '.au'],
+    'Japan': ['japan', 'tokyo', 'osaka', '.jp'],
+    'South Korea': ['south korea', 'seoul', '.kr']
+  };
+  function detectCountry(text, fallback) {
+    var s = String(text || '').toLowerCase();
+    for (var k in COUNTRY_MAP) {
+      if (!COUNTRY_MAP.hasOwnProperty(k)) continue;
+      var words = COUNTRY_MAP[k];
+      for (var i = 0; i < words.length; i++) {
+        if (s.indexOf(words[i]) >= 0) return k;
+      }
+    }
+    return fallback || '';
+  }
+
+  /* ---------- 5.8 抓页 / 二次补全 ---------- */
+  async function pageInfo(url, timeout) {
+    var body = await fetchRaw(url, timeout || 15000);
+    return {
+      text: body.text || '',
+      html: !!body.html,
+      links: extractLinks(body, url),
+      contacts: extractContacts(body.text || '')
+    };
+  }
+
+  function pickWebsite(links, skipHost) {
+    for (var i = 0; i < links.length; i++) {
+      var d = domainOf(links[i].url);
+      if (!d || isBlocked(d) || d === skipHost) continue;
+      return 'https://' + d;
+    }
+    return '';
+  }
+
+  /** 按公司名二次搜索补全联系方式 */
+  async function enrichContacts(name, domain) {
+    if (!name) return { emails: [], phones: [], was: [], country: '' };
+    var queries = ['"' + name + '" email contact'];
+    if (domain) queries.push('site:' + domain + ' contact email');
+    var texts = [];
+    for (var i = 0; i < queries.length; i++) {
+      try {
+        var body = await fetchRaw('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(queries[i]), 18000);
+        texts.push(body.text || '');
+      } catch (e) { /* 忽略单条失败 */ }
+    }
+    var joined = texts.join(' ');
+    var c = extractContacts(joined);
+    return { emails: c.emails, phones: c.phones, was: c.was, country: detectCountry(joined, '') };
+  }
+
+  /* ---------- 5.9 AI 批量买家意向评分 ---------- */
+  async function aiScoreBatch(prod, market, leads) {
+    if (!leads || !leads.length) return [];
+    if (typeof AgnesAI === 'undefined') throw new Error('AI 模块未加载');
+    var rows = leads.map(function (l, i) {
+      return (i + 1) + '. 公司：' + (l.name || '') +
+        '｜摘要：' + String(l.desc || '').replace(/\s+/g, ' ').slice(0, 160) +
+        '｜网址：' + (l.website || l.linkedin || '');
+    }).join('\n');
+    var prompt = '你是外贸买家意向评分器。我方产品：' + prod + '；目标市场：' + (market || '全球') + '。\n'
+      + '判断每条结果是「买家/采购方」还是「同行供应商/制造商/电商平台」。\n'
+      + '重要：经销商、进口商、分销商、批发商、代理商都是高价值采购方，不要因为不是终端用户而降分。\n'
+      + '评分：0=明确是供应商/工厂/电商平台；5=不确定；7-9=经销商/进口商/批发商/承包商；10=明确询价/招标/采购需求。\n\n'
+      + rows + '\n\n'
+      + '只输出 JSON：{"leads":[{"i":1,"score":0,"type":"distributor|importer|wholesaler|retailer|contractor|manufacturer|unknown","product":"","country":"","why":"一句话理由","approach":"一句话跟进建议","lang":"en"}]}';
+    var txt = await AgnesAI.ask(prompt, { json: true, temperature: 0.1, maxTokens: 2200 });
+    var res = AgnesAI.parseLoose(txt);
+    return (res && res.leads) || [];
+  }
+
+  /* ---------- 6. 连接器 ---------- */
+  var SITE_EXCLUDE = ['alibaba.com', 'made-in-china.com', 'aliexpress.com', 'amazon.com', 'ebay.com',
+    'youtube.com', 'facebook.com', 'instagram.com', 'tiktok.com', 'indiamart.com',
+    'tradekey.com', 'globalsources.com', 'ec21.com', 'linkedin.com']
+    .map(function (d) { return '-site:' + d; }).join(' ');
+  var SITE_EXCLUDE_NO_LI = SITE_EXCLUDE.replace('-site:linkedin.com', '').trim();
+
+  /** DDG 搜索 → 链接列表 */
+  async function searchLinks(q, allowLinkedin) {
+    var ex = allowLinkedin ? SITE_EXCLUDE_NO_LI : SITE_EXCLUDE;
+    var url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent((q + ' ' + ex).trim());
+    var body = await fetchRaw(url, 22000);
+    return extractLinks(body, 'https://html.duckduckgo.com/');
+  }
+  function settleAll(list) {
+    return Promise.allSettled(list).then(function (rs) {
+      var out = [];
+      rs.forEach(function (r) { if (r.status === 'fulfilled' && r.value) out = out.concat(r.value); });
+      return out;
+    });
+  }
+
+  async function srcDdg(ctx) {
+    var qs = (ctx.queries || []).slice(0, 3);
+    if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
+    var groups = await settleAll(qs.map(function (o) { return searchLinks(o.q, false); }));
+    var out = [], seen = {};
+    groups.forEach(function (links) {
+      links.forEach(function (l) {
+        var d = domainOf(l.url);
+        if (!d || isBlocked(d) || seen[d]) return;
+        seen[d] = 1;
+        out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'DuckDuckGo' });
+      });
+    });
+    return out.slice(0, 30);
   }
 
   async function srcLinkedin(ctx) {
-    var q = 'site:linkedin.com/company "' + ctx.product + '" ' + (ctx.region || '');
-    var body = await fetchRaw('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(q.trim()), 25000);
-    var links = extractLinks(body, 'https://html.duckduckgo.com/');
+    var qs = (ctx.queries || []).slice(0, 2);
+    if (!qs.length) qs = [{ q: '"' + ctx.product + '"' }];
+    var groups = await settleAll(qs.map(function (o) {
+      return searchLinks('site:linkedin.com/company ' + o.q, true);
+    }));
     var out = [], seen = {};
-    links.forEach(function (l) {
-      if (!/linkedin\.com\/company\//i.test(l.url)) return;
-      var clean = l.url.split('?')[0].replace(/\/$/, '');
-      if (seen[clean]) return; seen[clean] = 1;
-      var name = String(l.label || '').replace(/\s*[|\-–—]\s*LinkedIn.*$/i, '').replace(/\s*\|\s*LinkedIn$/i, '').trim();
-      if (!name || looksLikeNav(name)) name = nameFromLinkedinUrl(clean);
-      out.push({ name: name, linkedin: clean, source: 'LinkedIn' });
+    groups.forEach(function (links) {
+      links.forEach(function (l) {
+        if (!/linkedin\.com\/company\//i.test(l.url)) return;
+        var clean = l.url.split('?')[0].replace(/\/$/, '');
+        if (seen[clean]) return;
+        seen[clean] = 1;
+        var name = String(l.label || '').replace(/\s*[|\-–—]\s*LinkedIn.*$/i, '').replace(/\s*\|\s*LinkedIn$/i, '').trim();
+        if (!name || looksLikeNav(name)) name = nameFromLinkedinUrl(clean);
+        out.push({ name: name, linkedin: clean, source: 'LinkedIn' });
+      });
     });
     return out.slice(0, 25);
   }
 
   async function srcBing(ctx) {
-    var q = '"' + ctx.product + '" ' + (ctx.type || 'distributor') + ' ' + (ctx.region || '');
-    var body = await fetchRaw('https://www.bing.com/search?q=' + encodeURIComponent(q.trim()) + '&count=30', 25000);
-    var links = extractLinks(body, 'https://www.bing.com/');
+    var qs = (ctx.queries || []).slice(0, 2);
+    if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
+    var groups = await settleAll(qs.map(function (o) {
+      var url = 'https://www.bing.com/search?q=' + encodeURIComponent((o.q + ' ' + SITE_EXCLUDE).trim()) + '&count=30';
+      return fetchRaw(url, 25000).then(function (body) { return extractLinks(body, 'https://www.bing.com/'); });
+    }));
     var out = [], seen = {};
-    links.forEach(function (l) {
-      var d = domainOf(l.url);
-      if (!d || isBlocked(d) || seen[d]) return;
-      seen[d] = 1;
-      out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'Bing' });
+    groups.forEach(function (links) {
+      links.forEach(function (l) {
+        var d = domainOf(l.url);
+        if (!d || isBlocked(d) || seen[d]) return;
+        seen[d] = 1;
+        out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'Bing' });
+      });
     });
     return out.slice(0, 25);
   }
@@ -305,6 +565,15 @@
     domainOf: domainOf,
     host: host,
     nameFromDomain: nameFromDomain,
-    isBlocked: isBlocked
+    isBlocked: isBlocked,
+    buildQueries: buildQueries,
+    ruleCheck: ruleCheck,
+    compositeScore: compositeScore,
+    tierOf: tierOf,
+    detectCountry: detectCountry,
+    pageInfo: pageInfo,
+    pickWebsite: pickWebsite,
+    enrichContacts: enrichContacts,
+    aiScoreBatch: aiScoreBatch
   };
 })(window);
