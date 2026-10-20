@@ -48,7 +48,7 @@ var DOCS_DEF = [
   {id:'oc', title:'订单确认书 / Order Confirmation', cat:'成交单据',
    rows:[['poNo','客户 PO 号 Buyer PO No.',''],
          ['confirmBy','确认人 Confirmed By','']],
-   notes:['We hereby confirm the order per Buyer PO {{poNo}}.','Product & qty as per table below.',
+   notes:['We hereby confirm the order per Buyer PO {{poNo}}.','Product and quantity as per table below.',
           'Payment: {{payment}}','Delivery: {{delivery}}']},
 
   {id:'si', title:'样品单 / Sample Invoice', cat:'成交单据',
@@ -98,7 +98,7 @@ var DOCS_DEF = [
    rows:[['coverage','投保险别 Coverage','All risks + War risk'],
          ['insAmount','投保金额 Insured Amount','110% of invoice value']],
    notes:['Insured amount: {{insAmount}}','Coverage: {{coverage}}',
-          'Shipment: {{portFrom}} to {{portTo}} per {{vessel||B/L}}']},
+          'Shipment: {{portFrom}} to {{portTo}} per B/L']},
 
   {id:'lccheck', title:'信用证审单清单 / L/C Document Checklist', cat:'资金结算',
    rows:[['lcNo','信用证号 L/C No.',''],

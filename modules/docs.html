@@ -192,9 +192,10 @@
 <script src="../js/license.js"></script>
 <script src="../js/docs_data.js"></script>
 <script src="../js/gate.js?v=1"></script>
-<script src="../js/i18n.js?v=2"></script>
+<script src="../js/i18n.js?v=3"></script>
+<script src="../js/docs_i18n.js?v=1"></script>
 <script src="../js/brand.js?v=3"></script>
-<script src="../js/excel.js?v=2"></script>
+<script src="../js/excel.js?v=3"></script>
 <script src="../js/paper.js?v=2"></script>
 <script>
 'use strict';
@@ -315,7 +316,7 @@ function deriveNext(){
   renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
 
   var msg = '⛓ 已派生：' + (lineage.fromTitle.split(' / ')[0]) + (lineage.fromNo ? ' No.'+lineage.fromNo : '')
-    + ' → ' + I18N.docChipTitle(nextDef) + ' No.' + next.no;
+    + ' → ' + String((nextDef.title||'')).split(' / ')[0] + ' No.' + next.no;
   if (miss.length) msg += '（源单缺：' + miss.join('/') + '，请补全）';
   toast(msg);
 }
@@ -385,7 +386,7 @@ function renderPaper(){
     rowsHtml = '<table><tr><th style="width:50%">'+esc(I18N.t('t.desc'))+'</th><th>'+esc(I18N.t('t.qty'))+'</th><th>'+esc(I18N.t('t.unitPrice'))+'</th><th>'+esc(I18N.t('t.amount'))+'</th></tr>'
       + '<tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></table>';
   }
-  var notes = (d.notes||[]).map(function(n){ return '<div>'+rep(n)+'</div>'; }).join('');
+  var notes = I18N.docNotes(d).map(function(n){ return '<div>'+rep(n)+'</div>'; }).join('');
   // 品牌：顶部 Logo + 卖方信息增强（全称/地址/税号）
   var brandHdr = Brand.headerHTML();
   if (brandHdr) brandHdr = '<div class="br-top-in-paper">'+brandHdr+'</div>';
@@ -424,6 +425,9 @@ function renderPaper(){
     + bankBlock
     + (pub.remark ? '<div class="notes"><b>'+esc(I18N.t('p.remarks'))+':</b> '+esc(pub.remark)+'</div>' : '')
     + '<div class="sig">'+stamp+'<div>'+esc(I18N.t('p.sellerSign'))+': ______________</div><div>'+esc(I18N.t('p.buyerSign'))+': ______________</div></div>';
+  /* 阿拉伯语单据从右到左排：表格列、买卖方、签章区一并镜像 */
+  if (I18N.getLang() === 'ar') $('paper').setAttribute('dir', 'rtl');
+  else $('paper').removeAttribute('dir');
   Paper.apply($('paper'));
 }
 
@@ -468,9 +472,11 @@ function onPaperOrient(){
   renderPaper();
 }
 function onPaperLang(){
-  I18N.setLang($('paperLang').value);
+  var v = $('paperLang').value;
+  I18N.setLang(v);
   renderList(); renderForm(); renderPaper(); refreshGate();
-  toast('单证语言：'+ ($('paperLang').selectedOptions[0] ? $('paperLang').selectedOptions[0].text : ''));
+  var name = $('paperLang').selectedOptions[0] ? $('paperLang').selectedOptions[0].text : '';
+  toast('单证语言：' + name + (I18N.hasNotes(v) ? '' : '（正文条款仍为英文）'));
 }
 
 /* ---------- 商品库带入 ---------- */

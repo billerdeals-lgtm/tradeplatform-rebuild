@@ -490,6 +490,28 @@
     return docTitle(def, lang);
   }
 
+  /** 正文条款：优先取 js/docs_i18n.js 的译文，缺省回退英文原文 */
+  function docNotes(def, lang) {
+    if (!def) return [];
+    lang = lang || cfgLang();
+    if (lang === 'bilingual') lang = 'en';
+    var pack = (global.DOC_NOTES || {})[def.id];
+    if (pack && pack[lang] && pack[lang].length) return pack[lang];
+    return def.notes || [];
+  }
+
+  /** 该语种是否有完整正文译文（没有则提示：条款仍为英文） */
+  function hasNotes(lang) {
+    lang = lang || cfgLang();
+    if (lang === 'en' || lang === 'bilingual') return true;
+    var all = global.DOC_NOTES || {};
+    var ids = Object.keys(all);
+    if (!ids.length) return false;
+    return ids.every(function (id) {
+      return !!(all[id] && all[id][lang] && all[id][lang].length);
+    });
+  }
+
   function optionsHTML(sel) {
     sel = sel || cfgLang();
     return LANGS.map(function (l) {
@@ -514,6 +536,8 @@
     fieldLabel: fieldLabel,
     docTitle: docTitle,
     docChipTitle: docChipTitle,
+    docNotes: docNotes,
+    hasNotes: hasNotes,
     optionsHTML: optionsHTML,
     toolbarSelectHTML: toolbarSelectHTML,
     lookup: lookup
