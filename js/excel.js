@@ -127,11 +127,11 @@
     return rows;
   }
 
-  /** 规范词典取词（i18n 未加载时回退英文硬编码） */
+  /** 规范词典取词（跟随单据语言；i18n 未加载时回退英文硬编码） */
   function I(key, fallback) {
     try {
       if (typeof I18N !== 'undefined' && I18N.t) {
-        var v = I18N.t(key, 'en');
+        var v = I18N.t(key);
         if (v) return v;
       }
     } catch (e) {}
