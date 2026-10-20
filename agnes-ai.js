@@ -68,7 +68,7 @@
       throw new Error('今日 AI 调用已达上限 ' + cfg.dailyLimit + ' 次，明天再来（可在设置中调整）');
     }
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeout = opts.timeout || 30000;
+    var timeout = opts.timeout || 60000;
     var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeout);
 
     var body = {

@@ -51,26 +51,34 @@
     return decodeURIComponent(m[1]).replace(/[-_]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }).trim();
   }
 
-  /* 黑名单：搜索站/社交/聚合/维基/电商等，不作为“公司官网” */
+  /* 黑名单：搜索站/社交/聚合/维基/电商/同类型目录站，不作为“公司官网” */
   var BLOCK = [
-    'duckduckgo.com', 'bing.com', 'google.', 'goo.gl', 'youtube.com', 'youtu.be',
-    'facebook.com', 'instagram.com', 'twitter.com', 'x.com', 'pinterest.com',
-    'wikipedia.org', 'wikimedia.org', 'reddit.com', 'quora.com', 'medium.com',
-    'amazon.', 'ebay.', 'alibaba.com', 'aliexpress.', 'alibabacloud',
-    'linkedin.com', 'tiktok.com', 'douyin', 'slot', 'blogspot.', 'wordpress.com',
-    'wixsite.com', 'weebly.com', 'shopify.com', 'gstatic.com', 'googleusercontent',
-    'glassdoor.', 'indeed.', 'crunchbase.com', 'bloomberg.com', 'reuters.com',
-    'forbes.com', 'statista.com', 'zoominfo', 'dnb.com', 'kompass.com',
-    'europages.', 'yellowpages.', 'thomasnet.com', 'exportersindia.com',
-    'go4worldbusiness.com', 'made-in-china.com', 'tradeindia', 'indiamart',
-    'globalsources', 'ec21.', 'tradekey', 'exportpages', 'b2bmap', 'wlw.',
-    'googleadservices', 'doubleclick', 'microsoft.com', 'msn.com', 'yahoo.com',
-    'yandex.', 'baidu.com', 'sogou', 'pinterest.co', 'tumblr.', 'vk.com'
+    'google.', 'gstatic', 'googleusercontent', 'doubleclick', 'googleadservices',
+    'duckduckgo.com', 'bing.com', 'msn.com', 'microsoft.com', 'yahoo.com',
+    'yandex.', 'baidu.', 'sogou.', 'goo.gl', 'bit.ly',
+    'youtube.', 'youtu.be', 'facebook.', 'instagram.', 'twitter.', 'tiktok.', 'douyin',
+    'pinterest.', 'wikipedia.', 'wikimedia.', 'reddit.', 'quora.', 'medium.',
+    'blogspot.', 'wordpress.', 'wixsite.', 'weebly.', 'shopify.', 'tumblr.', 'vk.com',
+    'amazon.', 'ebay.', 'alibaba.', 'aliexpress.', 'alibabacloud',
+    'linkedin.', 'glassdoor.', 'indeed.', 'crunchbase.', 'bloomberg.', 'reuters.',
+    'forbes.', 'statista.', 'zoominfo', 'dnb.',
+    'kompass.', 'europages.', 'yellowpages.', 'thomasnet.', 'exportersindia.',
+    'go4worldbusiness.', 'made-in-china.', 'tradeindia', 'indiamart', 'globalsources',
+    'ec21.', 'tradekey', 'exportpages', 'b2bmap', 'wlw.',
+    'zauba.com', 'importyeti.com', 'hotfrog.', 'cylex.', 'tuugo.',
+    'faire.com', 'qogita.com', 'supplyleader.com', 'merkandi.',
+    'trademo.com', 'exporthub.com', 'tradewheel.com', 'tradeford.',
+    'volza.com', 'importgenius', 'panjiva', 'seair.co', 'exportgenius',
+    'tradeatlas', '52wmb', 'tradesparq', 'b2bmit', 'ecplaza'
   ];
   function isBlocked(d) {
     if (!d) return true;
-    d = d.toLowerCase();
-    return BLOCK.some(function (b) { return d.indexOf(b) >= 0; });
+    d = String(d).toLowerCase().replace(/^www\./, '');
+    if (d === 'x.com' || d === 'twitter.com') return true;
+    for (var i = 0; i < BLOCK.length; i++) {
+      if (d.indexOf(BLOCK[i]) >= 0) return true;
+    }
+    return false;
   }
   function looksLikeNav(s) {
     if (!s) return true;
@@ -203,32 +211,70 @@
     '': ['en', 'es', 'pt']
   };
 
-  /** 生成询盘式关键词（多语言轮转，带市场词） */
-  function buildQueries(prod, region, type, limit) {
+  /* 市场 → 重点国家（“全球”或大区时做国家级查询，召回高得多） */
+  var REGION_COUNTRIES = {
+    'Latin America': ['Mexico', 'Peru', 'Chile', 'Colombia', 'Brazil', 'Argentina', 'Ecuador'],
+    'Southeast Asia': ['Indonesia', 'Vietnam', 'Philippines', 'Malaysia', 'Thailand'],
+    'Middle East': ['UAE', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Egypt', 'Turkey'],
+    'Africa': ['Nigeria', 'Kenya', 'Ghana', 'South Africa', 'Egypt', 'Morocco'],
+    'Europe': ['Poland', 'Germany', 'Turkey', 'Spain', 'Italy', 'Netherlands'],
+    'USA': ['USA']
+  };
+  var GLOBAL_COUNTRIES = ['Nigeria', 'Kenya', 'Ghana', 'South Africa', 'UAE', 'Saudi Arabia',
+    'Egypt', 'Peru', 'Chile', 'Mexico', 'Colombia', 'Brazil', 'Indonesia', 'Vietnam',
+    'Philippines', 'Turkey', 'Poland', 'USA'];
+
+  var BUYER_KINDS = ['importer', 'distributor', 'wholesaler', 'buyer', 'dealer', 'trader', 'agent'];
+
+  /**
+   * 生成混合关键词：国家 × 买家角色（前半）+ 询盘式模板（后半）
+   * seed 用于「换一批」时轮换国家，避免每次同样结果
+   */
+  function buildQueries(prod, region, type, limit, seed) {
     var p = String(prod || '').trim();
     var r = String(region || '').trim();
     var t = String(type || 'distributor').trim();
     if (!p) return [];
+    limit = limit || 12;
+    var out = [], seen = {};
+    function push(q, lang) {
+      q = String(q || '').replace(/\s+/g, ' ').trim();
+      if (!q || seen[q]) return;
+      seen[q] = 1;
+      out.push({ q: q, lang: lang || 'en' });
+    }
+
+    /* 1) 国家级买家查询（核心召回） */
+    var markets = REGION_COUNTRIES[r] || GLOBAL_COUNTRIES;
+    var off = Math.abs(parseInt(seed, 10) || 0) % markets.length;
+    var countryQs = [];
+    for (var i = 0; i < markets.length && countryQs.length < 10; i++) {
+      var c = markets[(off + i) % markets.length];
+      var kind = (i === 0 ? t : BUYER_KINDS[(off + i) % BUYER_KINDS.length]);
+      countryQs.push({ q: '"' + p + '" ' + kind + ' ' + c, lang: 'en' });
+    }
+
+    /* 2) 询盘式多语言模板 */
     var langs = REGION_LANG[r] || REGION_LANG[''];
-    var lists = langs.map(function (lang) {
-      return (INTENT_TEMPLATES[lang] || []).map(function (tpl) {
-        return tpl.replace(/\{p\}/g, p).replace(/\{t\}/g, t).replace(/\{r\}/g, r).replace(/\s+/g, ' ').trim();
-      });
-    });
-    var out = [], seen = {}, round = 0, more = true;
-    while (more && out.length < (limit || 12)) {
-      more = false;
-      for (var i = 0; i < lists.length; i++) {
-        var q = lists[i][round];
-        if (!q) continue;
-        more = true;
-        if (seen[q]) continue;
-        seen[q] = 1;
-        out.push({ q: q, lang: langs[i] });
-        if (out.length >= (limit || 12)) break;
+    var intentQs = [];
+    var maxRound = 6;
+    for (var round = 0; round < maxRound; round++) {
+      for (var li = 0; li < langs.length; li++) {
+        var tpl = (INTENT_TEMPLATES[langs[li]] || [])[round];
+        if (!tpl) continue;
+        intentQs.push({
+          q: tpl.replace(/\{p\}/g, p).replace(/\{t\}/g, t).replace(/\{r\}/g, r),
+          lang: langs[li]
+        });
       }
-      round++;
-      if (round > 20) break;
+    }
+
+    /* 3) 交替合并：2 条国家 + 1 条询盘，保证前几条都是高召回查询 */
+    var ci = 0, ii = 0;
+    while (out.length < limit && (ci < countryQs.length || ii < intentQs.length)) {
+      if (ci < countryQs.length) push(countryQs[ci].q, countryQs[ci].lang), ci++;
+      if (ci < countryQs.length && out.length < limit) push(countryQs[ci].q, countryQs[ci].lang), ci++;
+      if (ii < intentQs.length && out.length < limit) push(intentQs[ii].q, intentQs[ii].lang), ii++;
     }
     return out;
   }
@@ -380,7 +426,7 @@
       + '评分：0=明确是供应商/工厂/电商平台；5=不确定；7-9=经销商/进口商/批发商/承包商；10=明确询价/招标/采购需求。\n\n'
       + rows + '\n\n'
       + '只输出 JSON：{"leads":[{"i":1,"score":0,"type":"distributor|importer|wholesaler|retailer|contractor|manufacturer|unknown","product":"","country":"","why":"一句话理由","approach":"一句话跟进建议","lang":"en"}]}';
-    var txt = await AgnesAI.ask(prompt, { json: true, temperature: 0.1, maxTokens: 2200 });
+    var txt = await AgnesAI.ask(prompt, { json: true, temperature: 0.1, maxTokens: 2200, timeout: 60000 });
     var res = AgnesAI.parseLoose(txt);
     return (res && res.leads) || [];
   }
@@ -392,25 +438,31 @@
     .map(function (d) { return '-site:' + d; }).join(' ');
   var SITE_EXCLUDE_NO_LI = SITE_EXCLUDE.replace('-site:linkedin.com', '').trim();
 
-  /** DDG 搜索 → 链接列表 */
+  /** DDG 搜索 → 链接列表（html 失败自动回退 lite） */
   async function searchLinks(q, allowLinkedin) {
     var ex = allowLinkedin ? SITE_EXCLUDE_NO_LI : SITE_EXCLUDE;
-    var url = 'https://html.duckduckgo.com/html/?q=' + encodeURIComponent((q + ' ' + ex).trim());
-    var body = await fetchRaw(url, 22000);
-    return extractLinks(body, 'https://html.duckduckgo.com/');
+    var full = (q + ' ' + ex).trim();
+    try {
+      var body = await fetchRaw('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(full), 22000);
+      var links = extractLinks(body, 'https://html.duckduckgo.com/');
+      if (links.length) return links;
+    } catch (e) { /* 回退 lite */ }
+    var body2 = await fetchRaw('https://lite.duckduckgo.com/lite/?q=' + encodeURIComponent(full), 20000);
+    return extractLinks(body2, 'https://lite.duckduckgo.com/');
   }
-  function settleAll(list) {
+  /** 并发执行，返回“每组一个数组”（保持分组，便于逐个解析） */
+  function settleGroups(list) {
     return Promise.allSettled(list).then(function (rs) {
-      var out = [];
-      rs.forEach(function (r) { if (r.status === 'fulfilled' && r.value) out = out.concat(r.value); });
-      return out;
+      return rs.map(function (r) {
+        return (r.status === 'fulfilled' && Array.isArray(r.value)) ? r.value : [];
+      });
     });
   }
 
   async function srcDdg(ctx) {
-    var qs = (ctx.queries || []).slice(0, 3);
+    var qs = (ctx.queries || []).slice(0, 4);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
-    var groups = await settleAll(qs.map(function (o) { return searchLinks(o.q, false); }));
+    var groups = await settleGroups(qs.map(function (o) { return searchLinks(o.q, false); }));
     var out = [], seen = {};
     groups.forEach(function (links) {
       links.forEach(function (l) {
@@ -420,13 +472,13 @@
         out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'DuckDuckGo' });
       });
     });
-    return out.slice(0, 30);
+    return out.slice(0, 40);
   }
 
   async function srcLinkedin(ctx) {
     var qs = (ctx.queries || []).slice(0, 2);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '"' }];
-    var groups = await settleAll(qs.map(function (o) {
+    var groups = await settleGroups(qs.map(function (o) {
       return searchLinks('site:linkedin.com/company ' + o.q, true);
     }));
     var out = [], seen = {};
@@ -441,13 +493,13 @@
         out.push({ name: name, linkedin: clean, source: 'LinkedIn' });
       });
     });
-    return out.slice(0, 25);
+    return out.slice(0, 30);
   }
 
   async function srcBing(ctx) {
     var qs = (ctx.queries || []).slice(0, 2);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
-    var groups = await settleAll(qs.map(function (o) {
+    var groups = await settleGroups(qs.map(function (o) {
       var url = 'https://www.bing.com/search?q=' + encodeURIComponent((o.q + ' ' + SITE_EXCLUDE).trim()) + '&count=30';
       return fetchRaw(url, 25000).then(function (body) { return extractLinks(body, 'https://www.bing.com/'); });
     }));
@@ -460,22 +512,123 @@
         out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'Bing' });
       });
     });
-    return out.slice(0, 25);
+    return out.slice(0, 30);
   }
 
   async function srcEuropages(ctx) {
-    var url = 'https://www.europages.co.uk/companies/' + encodeURIComponent(ctx.product) + '.html';
-    var body = await fetchRaw(url, 25000);
-    var links = extractLinks(body, 'https://www.europages.co.uk/');
+    /* 官方分页：/companies/pg-2/<product>.html —— 每页约 20 家，取前 3 页 */
+    var enc = encodeURIComponent(ctx.product);
+    var pages = [
+      'https://www.europages.co.uk/companies/' + enc + '.html',
+      'https://www.europages.co.uk/companies/pg-2/' + enc + '.html',
+      'https://www.europages.co.uk/companies/pg-3/' + enc + '.html'
+    ];
+    var bodies = await Promise.allSettled(pages.map(function (u) { return fetchRaw(u, 25000); }));
     var out = [], seen = {};
-    links.forEach(function (l) {
-      if (!/europages\.co\.uk\/en\/company\//i.test(l.url)) return;
-      var name = String(l.label || '').trim();
-      if (!name || name.length < 3 || seen[name]) return;
-      seen[name] = 1;
-      out.push({ name: name, profileUrl: l.url, source: 'Europages' });
+    function add(name, link) {
+      name = String(name || '').replace(/\s+/g, ' ').trim();
+      if (!name || name.length < 2 || name.length > 90) return;
+      if (/^(view|portfolio|next|previous|more|contact|home|all )/i.test(name)) return;
+      var key = name.toLowerCase();
+      if (seen[key]) return;
+      seen[key] = 1;
+      out.push({ name: name, profileUrl: link, source: 'Europages' });
+    }
+    bodies.forEach(function (r) {
+      if (r.status !== 'fulfilled' || !r.value) return;
+      var body = r.value;
+      var text = body.text || '';
+      /* 1) markdown 链接：[Company](.../en/company/slug-id) */
+      extractLinks(body, 'https://www.europages.co.uk/').forEach(function (l) {
+        if (!/europages\.co\.uk\/(?:[a-z]{2}\/)?company\//i.test(l.url)) return;
+        if (/\/products\//i.test(l.url)) return;
+        add(l.label, l.url);
+      });
+      /* 2) 兜底：老式企业页 .../COMPANY-NAME/00000005257978-001.html */
+      var re2 = /\[([^\]]{2,90})\]\((https?:\/\/www\.europages\.co\.uk\/[^)\s]+\/000000\d+-\d+\.html)\)/gi, m2;
+      while ((m2 = re2.exec(text))) add(m2[1], m2[2]);
     });
-    return out.slice(0, 25);
+    return out.slice(0, 60);
+  }
+
+  /* go4worldbusiness：把“买家询盘”段落解析成线索（含国家/联系人） */
+  var GENERIC_TOKENS = /^(powder|product|products|machine|machines|equipment|material|materials|chemical|chemicals|supply|supplier|price|quality|grade|plastic|metal|paper|glass|liquid|goods|item|items|part|parts|agent|trade)$/i;
+  function parseGo4World(text, fallbackProduct) {
+    var out = [], seen = {};
+    /* 相关性词：产品名里长度≥5 且非通用词，命中任一即保留（过滤掉同页的无关询盘） */
+    var keys = String(fallbackProduct || '').toLowerCase().split(/[^a-z0-9]+/).filter(function (w) {
+      return w.length >= 5 && !GENERIC_TOKENS.test(w);
+    });
+    var parts = String(text || '').split(/Buyer From\s+/i);
+    for (var i = 1; i < parts.length; i++) {
+      var chunk = parts[i];
+      var nl = chunk.indexOf('\n');
+      var country = (nl > 0 ? chunk.slice(0, nl) : chunk).replace(/[*_]/g, '').trim();
+      if (!country || country.length > 40) continue;
+      if (keys.length) {
+        var low = chunk.toLowerCase();
+        var hit = false;
+        for (var k = 0; k < keys.length; k++) { if (low.indexOf(keys[k]) >= 0) { hit = true; break; } }
+        if (!hit) continue;
+      }
+      var product = (chunk.match(/Product Name\s*:\s*([^\n]{2,90})/i) || [])[1] || fallbackProduct || '';
+      var contact = (chunk.match(/Contact\s*:\s*([^\n]{2,60})/i) || [])[1] || '';
+      var qty = (chunk.match(/Quantity Required\s*:\s*([^\n]{1,50})/i) || [])[1] || '';
+      var name = String(product).trim() + ' 采购询盘 · ' + country + (contact ? ' (' + contact.trim() + ')' : '');
+      name = name.replace(/\s+/g, ' ').trim();
+      if (seen[name]) continue;
+      seen[name] = 1;
+      out.push({
+        name: name,
+        country: country,
+        desc: '买家询盘' + (qty ? '：' + qty.trim() : '') + (contact ? ' · 联系人 ' + contact.trim() : ''),
+        contact: contact.trim(),
+        type: 'importer',
+        _inquiry: true,
+        source: 'go4World'
+      });
+    }
+    return out;
+  }
+
+  /* zauba：美国海关进口商（表格里前几条公开，其余需登录） */
+  function parseZauba(text, fallbackProduct) {
+    var out = [], seen = {};
+    var re = /^\|\s*\[([^\]]{2,90})\]\((https?:\/\/www\.zauba\.com\/[^)]*-report-[^)]+)\)\s*\|/gm, m;
+    while ((m = re.exec(String(text || '')))) {
+      var nm = stripTags(m[1]).trim();
+      if (!nm || /login to view/i.test(nm) || seen[nm]) continue;
+      seen[nm] = 1;
+      out.push({
+        name: nm,
+        country: 'USA',
+        desc: '美国进口商（Zauba 海关记录）· ' + (fallbackProduct || ''),
+        type: 'importer',
+        source: 'Zauba'
+      });
+    }
+    return out;
+  }
+
+  async function srcGo4World(ctx) {
+    var url = 'https://www.go4worldbusiness.com/find?searchText=' + encodeURIComponent(ctx.product) + '&type=buyers';
+    var body = await fetchRaw(url, 20000);
+    return parseGo4World(body.text, ctx.product);
+  }
+
+  async function srcZauba(ctx) {
+    var slug = String(ctx.product).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    var listUrl = 'https://www.zauba.com/import-' + slug + '-hs-code.html';
+    var body = await fetchRaw(listUrl, 20000);
+    var txt = body.text || '';
+    var m = txt.match(/\]\((https?:\/\/www\.zauba\.com\/[^)\s]*?-importers)\)/i);
+    if (m) {
+      try {
+        var b2 = await fetchRaw(m[1], 20000);
+        return parseZauba(b2.text, ctx.product);
+      } catch (e) { /* 用列表页兜底 */ }
+    }
+    return parseZauba(txt, ctx.product);
   }
 
   async function srcDirectory(ctx, cfg) {
@@ -515,21 +668,18 @@
 
   /* ---------- 7. 注册表 ---------- */
   var META = [
-    { id: 'ddg',            name: 'DuckDuckGo',     desc: '全网搜索公司官网',        def: true },
+    { id: 'ddg',            name: 'DuckDuckGo',     desc: '全网搜索（按国家扩词）',   def: true },
     { id: 'linkedin',       name: '领英(反查)',     desc: 'site:linkedin.com/company', def: true },
-    { id: 'europages',      name: 'Europages',      desc: '欧洲 B2B 目录',           def: true },
-    { id: 'go4world',       name: 'go4World',       desc: '全球买家目录',            def: true },
-    { id: 'exportersindia', name: 'ExportersIndia', desc: '供应商目录',              def: false },
-    { id: 'thomasnet',      name: 'ThomasNet',      desc: '北美工业目录',            def: false },
-    { id: 'bing',           name: 'Bing',           desc: '备用全网搜索',            def: false },
-    { id: 'ai',             name: 'AI 挖掘',        desc: 'Agnes 训练数据',          def: true }
+    { id: 'europages',      name: 'Europages',      desc: '欧洲 B2B 企业目录',        def: true },
+    { id: 'go4world',       name: 'go4World',       desc: '买家询盘（含国家/联系人）', def: true },
+    { id: 'zauba',          name: 'Zauba',          desc: '美国海关进口商',           def: true },
+    { id: 'exportersindia', name: 'ExportersIndia', desc: '供应商目录（多为同行）',   def: false },
+    { id: 'thomasnet',      name: 'ThomasNet',      desc: '北美工业目录（多为同行）', def: false },
+    { id: 'bing',           name: 'Bing',           desc: '备用全网搜索',             def: false },
+    { id: 'ai',             name: 'AI 挖掘',        desc: 'Agnes 训练数据',           def: true }
   ];
 
   var DIRECTORY = {
-    go4world: {
-      name: 'go4World', base: 'https://www.go4worldbusiness.com/',
-      url: function (c) { return 'https://www.go4worldbusiness.com/find?searchText=' + encodeURIComponent(c.product) + '&type=buyers'; }
-    },
     exportersindia: {
       name: 'ExportersIndia', base: 'https://www.exportersindia.com/',
       url: function (c) { return 'https://www.exportersindia.com/indian-suppliers/' + encodeURIComponent(String(c.product).replace(/\s+/g, '-').toLowerCase()) + '.htm'; }
@@ -545,6 +695,8 @@
     if (id === 'linkedin') return srcLinkedin(ctx);
     if (id === 'bing') return srcBing(ctx);
     if (id === 'europages') return srcEuropages(ctx);
+    if (id === 'go4world') return srcGo4World(ctx);
+    if (id === 'zauba') return srcZauba(ctx);
     if (id === 'ai') return srcAi(ctx);
     if (DIRECTORY[id]) return srcDirectory(ctx, DIRECTORY[id]);
     throw new Error('未知来源 ' + id);
@@ -574,6 +726,8 @@
     pageInfo: pageInfo,
     pickWebsite: pickWebsite,
     enrichContacts: enrichContacts,
-    aiScoreBatch: aiScoreBatch
+    aiScoreBatch: aiScoreBatch,
+    parseGo4World: parseGo4World,
+    parseZauba: parseZauba
   };
 })(window);
