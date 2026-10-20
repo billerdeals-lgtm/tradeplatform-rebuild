@@ -75,14 +75,21 @@
     <span class="saved" id="saved">✓ 已保存，各模块即刻生效</span>
   </div>
 
-  <!-- 品牌资料（Logo / 电子签名 / 公司公章 + 工商银行） -->
+  <!-- 品牌资料（Logo / 电子签名 / 公司公章 + 收款信息） -->
   <section class="ft-card" style="padding:var(--sp-4);margin-top:var(--sp-6);margin-bottom:var(--sp-4)">
-    <h2 style="margin-top:0;font-size:14px">品牌与印章（单证/报价通用）</h2>
-    <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin-bottom:var(--sp-3)">
-      Logo、电子签名、公司公章和收款资料保存一次，单证中心的报价、PI、合同、CI、装箱单自动盖章复用。
-      <button class="ft-btn-primary" style="margin-left:8px" onclick="openBrandDlg()">🏷 打开品牌资料</button>
+    <div style="display:flex;align-items:flex-start;gap:var(--sp-4);flex-wrap:wrap">
+      <div style="flex:1;min-width:240px">
+        <h2 style="margin:0 0 6px;font-size:14px;display:flex;align-items:center;gap:8px">
+          品牌与印章
+          <span style="font-weight:400;font-size:11px;color:var(--text-3);border:1px solid var(--border);border-radius:999px;padding:2px 9px;letter-spacing:.02em">单证 / 报价通用</span>
+        </h2>
+        <div style="font-size:12.5px;color:var(--text-3);line-height:1.7;max-width:640px">
+          保存一次，报价单、PI、合同、CI、装箱单自动盖章复用。
+        </div>
+      </div>
+      <button class="ft-btn-primary" style="flex-shrink:0" onclick="openBrandDlg()">🏷 打开品牌资料</button>
     </div>
-    <div id="brandSummary" style="display:flex;gap:var(--sp-4);flex-wrap:wrap;align-items:center;font-size:13px"></div>
+    <div id="brandSummary" style="display:flex;gap:var(--sp-2);flex-wrap:wrap;align-items:center;margin-top:var(--sp-3);padding-top:var(--sp-3);border-top:1px dashed var(--border)"></div>
   </section>
 </main>
 
@@ -123,13 +130,30 @@ function openBrandDlg(){ Brand.open('dlgBrand', paintBrand); }
 function paintBrand(){
   var b = Brand.get();
   var box = document.getElementById('brandSummary');
-  var items = [];
-  items.push(b.logo ? '<img src="'+b.logo+'" style="max-height:38px">' : '<span style="color:var(--text-3)">Logo 未设置</span>');
-  items.push(b.sign ? '✍ 签名 ✓' : '<span style="color:var(--text-3)">签名未设置</span>');
-  items.push(b.seal ? '🔴 公章 ✓' : '<span style="color:var(--text-3)">公章未设置</span>');
-  items.push(b.sellerFull ? escTxt(b.sellerFull) : '');
-  items.push(b.bankAcct ? '🏦 '+escTxt(b.bankName||'')+' '+escTxt((b.bankAcct||'').slice(0,6)+'…') : '');
-  box.innerHTML = items.filter(Boolean).map(function(x){ return '<span>'+x+'</span>'; }).join('<span style="color:var(--text-3)">·</span>');
+  function pill(done, html){
+    var bg = done ? 'var(--ok-bg)' : 'var(--bg-inset)';
+    var fg = done ? 'var(--ok)' : 'var(--text-3)';
+    var bd = done ? 'var(--ok)' : 'var(--border)';
+    return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:1;'
+      + 'padding:6px 11px;border-radius:999px;background:'+bg+';color:'+fg+';border:1px '+(done?'solid':'dashed')+' '+bd+'">'
+      + html + '</span>';
+  }
+  function tag(html){
+    return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:1;'
+      + 'padding:6px 11px;border-radius:999px;background:var(--bg-inset);color:var(--text-2);border:1px solid var(--border)">'
+      + html + '</span>';
+  }
+  var out = [];
+  if (b.sellerFull) out.push(tag('🏢 ' + escTxt(b.sellerFull)));
+  out.push(b.logo
+    ? pill(true, '<img src="'+b.logo+'" alt="logo" style="height:15px;width:auto;display:block"> <span>Logo ✓</span>')
+    : pill(false, 'Logo 未设置'));
+  out.push(b.sign ? pill(true, '✍ 签名 ✓') : pill(false, '签名未设置'));
+  out.push(b.seal ? pill(true, '🔖 公章 ✓') : pill(false, '公章未设置'));
+  out.push(b.bankAcct
+    ? pill(true, '🏦 ' + escTxt(b.bankName || '收款') + ' · ' + escTxt(String(b.bankAcct).slice(-4)))
+    : pill(false, '收款资料未设置'));
+  box.innerHTML = out.join('');
 }
 function escTxt(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
