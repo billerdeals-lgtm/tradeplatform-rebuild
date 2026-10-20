@@ -65,6 +65,7 @@
     <div id="licBadge" style="font-size:11px;line-height:1.7;margin-bottom:4px"></div>
     <div style="font-size:11px;opacity:.6">数据 100% 本机存储 · <span id="aiCnt"></span></div>
     <div style="display:flex;gap:6px;margin-top:7px">
+      <button onclick="openLicense()" style="flex:1;background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">🔑 授权</button>
       <button onclick="backupAll()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">⬇ 备份</button>
       <button onclick="document.getElementById('restoreFile').click()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">⬆ 恢复</button>
     </div>
@@ -170,6 +171,10 @@ var COLL_LABEL = {
 };
 function readRaw(lsKey){
   try { return JSON.parse(localStorage.getItem(lsKey)); } catch(e){ return null; }
+}
+function openLicense(){
+  if (typeof License !== 'undefined' && License.showLock) { License.showLock('manual'); return; }
+  alert('授权模块没加载成功，请按 Ctrl+F5 强制刷新页面后重试。');
 }
 function backupAll(){
   var keys = DataStore.KEYS;
