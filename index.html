@@ -116,10 +116,13 @@
 <script src="js/license.js"></script>
 <script>
 'use strict';
+/* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
+   避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
+var MODULE_V = '20261020a';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){ n.classList.toggle('on', n.dataset.view===view); });
   if (view==='home'){ location.hash=''; $('frame').style.display='none'; $('home').style.display='block'; refresh(); }
-  else { $('frame').src=view; $('frame').style.display='block'; $('home').style.display='none'; }
+  else { $('frame').src=view + (view.indexOf('?')<0?'?':'&') + 'v=' + MODULE_V; $('frame').style.display='block'; $('home').style.display='none'; }
 }
 function $(id){ return document.getElementById(id); }
 document.querySelectorAll('.navitem').forEach(function(n){
