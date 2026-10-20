@@ -113,9 +113,13 @@ sigRaw[0] = sigRaw[0] ^ 0xFF;
 const r4 = await L.activate('FT1.' + parts[1] + '.' + b64url(sigRaw));
 check('改签名 → SIGNATURE', r4.ok === false && r4.code === 'SIGNATURE', JSON.stringify(r4));
 
-console.log('\n[6] 版本不匹配');
+console.log('\n[6] 版本规则');
 const r5 = await L.activate(sign({ ...base, ver: '2', id: 'FT-V2' }));
-check('ver=2 → VERSION', r5.ok === false && r5.code === 'VERSION', JSON.stringify(r5));
+check('ver=2（高于当前 1.x）→ VERSION', r5.ok === false && r5.code === 'VERSION', JSON.stringify(r5));
+const r5b = await L.activate(sign({ ...base, ver: '0', id: 'FT-V0' }));
+check('ver=0（低于当前版本）→ 放行（永久买断）', r5b.ok === true, JSON.stringify(r5b));
+const r5c = await L.activate(sign({ ...base, ver: 'x', id: 'FT-VX' }));
+check('ver 非数字 → VERSION', r5c.ok === false && r5c.code === 'VERSION', JSON.stringify(r5c));
 
 console.log('\n[7] 格式错误');
 const r6 = await L.activate('这不是激活码');

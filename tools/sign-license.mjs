@@ -69,15 +69,35 @@ if (sig.length !== 64) {
 
 const code = 'FT1.' + payloadSeg + '.' + b64url(sig);
 
-// 台账
-const line = [
-  new Date(iat * 1000).toISOString(),
-  company,
-  id,
-  ver
-].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',') + '\n';
-if (!fs.existsSync(ledger)) fs.writeFileSync(ledger, '\uFEFF时间,公司,编号,版本\n', 'utf8');
-fs.appendFileSync(ledger, line, 'utf8');
+// 台账：时间,公司,编号,版本,激活码（存整行码，客户丢码时直接回发）
+const LEAD_HEADER = ['时间', '公司', '编号', '版本', '激活码'];
+function q(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }
+
+function ensureLedger() {
+  if (!fs.existsSync(ledger)) {
+    fs.writeFileSync(ledger, '\uFEFF' + LEAD_HEADER.join(',') + '\n', 'utf8');
+    return;
+  }
+  const raw = fs.readFileSync(ledger, 'utf8').replace(/^\uFEFF/, '');
+  const lines = raw.split(/\r?\n/);
+  if ((lines[0] || '').includes('激活码')) return;
+  /* 旧版 4 列台账：补表头与空列，历史记录原样保留 */
+  const rows = lines.slice(1).filter(l => l.trim()).map(l => l.replace(/\s+$/, '') + ',""');
+  fs.writeFileSync(ledger, '\uFEFF' + LEAD_HEADER.join(',') + '\n' + rows.join('\n') + (rows.length ? '\n' : ''), 'utf8');
+  console.log('ℹ 台账已升级为 5 列（新增「激活码」，历史行留空）');
+}
+
+const line = [new Date(iat * 1000).toISOString(), company, id, ver, code].map(q).join(',') + '\n';
+
+/* 台账可能正被 Excel/WPS 打开（EBUSY）。绝不能因此吞掉激活码：
+   写不进去也照常把码打印出来，最后单独提示。 */
+let ledgerErr = null;
+try {
+  ensureLedger();
+  fs.appendFileSync(ledger, line, 'utf8');
+} catch (e) {
+  ledgerErr = e;
+}
 
 console.log('✅ 已签发');
 console.log('公司：' + company);
@@ -90,3 +110,8 @@ console.log('');
 console.log(code);
 console.log('');
 console.log('台账：' + ledger);
+if (ledgerErr) {
+  console.error('');
+  console.error('⚠️ 台账写入失败（文件可能正被 Excel / WPS 打开）：' + ledgerErr.message);
+  console.error('   激活码已正常生成，请关闭表格后重新签发一次，或把上面的码手动补进台账。');
+}
