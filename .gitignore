@@ -13,3 +13,8 @@ desktop.ini
 .env.*
 *.token
 *.local
+
+# 授权私钥与台账（绝不提交）
+.ftcompass/
+private.pem
+licenses.csv

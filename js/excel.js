@@ -42,14 +42,22 @@
   function workbookXML(sheets, opts) {
     opts = opts || {};
     var defaultW = opts.colWidth || 90;
+    /* 授权水印：试用版/付费版文案由 License 决定，未加载时不出水印 */
+    var wm = '';
+    try { if (typeof License !== 'undefined' && License.watermark) wm = License.watermark(); } catch (e) {}
     var body = sheets.map(function (s) {
       var cols = '';
       var n = s.cols || 8;
       for (var i = 1; i <= n; i++) {
         cols += '<Column ss:Width="' + (s.colWidth || defaultW) + '"/>';
       }
+      var wmRow = wm
+        ? '<Row ss:StyleID="wm"><Cell ss:MergeAcross="' + Math.max(0, n - 1) + '">'
+          + '<Data ss:Type="String">' + esc(wm) + '</Data></Cell></Row>'
+          + '<Row ss:Height="6"></Row>'
+        : '';
       return '<Worksheet ss:Name="' + esc(s.name) + '"><Table>'
-        + cols + s.rows.join('') + '</Table></Worksheet>';
+        + cols + wmRow + s.rows.join('') + '</Table></Worksheet>';
     }).join('');
 
     return '<?xml version="1.0" encoding="UTF-8"?>'
@@ -89,6 +97,7 @@
       + '<Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>'
       + '<Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/></Borders></Style>'
       + '<Style ss:ID="note"><Font ss:Color="#52606d" ss:Size="10"/></Style>'
+      + '<Style ss:ID="wm"><Font ss:Color="#9aa5b1" ss:Size="9"/><Alignment ss:Horizontal="Center"/></Style>'
       + '</Styles>'
       + body
       + '</Workbook>';
