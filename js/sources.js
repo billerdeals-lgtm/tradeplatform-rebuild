@@ -10,12 +10,49 @@
   'use strict';
 
   /* ---------- 1. 代理层 ---------- */
-  async function fetchJina(url, timeout) {
+  /* jina 免费额度有限（约 20 次/分钟），用闸门把并发压到 4，避免被限流成 0 结果 */
+  var JINA_MAX = 4, jinaActive = 0, jinaQueue = [];
+  function jinaSlot() {
+    return new Promise(function (resolve) {
+      function tryAcquire() {
+        if (jinaActive < JINA_MAX) { jinaActive++; resolve(); }
+        else jinaQueue.push(tryAcquire);
+      }
+      tryAcquire();
+    });
+  }
+  function jinaRelease() {
+    jinaActive = Math.max(0, jinaActive - 1);
+    var next = jinaQueue.shift();
+    if (next) next();
+  }
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  async function jinaOnce(url, timeout) {
     var r = await fetch('https://r.jina.ai/' + url, { signal: AbortSignal.timeout(timeout || 25000) });
-    if (!r.ok) throw new Error('jina HTTP ' + r.status);
+    if (!r.ok) {
+      var err = new Error('jina HTTP ' + r.status);
+      err.status = r.status;
+      throw err;
+    }
     var t = await r.text();
     if (!t || t.length < 120) throw new Error('jina 内容过短');
     return { text: t, html: false };
+  }
+  async function fetchJina(url, timeout) {
+    await jinaSlot();
+    try {
+      try {
+        return await jinaOnce(url, timeout);
+      } catch (e) {
+        /* 429/403/5xx 多为瞬时限流，退避后重试一次 */
+        var retryable = !e.status || e.status === 429 || e.status === 403 || e.status >= 500;
+        if (!retryable) throw e;
+        await sleep(1200 + Math.random() * 900);
+        return await jinaOnce(url, timeout);
+      }
+    } finally {
+      jinaRelease();
+    }
   }
   async function fetchAllOrigins(url, timeout) {
     var r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
