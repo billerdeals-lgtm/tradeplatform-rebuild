@@ -24,29 +24,29 @@
   /* 共享模板 CSS：挂在 .paper 下，不依赖页面 */
   var CSS = ''
     + '.paper{position:relative}'
-    + /* 竖/横方向 */
-    '.paper.orient-portrait{min-height:500px}'
+    /* 竖/横方向 */
+    + '.paper.orient-portrait{min-height:500px}'
     + '.paper.orient-landscape{aspect-ratio:297/210;min-height:0;overflow:auto;padding:32px 40px}'
 
-    + /* 1 经典商务（默认，米色表头） */
-    '.paper.tpl-classic th{background:#f5f3ee;font-size:12px}'
+    /* 1 经典商务（默认，米色表头） */
+    + '.paper.tpl-classic th{background:#f5f3ee;font-size:12px}'
     + '.paper.tpl-classic th,.paper.tpl-classic td{border-color:#cfc9b8;padding:7px 10px}'
     + '.paper.tpl-classic h2{font-size:18px;letter-spacing:.02em}'
 
-    + /* 2 极简外贸：无底表头、细线、更紧凑 */
+    /* 2 极简外贸：无底表头、细线、更紧凑 */
     + '.paper.tpl-minimal th{background:transparent;border-top:none;border-left:none;border-right:none;border-bottom:2px solid #1f2933;font-weight:600;font-size:11.5px;color:#52606d;text-transform:uppercase;letter-spacing:.06em;padding:6px 8px}'
     + '.paper.tpl-minimal td{border-color:#e4e0d4;border-left:none;border-right:none;padding:6px 8px}'
     + '.paper.tpl-minimal h2{font-weight:600;font-size:17px}'
     + '.paper.tpl-minimal .notes,.paper.tpl-minimal .sig{font-size:12px;color:#52606d}'
 
-    + /* 3 正式合同：居中标题、双线、衬线感 */
+    /* 3 正式合同：居中标题、双线、衬线感 */
     + '.paper.tpl-formal h2{font-size:20px;letter-spacing:.08em;text-transform:uppercase;border-bottom:3px double #1f2933;padding-bottom:8px;margin-bottom:4px}'
     + '.paper.tpl-formal th{background:#e8e4d9;font-size:12px;font-weight:700;border-color:#8c8577}'
     + '.paper.tpl-formal td{border-color:#8c8577;padding:8px 10px}'
     + '.paper.tpl-formal .party,.paper.tpl-formal .parties{border-top:1px solid #1f2933;border-bottom:1px solid #1f2933;padding:10px 0;margin:14px 0}'
     + '.paper.tpl-formal .sig{border-top:1px solid #1f2933;padding-top:12px}'
 
-    + /* 4 品牌展示：品牌色顶条 + 品牌色表头（brandColor 由 JS 写入 --paper-brand） */
+    /* 4 品牌展示：品牌色顶条 + 品牌色表头（brandColor 由 JS 写入 --paper-brand） */
     + '.paper.tpl-brand{border-top:6px solid var(--paper-brand,#0b6e4f)}'
     + '.paper.tpl-brand h2{color:var(--paper-brand,#0b6e4f);font-size:19px}'
     + '.paper.tpl-brand th{background:var(--paper-brand,#0b6e4f);color:#fff;font-size:12px;border-color:var(--paper-brand,#0b6e4f)}'
@@ -54,7 +54,7 @@
     + '.paper.tpl-brand tfoot tr td,.paper.tpl-brand .total-row td{background:color-mix(in srgb,var(--paper-brand,#0b6e4f) 12%,#fff);font-weight:700}'
     + '.paper.tpl-brand .br-top-name{color:var(--paper-brand,#0b6e4f)}'
 
-    + /* 5 清关实用：高密度、大写标签、斑马纹 */
+    /* 5 清关实用：高密度、大写标签、斑马纹 */
     + '.paper.tpl-customs{padding:28px 36px}'
     + '.paper.tpl-customs h2{font-size:15px;text-transform:uppercase;letter-spacing:.1em}'
     + '.paper.tpl-customs table{font-size:12px}'
@@ -63,10 +63,10 @@
     + '.paper.tpl-customs tbody tr:nth-child(even) td{background:#f3f1ea}'
     + '.paper.tpl-customs .notes{font-size:12px;line-height:1.6}'
 
-    + /* 授权水印（文案由 License.watermark() 写入 data-wm） */
+    /* 授权水印（文案由 License.watermark() 写入 data-wm） */
     + '.paper::after{content:attr(data-wm);display:block;margin-top:16px;padding-top:8px;border-top:1px dashed #d9e2ec;font-size:9pt;color:#9aa5b1;text-align:center;letter-spacing:.02em}'
 
-    + /* 横版打印适配：统一在 .paper 上做整页排版，避免模块各自为政 */
+    /* 横版打印适配：统一在 .paper 上做整页排版，避免模块各自为政 */
     + '@media print{'
     + 'html,body{margin:0!important;padding:0!important;background:#fff!important}'
     + 'body *{visibility:hidden!important}'
