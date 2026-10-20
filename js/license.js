@@ -411,9 +411,9 @@
   function watermark() {
     var s = _status || (_trial ? computeStatus() : null);
     if (!s) return '';
-    if (s.pro) return '授权给 ' + s.company + ' · ' + s.id + ' · 仅限授权公司使用';
-    if (s.state === 'trial_over') return 'FT Compass 试用已结束 · 不可用于商业交付';
-    return 'FT Compass 试用版 · 不可用于商业交付 · 剩余 ' + s.daysLeft + ' 天';
+    if (s.pro) return 'Licensed to ' + s.company + ' · ' + s.id + ' · Not for redistribution';
+    if (s.state === 'trial_over') return 'FT Compass Trial Expired · Not for client delivery';
+    return 'FT Compass Trial · Not for client delivery · ' + s.daysLeft + ' days left';
   }
 
   function backupCode() {

@@ -263,8 +263,9 @@ License.onChange(fn)             // 状态变化回调（更新徽章）
 
 | 状态 | Excel | PDF / 打印 |
 |---|---|---|
-| trial | `FT Compass 试用版 · 不可用于商业交付 · 剩余 N 天` | 同左 |
-| pro | `授权给 {co} · {id} · 仅限授权公司使用` | 同左 |
+| trial | `FT Compass Trial · Not for client delivery · N days left` | 同左 |
+| trial_over | `FT Compass Trial Expired · Not for client delivery` | 同左 |
+| pro | `Licensed to {co} · {id} · Not for redistribution` | 同左 |
 
 样式：9pt / 灰色 / 居中；不遮挡正文，不改变既有分页逻辑。
 
