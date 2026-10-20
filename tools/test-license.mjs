@@ -92,6 +92,7 @@ check('公司名正确', L.status().company === company);
 check('编号正确', L.status().id === 'FT-TEST');
 check('水印含公司名', L.watermark().includes(company), L.watermark());
 check('水印含编号', L.watermark().includes('FT-TEST'));
+check('水印为英文文案', L.watermark().indexOf('Licensed to') === 0, L.watermark());
 check('备份码一致', L.backupCode() === code);
 check('试用期不再拦截', await L.consume('find') === true);
 
@@ -153,7 +154,7 @@ let allowed = 0;
 for (let i = 0; i < 35; i++) { if (await L2.consume('find')) allowed++; }
 check('最多放行 30 次', allowed === 30, String(allowed));
 check('用尽后状态 trial_over', L2.status().state === 'trial_over', L2.status().state);
-check('用尽后水印为试用版', L2.watermark().includes('试用'), L2.watermark());
+check('用尽后水印为试用版', L2.watermark().includes('Trial'), L2.watermark());
 
 console.log('\n---------------------------');
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
