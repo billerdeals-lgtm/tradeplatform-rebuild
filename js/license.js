@@ -431,6 +431,10 @@
     if (!el) return;
     var s = _status;
     el.style.cursor = 'pointer';
+    el.title = '点击激活 / 查看授权';
+    el.style.textDecoration = 'underline';
+    el.style.textDecorationStyle = 'dotted';
+    el.style.textUnderlineOffset = '3px';
     if (s.pro) {
       el.textContent = '✅ 已授权 · ' + s.company;
       el.style.color = '#7ee2b8';
@@ -499,9 +503,13 @@
   }
 
   function showLock(reason) {
-    if (global.top !== global && global.top.License && global.top.License.showLock) {
-      try { global.top.License.showLock(reason); return; } catch (e) {}
-    }
+    /* 跨域 iframe 里访问 top.License 会抛 SecurityError，必须整段兜住 */
+    try {
+      if (global.top && global.top !== global && global.top.License && global.top.License.showLock) {
+        global.top.License.showLock(reason);
+        return;
+      }
+    } catch (e) { /* 落回本窗口渲染 */ }
     _lockReason = reason || 'manual';
     whenReady(function () { renderLock(_lockReason); });
   }
