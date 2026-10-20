@@ -370,3 +370,33 @@ licenses.csv
 - [ ] 导出的 Excel 与 PDF 均带正确水印
 - [ ] `backupAll` 导出的 JSON 中**不含**任何授权信息
 - [ ] 清除浏览器数据后，重新粘贴码即可恢复
+
+## 18. 实现记录（2026-10-20 落地）
+
+已交付文件：
+
+- `js/license.js`：公钥内置（SPKI base64）；四重冗余（IndexedDB `ft_license/kv` + localStorage `_9f3a2c`/`_b71c4e` + cookie `_ftc9`）；`loadState(autoLock, writeBack)` 区分「启动初始化」与「跨窗口软同步」，软同步只更新内存与徽章、不落盘；`persistTrial()` 值未变化时跳过写入。
+- `tools/gen-key.mjs`：一次性生成 P-256 密钥对，私钥写入 `%USERPROFILE%\.ftcompass\private.pem`（仓库外，已 gitignore）。
+- `tools/sign-license.mjs`：`--company "公司名" [--id FT-XXXX] [--ver 1]`；签名原文是 payload 的 **base64url 段字符串**；Node 端 `dsaEncoding:'ieee-p1363'` 输出 raw `r||s` 64 字节；自动追加台账 `licenses.csv`。
+- `tools/test-license.mjs`：28 项离线自测（格式、签名篡改、payload 篡改、版本不匹配、带换行粘贴、扣次/返还、30 次上限、水印）。
+- `index.html`：侧边栏新增 `#licBadge`（试用剩余 / 已授权公司名，点击打开激活框）；`.navlist` 可收缩滚动，小窗口下备份/恢复按钮不再被挤出。
+- `modules/find.html`：`doSearch()` 先 `License.consume('find')`，零结果（`S.all.length===0`）在 catch 中 `License.refund('find')`；`doMore()` 不扣次。
+- `modules/quotes.html` / `modules/docs.html` / `modules/products.html`：加载 `license.js` 并在启动时 `License.ready()`（否则首屏导出可能取不到水印文案）。
+- `js/excel.js`：每个 sheet 首行插入灰字水印（`ss:StyleID="wm"` + `MergeAcross`）。
+- `js/paper.js`：`Paper.apply()` 写入 `data-wm`，CSS `::after` 渲染；打印时改为固定页脚；首屏早于 IndexedDB 就绪时，等 `License.ready()` 后补写。
+
+与设计稿的实现差异：
+
+1. 锁屏统一由 `License.showLock()` 渲染：父窗口负责 DOM，iframe 内自动委托给 `window.top.License`；不再逐模块调用 `guard()`（`guard()` 仍导出备用）。
+2. 跨窗口同步改用 `storage` 事件（只更新徽章），子窗口不再主动调用父窗口 `refresh()`，避免两个文档互相写回造成事件回环。
+3. `products.html` 也使用 `ExcelExport`，因此一并接入水印。
+
+验收勾选（线上已实测）：
+
+- [x] 断网状态下粘贴有效码立即解锁（本机 WebCrypto 验签，无网络请求）
+- [x] 篡改 payload / 篡改签名 / 版本不符 / 乱码均被拒绝，且不影响既有状态
+- [x] 30 次用完弹出不可关闭锁屏；第 30 次本身正常执行（不会刚扣完就被挡）
+- [x] 零结果自动返还次数（30 → 30），成功结果扣 1 次（30 → 29）
+- [x] Excel 与打印预览均带授权水印
+- [x] `backupAll` 导出的 JSON 不含任何授权键
+- [ ] 换一台电脑粘贴同一个码（无需改动，未做设备绑定；待真机确认）
