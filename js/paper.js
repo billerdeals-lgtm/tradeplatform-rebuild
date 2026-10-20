@@ -66,12 +66,17 @@
     + /* 授权水印（文案由 License.watermark() 写入 data-wm） */
     + '.paper::after{content:attr(data-wm);display:block;margin-top:16px;padding-top:8px;border-top:1px dashed #d9e2ec;font-size:9pt;color:#9aa5b1;text-align:center;letter-spacing:.02em}'
 
-    + /* 横版打印适配 */
+    + /* 横版打印适配：统一在 .paper 上做整页排版，避免模块各自为政 */
     + '@media print{'
-    + 'body>*:not(main){visibility:hidden}'
-    + '.paper.orient-landscape{width:297mm;height:210mm;aspect-ratio:auto;border:0;box-shadow:none;padding:16mm 18mm;overflow:visible}'
-    + '.paper.orient-portrait{width:210mm;min-height:297mm;border:0;box-shadow:none}'
-    + '.paper::after{position:fixed;bottom:6mm;left:0;right:0;margin:0;padding:0;border-top:0}'
+    + 'html,body{margin:0!important;padding:0!important;background:#fff!important}'
+    + 'body *{visibility:hidden!important}'
+    + '.paper,.paper *{visibility:visible!important}'
+    + 'main{display:block!important;max-width:none!important;width:auto!important;margin:0!important;padding:0!important;gap:0!important;align-items:stretch!important}'
+    + '.left,header,.paper-tools,.btnrow,.status-bar,dialog,.toolbar,.aicheck,.print-hint{display:none!important}'
+    + '.right{display:block!important;width:auto!important;margin:0!important;padding:0!important;flex:none!important}'
+    + '.paper{display:block!important;position:static!important;float:none!important;width:210mm!important;min-height:0!important;height:auto!important;margin:0!important;padding:16mm 18mm!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important;box-sizing:border-box!important;background:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
+    + '.paper.orient-landscape{width:297mm!important;min-height:0!important;height:auto!important;aspect-ratio:auto!important;padding:12mm 16mm!important;overflow:visible!important}'
+    + '.paper::after{position:fixed!important;left:0!important;right:0!important;bottom:6mm!important;margin:0!important;padding:0!important;border-top:0!important}'
     + '}';
 
   function injectCSS() {
@@ -116,10 +121,22 @@
     return false;
   }
 
+  /** 按当前纸面方向同步 @page 尺寸：否则竖版内容会被塞进横版/竖版默认纸张里缩放 */
+  function syncPage() {
+    var st = document.getElementById('paper-page');
+    if (!st) {
+      st = document.createElement('style');
+      st.id = 'paper-page';
+      document.head.appendChild(st);
+    }
+    st.textContent = '@page{size:A4 ' + (getOrient() === 'landscape' ? 'landscape' : 'portrait') + ';margin:0}';
+  }
+
   /** 应用模板+方向+品牌色到 .paper 元素 */
   function apply(el) {
     if (!el) return;
     injectCSS();
+    syncPage();
     PAPER_STYLES.forEach(function (s) { el.classList.remove('tpl-' + s.id); });
     PAPER_ORIENTS.forEach(function (o) { el.classList.remove('orient-' + o.id); });
     el.classList.add('tpl-' + getStyle());
@@ -154,6 +171,7 @@
   }
 
   injectCSS();
+  syncPage();
 
   global.Paper = {
     PAPER_STYLES: PAPER_STYLES,
