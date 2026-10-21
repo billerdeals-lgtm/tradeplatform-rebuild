@@ -88,6 +88,55 @@
     return decodeURIComponent(m[1]).replace(/[-_]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }).trim();
   }
 
+  /* ---------- 2.1 AI 公司名核验（防止模型编造公司） ---------- */
+  var NAME_STOP = /^(the|and|of|for|group|company|co|corp|corporation|inc|llc|ltd|limited|gmbh|mbh|ag|sa|sas|srl|spa|bv|nv|plc|pte|pty|oy|ab|as|trading|trade|import|imports|export|exports|distribution|distributor|distributors|international|global|holding|holdings|enterprise|enterprises|industry|industries|solution|solutions|service|services|supply|supplies|partner|partners|brother|brothers|sons)$/i;
+
+  function nameTokens(name) {
+    return String(name || '').toLowerCase()
+      .replace(/&/g, ' and ')
+      .replace(/[^a-z0-9\u00c0-\u024f\u0400-\u04ff\u0600-\u06ff\u4e00-\u9fff]+/g, ' ')
+      .split(/\s+/)
+      .filter(function (w) { return w.length >= 3 && !NAME_STOP.test(w); });
+  }
+
+  /**
+   * 公司名与「域名 / 官网标题」是否匹配。
+   * 目的：模型给出的公司名必须在它声称的官网上找得到，否则视为编造。
+   */
+  function aiNameMatches(name, domain, title) {
+    var toks = nameTokens(name);
+    var core = String(domain || '').toLowerCase().replace(/^www\./, '').split('.')[0].replace(/[^a-z0-9]/g, '');
+    var t = String(title || '').toLowerCase().replace(/\s+/g, ' ');
+    if (!toks.length) return core.length >= 4;
+    var joined = toks.join('');
+    if (core.length >= 4) {
+      if (core === joined) return true;
+      if (joined.length >= 4 && core.indexOf(joined) >= 0) return true;
+      if (core.length >= 5 && joined.indexOf(core) >= 0) return true;
+      for (var i = 0; i < toks.length; i++) {
+        if (toks[i].length >= 5 && core.indexOf(toks[i]) >= 0) return true;
+      }
+    }
+    if (!t) return false;
+    if (joined.length >= 6 && t.replace(/[^a-z0-9]+/g, ' ').indexOf(toks.join(' ')) >= 0) return true;
+    var hits = 0;
+    for (var j = 0; j < toks.length; j++) if (t.indexOf(toks[j]) >= 0) hits++;
+    if (toks.length === 1) {
+      return toks[0].length >= 4 && t.split(/[^a-z0-9\u00c0-\u024f\u0400-\u04ff\u0600-\u06ff\u4e00-\u9fff]+/).indexOf(toks[0]) >= 0;
+    }
+    return hits >= 2;
+  }
+
+  function pageTitle(text) {
+    var s = String(text || '');
+    var m = s.match(/<title[^>]*>([\s\S]{0,240}?)<\/title>/i);
+    if (m) return stripTags(m[1]).trim();
+    m = s.match(/^\s*Title:\s*(.{2,200})$/im);
+    if (m) return m[1].trim();
+    var first = s.split('\n').map(function (x) { return x.trim(); }).filter(Boolean)[0] || '';
+    return stripTags(first).slice(0, 160);
+  }
+
   /* 黑名单：搜索站/社交/聚合/维基/电商/同类型目录站，不作为“公司官网” */
   var BLOCK = [
     'google.', 'gstatic', 'googleusercontent', 'doubleclick', 'googleadservices',
@@ -691,16 +740,103 @@
     return out.slice(0, 25);
   }
 
+  /** 核验模型点名的公司：官网可达 + 标题/域名与公司名匹配，否则视为编造 */
+  async function verifyAiCompany(c) {
+    var website = String(c.website || '').trim();
+    if (!website) return false;
+    if (!/^https?:\/\//i.test(website)) website = 'https://' + website;
+    var d = domainOf(website);
+    if (!d || isBlocked(d)) return false;
+    var info = await pageInfo('https://' + d, 10000);
+    var text = String(info.text || '').replace(/\s+/g, ' ').trim();
+    if (text.length < 120) return false;
+    var title = pageTitle(info.text);
+    if (!aiNameMatches(c.name, d, title)) {
+      var core = nameTokens(c.name).join(' ');
+      if (!core || text.toLowerCase().indexOf(core) < 0) return false;
+    }
+    c.website = 'https://' + d;
+    c._text = info.text;
+    c._aiVerified = true;
+    if (!c.desc) c.desc = text.slice(0, 160);
+    if (!c.country) c.country = detectCountry(text, '');
+    var ct = info.contacts || { emails: [], phones: [], was: [] };
+    if (ct.emails.length && !c.email) c.email = ct.emails[0];
+    if (!c.phone) {
+      if (ct.was.length) c.phone = '+' + ct.was[0];
+      else if (ct.phones.length) c.phone = ct.phones[0];
+    }
+    return true;
+  }
+
+  /**
+   * AI 来源：搜索规划 + 真实网络核验。
+   * - 模型给的搜索词走真实 DuckDuckGo；
+   * - 模型点名的公司必须官网可访问且名称匹配；
+   * - 两条路径产出的候选都标记 _aiVerified，未标记的由 pipeline 兜底丢弃。
+   */
   async function srcAi(ctx) {
     if (typeof AgnesAI === 'undefined') throw new Error('AI 模块未加载');
     var res = await AgnesAI.findBuyers(ctx.product, ctx.region || '全球', ctx.type, ['web', 'linkedin', 'facebook']);
     var cs = (res && res.companies) || [];
-    return cs.map(function (c) {
-      return {
-        name: c.name, country: c.country || '', website: c.website || '', email: c.email || '',
-        phone: c.phone || '', linkedin: c.linkedin || '', desc: c.why || (c.products || ''), source: 'AI'
-      };
-    }).filter(function (c) { return c.name; });
+    var aq = (res && res.queries) || [];
+    var stats = { suggested: cs.length, verified: 0, dropped: 0, fromSearch: 0, queries: 0 };
+    var out = [], seen = {};
+
+    /* 1) 模型点名的公司：逐家抓官网核验（最多 6 家，2 并发） */
+    var cands = cs.filter(function (c) {
+      return c && c.name && c.website;
+    }).slice(0, 6);
+    for (var i = 0; i < cands.length; i += 2) {
+      await Promise.all(cands.slice(i, i + 2).map(async function (c) {
+        try {
+          if (!(await verifyAiCompany(c))) { stats.dropped++; return; }
+          stats.verified++;
+          var d = domainOf(c.website);
+          if (!d || seen[d]) return;
+          seen[d] = 1;
+          out.push({
+            name: c.name,
+            country: c.country || '',
+            website: c.website,
+            email: c.email || '',
+            phone: c.phone || '',
+            linkedin: c.linkedin || '',
+            desc: c.why || c.desc || '',
+            source: 'AI',
+            _aiVerified: true,
+            _text: c._text
+          });
+        } catch (e) { stats.dropped++; }
+      }));
+    }
+    /* 没有官网、或超出核验上限的模型候选，一律视为未验证 */
+    stats.dropped += Math.max(0, cs.length - cands.length);
+
+    /* 2) 模型规划的本地化搜索词：走真实搜索，结果本身就是真实域名 */
+    var qs = aq.filter(Boolean).slice(0, 4);
+    stats.queries = qs.length;
+    if (qs.length) {
+      var groups = await settleGroups(qs.map(function (q) { return searchLinks(q, false); }));
+      groups.forEach(function (links) {
+        links.forEach(function (l) {
+          var d = domainOf(l.url);
+          if (!d || isBlocked(d) || seen[d]) return;
+          seen[d] = 1;
+          stats.fromSearch++;
+          out.push({
+            name: nameFromDomain(d),
+            website: 'https://' + d,
+            desc: l.label || '',
+            source: 'AI',
+            _aiVerified: true
+          });
+        });
+      });
+    }
+
+    if (global.Sources) global.Sources.lastAiStats = stats;
+    return out.slice(0, 30);
   }
 
   /* ---------- 7. 注册表 ---------- */
@@ -713,7 +849,7 @@
     { id: 'exportersindia', name: 'ExportersIndia', desc: '供应商目录（多为同行）',   def: false },
     { id: 'thomasnet',      name: 'ThomasNet',      desc: '北美工业目录（多为同行）', def: false },
     { id: 'bing',           name: 'Bing',           desc: '备用全网搜索',             def: false },
-    { id: 'ai',             name: 'AI 挖掘',        desc: 'Agnes 训练数据',           def: true }
+    { id: 'ai',             name: 'AI 挖掘',        desc: 'AI 规划搜索词 + 官网核验', def: true }
   ];
 
   var DIRECTORY = {
@@ -755,6 +891,7 @@
     host: host,
     nameFromDomain: nameFromDomain,
     isBlocked: isBlocked,
+    aiNameMatches: aiNameMatches,
     buildQueries: buildQueries,
     ruleCheck: ruleCheck,
     compositeScore: compositeScore,

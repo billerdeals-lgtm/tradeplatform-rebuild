@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FT Compass · 竞品库</title>
+<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
+<link rel="stylesheet" href="../assets/tokens.css">
+<style>
+  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
+  header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
+  header img { width:34px; height:34px; }
+  header h1 { font-size:18px; margin:0; flex:1; }
+  header h1 span { font-size:12px; opacity:.7; font-weight:400; }
+  header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
+  main { max-width:1280px; margin:0 auto; padding:var(--sp-4) var(--sp-4) 80px; }
+  .stats { display:flex; gap:var(--sp-6); margin-bottom:var(--sp-3); }
+  .stat { text-align:center; } .stat b { display:block; font-size:22px; font-weight:700; color:var(--brand-700); } .stat span { font-size:11.5px; color:var(--text-3); }
+  .toolbar { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-3); align-items:center; }
+  .toolbar input, .toolbar select { padding:8px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar input[type=search] { flex:1; min-width:190px; }
+  .tw { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-md); box-shadow:var(--shadow-card); overflow:auto; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; font-size:11.5px; color:var(--text-3); font-weight:600; padding:9px 10px; border-bottom:1px solid var(--border); background:var(--bg-inset); white-space:nowrap; }
+  td { padding:10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr:last-child td { border-bottom:0; }
+  td b { font-size:13.5px; }
+  .sub { font-size:11.5px; color:var(--text-3); margin-top:3px; line-height:1.5; }
+  .sub a { color:var(--brand-700); text-decoration:none; }
+  .sub a:hover { text-decoration:underline; }
+  .clamp { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+  .adv, .thr { font-size:12px; line-height:1.55; }
+  .thr { color:#b45309; }
+  .acts { white-space:nowrap; }
+  .acts button { padding:5px 10px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--bg-inset); font-size:12px; cursor:pointer; margin-right:4px; }
+  .acts button:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  .acts .del:hover { border-color:var(--danger); color:var(--danger); }
+  .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; font-size:14px; }
+  dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:680px; width:94%; }
+  dialog::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .dlg-b { padding:var(--sp-4); max-height:68vh; overflow:auto; }
+  .f2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+  .f2 .full { grid-column:1/-1; }
+  .dlg-b label { display:block; font-size:12px; color:var(--text-2); margin-bottom:3px; }
+  .dlg-b input, .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
+  .dlg-b textarea { min-height:56px; resize:vertical; }
+  .df { display:flex; gap:var(--sp-3); padding:0 var(--sp-4) var(--sp-4); justify-content:flex-end; }
+  .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
+  .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
+</style>
+<link rel="stylesheet" href="../assets/responsive.css?v=4">
+</head>
+<body>
+<header>
+  <img src="../assets/logo.svg" alt="">
+  <h1>竞品库 <span>按客户记录对手价格 / MOQ / 卖点，谈判时直接调用</span></h1>
+  <button onclick="openEdit()">＋ 新建竞品</button>
+</header>
+<main>
+  <div class="stats s3">
+    <div class="stat"><b id="sN">0</b><span>竞品总数</span></div>
+    <div class="stat"><b id="sL">0</b><span>已关联客户</span></div>
+    <div class="stat"><b id="sW">0</b><span>有官网</span></div>
+  </div>
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="搜索竞品 / 产品 / 优势 / 威胁…" oninput="render()">
+    <select id="fLead" onchange="render()"><option value="">全部客户</option></select>
+    <select id="fSort" onchange="render()">
+      <option value="upd">最近更新</option>
+      <option value="name">按竞品名</option>
+      <option value="country">按国家</option>
+    </select>
+  </div>
+  <div class="twhint" id="twhint">← 左右滑动查看完整列（优势 / 威胁 / 关联客户）→</div>
+  <div class="tw" id="tw" style="display:none">
+    <table>
+      <thead><tr>
+        <th>竞品</th><th>国家 / 官网</th><th>对标产品</th><th>价格 / MOQ</th>
+        <th>优势 / 威胁</th><th>关联客户</th><th></th>
+      </tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+  <div class="empty" id="empty">竞品库是空的<br><br><button class="ft-btn-primary" onclick="openEdit()">＋ 录入第一个竞品</button></div>
+</main>
+
+<dialog id="dlgEdit">
+  <div class="dlg-h"><span id="dlgTitle">新建竞品</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
+  <div class="dlg-b">
+    <div class="f2">
+      <div class="full"><label>竞品公司 / 品牌 *</label><input id="e_name" placeholder="如：Nordic Home ApS"></div>
+      <div><label>国家 / 市场</label><input id="e_country" placeholder="如：Germany"></div>
+      <div><label>官网</label><input id="e_website" placeholder="https://example.com"></div>
+      <div class="full"><label>对标产品 / 品类</label><input id="e_product" placeholder="如：LED Panel Light 600×600"></div>
+      <div><label>价格 / 报价</label><input id="e_price" placeholder="如：USD 3.20/pc 或 低于我们 8%"></div>
+      <div><label>MOQ</label><input id="e_moq" placeholder="如：500 pcs"></div>
+      <div class="full"><label>对方优势</label><textarea id="e_advantage" rows="2" placeholder="交期、认证、价格、渠道、账期…"></textarea></div>
+      <div class="full"><label>对我们的威胁 / 应对</label><textarea id="e_threat" rows="2" placeholder="客户为什么可能选它？我们该怎么打？"></textarea></div>
+      <div class="full"><label>关联客户</label><select id="e_lead"></select></div>
+      <div class="full"><label>备注</label><textarea id="e_note" rows="2" placeholder="报价单链接、展会、联系人等"></textarea></div>
+    </div>
+  </div>
+  <div class="df"><button class="dx" onclick="dlgEdit.close()">取消</button><button class="ds" onclick="saveC()">保存竞品</button></div>
+</dialog>
+
+<script src="../js/datastore.js"></script>
+<script src="../js/license.js"></script>
+<script>
+'use strict';
+var editingId = null;
+
+function $(id){ return document.getElementById(id); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
+  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
+  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+
+function list(){ return DataStore.list('comps'); }
+function leads(){ return DataStore.list('leads'); }
+function leadName(id){
+  if(!id) return '';
+  var l = leads().filter(function(x){ return x.id === id; })[0];
+  return l ? (l.name || '') : '';
+}
+function safeUrl(u){
+  u = String(u||'').trim();
+  if(!u) return '';
+  if(!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  try { return new URL(u).href; } catch(e){ return ''; }
+}
+
+function renderLeadOptions(){
+  var ls = leads().slice().sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
+  var cur = $('fLead').value;
+  $('fLead').innerHTML = '<option value="">全部客户</option>' + ls.map(function(l){
+    return '<option value="'+esc(l.id)+'"'+(l.id===cur?' selected':'')+'>'+esc(l.name||'未命名')+'</option>';
+  }).join('');
+  var ecur = $('e_lead').value;
+  $('e_lead').innerHTML = '<option value="">不关联具体客户</option>' + ls.map(function(l){
+    return '<option value="'+esc(l.id)+'"'+(l.id===ecur?' selected':'')+'>'+esc(l.name||'未命名')+'</option>';
+  }).join('');
+}
+
+function render(){
+  var all = list();
+  var q = $('q').value.trim().toLowerCase();
+  var lead = $('fLead').value;
+  var sort = $('fSort').value;
+
+  var rows = all.filter(function(c){
+    if (lead && c.leadId !== lead) return false;
+    if (!q) return true;
+    return [c.name,c.country,c.product,c.price,c.moq,c.advantage,c.threat,c.note,leadName(c.leadId)]
+      .join(' ').toLowerCase().indexOf(q) >= 0;
+  });
+  if (sort==='name') rows.sort(function(a,b){ return String(a.name||'').localeCompare(String(b.name||'')); });
+  else if (sort==='country') rows.sort(function(a,b){ return String(a.country||'').localeCompare(String(b.country||'')); });
+  else rows.sort(function(a,b){ return String(b.updatedAt||b.createdAt||'').localeCompare(String(a.updatedAt||a.createdAt||'')); });
+
+  $('sN').textContent = all.length;
+  $('sL').textContent = all.filter(function(c){ return c.leadId; }).length;
+  $('sW').textContent = all.filter(function(c){ return c.website; }).length;
+
+  if (!rows.length){
+    $('tw').style.display = 'none';
+    $('twhint').style.display = 'none';
+    $('empty').style.display = 'block';
+    $('empty').innerHTML = all.length
+      ? '没有匹配的竞品<br><br><button class="ft-btn-primary" onclick="clearFilter()">清除筛选</button>'
+      : '竞品库是空的<br><br><button class="ft-btn-primary" onclick="openEdit()">＋ 录入第一个竞品</button>';
+    return;
+  }
+  $('tw').style.display = 'block';
+  $('twhint').style.display = '';
+  $('empty').style.display = 'none';
+  $('rows').innerHTML = rows.map(function(c){
+    var url = safeUrl(c.website);
+    var site = url ? '<a href="'+esc(url)+'" target="_blank" rel="noopener">'+esc(SourcesDomain(url))+'</a>' : '—';
+    var lead = leadName(c.leadId);
+    return '<tr>'
+      + '<td><b>'+esc(c.name)+'</b>'+(c.note?'<div class="sub clamp" title="'+esc(c.note)+'">'+esc(c.note)+'</div>':'')+'</td>'
+      + '<td>'+esc(c.country||'—')+'<div class="sub">'+site+'</div></td>'
+      + '<td>'+(c.product?esc(c.product):'—')+'</td>'
+      + '<td>'+(c.price?esc(c.price):'—')+(c.moq?'<div class="sub">MOQ '+esc(c.moq)+'</div>':'')+'</td>'
+      + '<td><div class="adv clamp" title="'+esc(c.advantage||'')+'">'+(c.advantage?'优势：'+esc(c.advantage):'—')+'</div>'
+      + (c.threat?'<div class="thr clamp" title="'+esc(c.threat)+'">威胁：'+esc(c.threat)+'</div>':'')+'</td>'
+      + '<td>'+(lead?esc(lead):'<span class="sub">未关联</span>')+'</td>'
+      + '<td class="acts"><button onclick="openEdit(\''+esc(c.id)+'\')">编辑</button><button class="del" onclick="delC(\''+esc(c.id)+'\')">删除</button></td>'
+      + '</tr>';
+  }).join('');
+}
+
+function SourcesDomain(url){
+  try { return new URL(url).hostname.replace(/^www\./,''); } catch(e){ return url; }
+}
+
+function clearFilter(){
+  $('q').value=''; $('fLead').value=''; $('fSort').value='upd'; render();
+}
+
+function openEdit(id){
+  editingId = id || null;
+  $('dlgTitle').textContent = id ? '编辑竞品' : '新建竞品';
+  var c = id ? DataStore.get('comps', id) : null;
+  renderLeadOptions();
+  var map = { name:'e_name', country:'e_country', website:'e_website', product:'e_product',
+    price:'e_price', moq:'e_moq', advantage:'e_advantage', threat:'e_threat', leadId:'e_lead', note:'e_note' };
+  Object.keys(map).forEach(function(k){ $(map[k]).value = c && c[k] != null ? c[k] : ''; });
+  dlgEdit.showModal();
+  setTimeout(function(){ $('e_name').focus(); }, 50);
+}
+
+function saveC(){
+  var name = $('e_name').value.trim();
+  if (!name){ alert('竞品公司/品牌必填'); $('e_name').focus(); return; }
+  var rec = {
+    name: name,
+    country: $('e_country').value.trim(),
+    website: safeUrl($('e_website').value.trim()),
+    product: $('e_product').value.trim(),
+    price: $('e_price').value.trim(),
+    moq: $('e_moq').value.trim(),
+    advantage: $('e_advantage').value.trim(),
+    threat: $('e_threat').value.trim(),
+    leadId: $('e_lead').value,
+    note: $('e_note').value.trim()
+  };
+  if (editingId) DataStore.update('comps', editingId, rec);
+  else DataStore.add('comps', rec);
+  dlgEdit.close(); render();
+  toast(editingId ? '竞品已更新' : '竞品已入库 ✓');
+  editingId = null;
+}
+
+function delC(id){
+  var c = DataStore.get('comps', id);
+  if (!c) return;
+  if (!confirm('删除竞品「'+(c.name||'')+'」？不影响关联的客户线索。')) return;
+  DataStore.remove('comps', id); render();
+}
+
+renderLeadOptions();
+render();
+License.ready();
+</script>
+</body>
+</html>

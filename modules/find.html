@@ -81,7 +81,9 @@
   .df button { flex:1; padding:10px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; }
   .dx { background:var(--bg-inset); color:var(--text-2); }
+  .srcnote { font-size:11.5px; color:var(--text-3); padding:0 var(--sp-4) var(--sp-4); line-height:1.55; }
 </style>
+<link rel="stylesheet" href="../assets/responsive.css?v=4">
 </head>
 <body>
 <header><img src="../assets/logo.svg" alt="logo"><h1>找客户</h1></header>
@@ -97,6 +99,7 @@
       </div>
     </div>
     <div class="srcw"><label>数据来源（可多选）</label><div class="srclist" id="srclist"></div></div>
+    <div class="srcnote">AI 挖掘只负责规划本地化搜索词；它点名的公司必须官网可访问、且名称与域名/标题匹配才会保留，未通过核验的不会出现在结果里。</div>
     <div class="acts">
       <button class="btn-main btn-ai" id="btnS" onclick="doSearch()">🔍 开始挖掘</button>
       <button class="btn-main btn-sec" id="btnM" onclick="doMore()" style="display:none">➕ 换一批</button>
@@ -120,6 +123,7 @@
     <button class="btn-main btn-ai" onclick="bulkImp()">⬇ 一键导入有联系方式的</button>
     <span class="status" id="bS"></span>
   </div>
+  <div class="twhint" id="twhint">← 左右滑动查看完整列 →</div>
   <div class="tw"><table id="rT" style="display:none"><thead><tr><th>公司</th><th>国家</th><th>意向</th><th>联系方式</th><th>来源</th><th></th></tr></thead><tbody id="rB"></tbody></table></div>
   <div id="eS"><div class="empty">输入产品关键词，选择来源，点击「开始挖掘」<br>系统用询盘式关键词多源搜索，规则引擎剔除供应商页，AI 给出买家意向分</div></div>
   <div class="log" id="log"></div>
@@ -134,7 +138,7 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js"></script><script src="../js/sources.js?v=3"></script><script src="../agnes-ai.js"></script><script src="../js/license.js"></script><script>
+<script src="../js/datastore.js"></script><script src="../js/sources.js?v=4"></script><script src="../agnes-ai.js?v=5"></script><script src="../js/license.js"></script><script>
 'use strict';
 var S={all:[],results:[],convIds:{},round:0,seq:0,_p:null};
 
@@ -219,11 +223,19 @@ async function runPipeline(append){
         var cs=await Sources.run(id,ctx);
         cs.forEach(function(c){all.push(c)});
         log(nm+': '+cs.length+' 家',cs.length>0);
+        if(id==='ai'&&Sources.lastAiStats){
+          var ast=Sources.lastAiStats;
+          log('AI 核验：模型建议 '+ast.suggested+' 家 / 官网通过 '+ast.verified+' 家 / 丢弃 '+ast.dropped+' 家；搜索词新增 '+ast.fromSearch+' 家',ast.verified>0||ast.fromSearch>0);
+        }
       }catch(e){log(nm+': 失败 '+e.message,false)}
       done++;setP(5+Math.round(done/ids.length*20));
     }));
 
-    var merged=dedupe(all).filter(function(c){return c.name.length>2&&ctx.exclude.indexOf((c.name||'').toLowerCase())<0});
+    var merged=dedupe(all).filter(function(c){
+      /* 兜底：AI 来源必须带核验标记，防止未核验公司漏进结果 */
+      if(c.source==='AI'&&!c._aiVerified)return false;
+      return c.name.length>2&&ctx.exclude.indexOf((c.name||'').toLowerCase())<0;
+    });
     if(!merged.length)throw new Error('所有来源均未找到公司，请换个关键词或增加来源');
     log('合并去重后 '+merged.length+' 家',true);
     setP(27);
@@ -242,6 +254,8 @@ async function runPipeline(append){
     /* 3. 抓取页面（官网/目录页），提取联系方式与国家 */
     var pool=merged.filter(function(c){return c.website||c.profileUrl}).slice(0,20);
     await inBatches(pool,4,async function(c){
+      /* AI 源已在核验阶段抓过官网，避免重复请求 */
+      if(c._aiVerified&&c._text){c._verified=true;return}
       var url=c.website||c.profileUrl;
       try{
         var info=await Sources.pageInfo(url,15000);
@@ -365,8 +379,8 @@ function render(){
   var nH=S.all.filter(function(r){return r.score>=7}).length;
   $('sN').textContent=S.all.length;$('sH').textContent=nH;$('sC').textContent=nC;$('sI').textContent=Object.keys(S.convIds).length;
   $('bR').style.display=nC?'flex':'none';
-  if(!S.results.length){$('rT').style.display='none';$('eS').style.display='block';return}
-  $('rT').style.display='table';$('eS').style.display='none';
+  if(!S.results.length){$('rT').style.display='none';$('eS').style.display='block';$('twhint').style.display='none';return}
+  $('rT').style.display='table';$('eS').style.display='none';$('twhint').style.display='';
   $('rB').innerHTML=S.results.map(function(r){
     var imp=S.convIds[r._id];
     var badges=(r._sources||[r.source||'目录']).map(function(s){return '<span class="badge '+srcClass(s)+'">'+esc(s)+'</span>'}).join('');
