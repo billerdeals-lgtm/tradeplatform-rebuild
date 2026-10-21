@@ -75,7 +75,33 @@
   .note-box textarea { width:100%; box-sizing:border-box; border:0; background:transparent; font-size:13px; font-family:var(--font-sans); resize:vertical; min-height:60px; }
   .note-box textarea:focus { outline:none; }
   .note-box .note-saved { font-size:12px; color:var(--ok); margin-top:4px; }
+  /* 竞品 */
+  .comp-item { border:1px solid var(--border); border-radius:var(--r-sm); padding:10px 12px; margin-bottom:8px; background:var(--bg-inset); }
+  .comp-top { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .comp-name { font-weight:600; font-size:14px; }
+  .comp-meta { font-size:11.5px; color:var(--text-3); }
+  .comp-meta a { color:var(--brand-700); text-decoration:none; }
+  .comp-row { font-size:12.5px; color:var(--text-2); margin-top:4px; line-height:1.55; }
+  .comp-row b { color:var(--text-1); font-weight:600; }
+  .comp-acts { margin-left:auto; display:flex; gap:6px; }
+  .comp-acts button { padding:3px 9px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--bg-card); font-size:11.5px; cursor:pointer; }
+  .comp-acts button:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  .comp-acts .del:hover { border-color:var(--danger); color:var(--danger); }
+  .comp-empty { text-align:center; color:var(--text-3); padding:var(--sp-5) 0; font-size:13px; }
+  dialog#dlgComp { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:640px; width:94%; }
+  dialog#dlgComp::backdrop { background:rgba(31,41,51,.4); }
+  .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .dlg-b { padding:var(--sp-4); max-height:68vh; overflow:auto; }
+  .f2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
+  .f2 .full { grid-column:1/-1; }
+  .dlg-b label { display:block; font-size:12px; color:var(--text-2); margin-bottom:3px; }
+  .dlg-b input, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
+  .dlg-b textarea { min-height:56px; resize:vertical; }
+  .df { display:flex; gap:var(--sp-3); padding:0 var(--sp-4) var(--sp-4); justify-content:flex-end; }
+  .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
+  .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
+<link rel="stylesheet" href="../assets/responsive.css?v=4">
 </head>
 <body>
 <header>
@@ -96,15 +122,40 @@
   </div>
 </main>
 
+<dialog id="dlgComp">
+  <div class="dlg-h"><span id="ce_title">添加竞品</span><button class="iconbtn" onclick="dlgComp.close()">✕</button></div>
+  <div class="dlg-b">
+    <div class="f2">
+      <div class="full"><label>竞品公司 / 品牌 *</label><input id="ce_name" placeholder="客户可能选择的对手"></div>
+      <div><label>国家 / 市场</label><input id="ce_country"></div>
+      <div><label>官网</label><input id="ce_website" placeholder="https://example.com"></div>
+      <div class="full"><label>对标产品 / 品类</label><input id="ce_product"></div>
+      <div><label>价格 / 报价</label><input id="ce_price"></div>
+      <div><label>MOQ</label><input id="ce_moq"></div>
+      <div class="full"><label>对方优势</label><textarea id="ce_advantage" rows="2"></textarea></div>
+      <div class="full"><label>对我们的威胁 / 应对</label><textarea id="ce_threat" rows="2"></textarea></div>
+      <div class="full"><label>备注</label><textarea id="ce_note" rows="2"></textarea></div>
+    </div>
+  </div>
+  <div class="df"><button class="dx" onclick="dlgComp.close()">取消</button><button class="ds" onclick="saveComp()">保存竞品</button></div>
+</dialog>
+
 <script src="../js/datastore.js"></script>
-<script src="../agnes-ai.js"></script>
+<script src="../agnes-ai.js?v=5"></script>
 <script>
 'use strict';
 
 var S = { lead: null };
+var compEditingId = null;
 
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function safeUrl(u) {
+  u = String(u || '').trim();
+  if (!u) return '';
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  try { return new URL(u).href; } catch (e) { return ''; }
+}
 
 function renderList() {
   var q = $('searchC').value.toLowerCase();
@@ -146,6 +197,7 @@ function renderDetail() {
   var todos = DataStore.list('todos').filter(function(t){ return t.leadId === l.id; });
   var docs = DataStore.list('docs').filter(function(d){ return (d.buyer||'').includes(l.name) || (d.leadId === l.id); });
   var outreach = DataStore.list('outreach').filter(function(o){ return o.leadId === l.id; });
+  var comps = DataStore.list('comps').filter(function(c){ return c.leadId === l.id; });
 
   var totalQuoted = quotes.reduce(function(s,q){ return s + (q.total||0); }, 0);
   var quoteCurrency = quotes.length ? quotes[0].currency : 'USD';
@@ -175,18 +227,20 @@ function renderDetail() {
     + '<div class="stat-item"><b>' + docs.length + '</b><span>单证</span></div>'
     + '<div class="stat-item"><b>' + todos.length + '</b><span>待办</span></div>'
     + '<div class="stat-item"><b>' + outreach.length + '</b><span>触达</span></div>'
+    + '<div class="stat-item"><b>' + comps.length + '</b><span>竞品</span></div>'
     + '<div class="stat-item"><b>' + esc(quoteCurrency) + ' ' + totalQuoted.toFixed(2) + '</b><span>累计报价</span></div>'
     + '</div>';
 
   // 标签页
   html += '<div class="ft-card">'
     + '<div class="tabs">'
-    +   '<div class="tab on" onclick="switchTab(\'timeline\',this)">📅 时间线</div>'
-    +   '<div class="tab" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
-    +   '<div class="tab" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
-    +   '<div class="tab" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
-    +   '<div class="tab" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
-    +   '<div class="tab" onclick="switchTab(\'notes\',this)">📝 备注</div>'
+    +   '<div class="tab on" data-tab="timeline" onclick="switchTab(\'timeline\',this)">📅 时间线</div>'
+    +   '<div class="tab" data-tab="quotes" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
+    +   '<div class="tab" data-tab="docs" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
+    +   '<div class="tab" data-tab="todos" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
+    +   '<div class="tab" data-tab="outreach" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
+    +   '<div class="tab" data-tab="comps" onclick="switchTab(\'comps\',this)">⚔️ 竞品 (' + comps.length + ')</div>'
+    +   '<div class="tab" data-tab="notes" onclick="switchTab(\'notes\',this)">📝 备注</div>'
     + '</div>';
 
   // 时间线
@@ -263,6 +317,33 @@ function renderDetail() {
   } else { html += '<div class="empty-tab">暂无触达记录</div>'; }
   html += '</div>';
 
+  // 竞品
+  html += '<div class="tab-content" id="tc-comps">';
+  html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    + '<b style="font-size:13px">竞品对比（' + comps.length + '）</b>'
+    + '<button class="btn-sm" style="padding:4px 12px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="openCompEdit()">＋ 添加竞品</button>'
+    + '</div>';
+  if (comps.length) {
+    comps.forEach(function(c){
+      var url = safeUrl(c.website);
+      var meta = [c.country || '', url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url.replace(/^https?:\/\/(www\.)?/, '')) + '</a>' : '']
+        .filter(Boolean).join(' · ');
+      html += '<div class="comp-item">'
+        + '<div class="comp-top"><span class="comp-name">' + esc(c.name) + '</span>'
+        + (meta ? '<span class="comp-meta">' + meta + '</span>' : '')
+        + '<span class="comp-acts"><button onclick="openCompEdit(\'' + esc(c.id) + '\')">编辑</button><button class="del" onclick="delComp(\'' + esc(c.id) + '\')">删除</button></span></div>'
+        + (c.product ? '<div class="comp-row"><b>对标产品：</b>' + esc(c.product) + '</div>' : '')
+        + ((c.price || c.moq) ? '<div class="comp-row"><b>价格 / MOQ：</b>' + esc(c.price || '—') + (c.moq ? ' · ' + esc(c.moq) : '') + '</div>' : '')
+        + (c.advantage ? '<div class="comp-row"><b>优势：</b>' + esc(c.advantage) + '</div>' : '')
+        + (c.threat ? '<div class="comp-row"><b>威胁 / 应对：</b>' + esc(c.threat) + '</div>' : '')
+        + (c.note ? '<div class="comp-row"><b>备注：</b>' + esc(c.note) + '</div>' : '')
+        + '</div>';
+    });
+  } else {
+    html += '<div class="comp-empty">还没有记录这个客户的竞品<br><br><button class="btn-sm" style="padding:5px 14px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="openCompEdit()">＋ 添加第一个竞品</button></div>';
+  }
+  html += '</div>';
+
   // 备注
   html += '<div class="tab-content" id="tc-notes">'
     + '<div class="note-box"><textarea id="noteArea" placeholder="记录关于这个客户的备注…">' + esc(l.note||'') + '</textarea>'
@@ -336,6 +417,57 @@ async function aiSummary() {
   } catch(e) {
     box.textContent = '❌ ' + e.message;
   }
+}
+
+/* ---------- 竞品 ---------- */
+function activateTab(name) {
+  var el = document.querySelector('.tab[data-tab="' + name + '"]');
+  if (el) switchTab(name, el);
+}
+
+function openCompEdit(id) {
+  if (!S.lead) { alert('请先选择客户'); return; }
+  compEditingId = id || null;
+  var c = id ? DataStore.get('comps', id) : null;
+  $('ce_title').textContent = id ? '编辑竞品' : ('添加竞品 · ' + (S.lead.name || ''));
+  var map = { name:'ce_name', country:'ce_country', website:'ce_website', product:'ce_product',
+    price:'ce_price', moq:'ce_moq', advantage:'ce_advantage', threat:'ce_threat', note:'ce_note' };
+  Object.keys(map).forEach(function(k){ $(map[k]).value = c && c[k] != null ? c[k] : ''; });
+  $('dlgComp').showModal();
+  setTimeout(function(){ $('ce_name').focus(); }, 50);
+}
+
+function saveComp() {
+  if (!S.lead) return;
+  var name = $('ce_name').value.trim();
+  if (!name) { alert('竞品公司/品牌必填'); $('ce_name').focus(); return; }
+  var rec = {
+    name: name,
+    country: $('ce_country').value.trim(),
+    website: safeUrl($('ce_website').value.trim()),
+    product: $('ce_product').value.trim(),
+    price: $('ce_price').value.trim(),
+    moq: $('ce_moq').value.trim(),
+    advantage: $('ce_advantage').value.trim(),
+    threat: $('ce_threat').value.trim(),
+    leadId: S.lead.id,
+    note: $('ce_note').value.trim()
+  };
+  if (compEditingId) DataStore.update('comps', compEditingId, rec);
+  else DataStore.add('comps', rec);
+  $('dlgComp').close();
+  compEditingId = null;
+  renderDetail();
+  activateTab('comps');
+}
+
+function delComp(id) {
+  var c = DataStore.get('comps', id);
+  if (!c) return;
+  if (!confirm('删除竞品「' + (c.name || '') + '」？不影响客户线索。')) return;
+  DataStore.remove('comps', id);
+  renderDetail();
+  activateTab('comps');
 }
 
 renderList();

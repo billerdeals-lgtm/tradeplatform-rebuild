@@ -37,10 +37,43 @@
   .brief .ft-ai-output { font-size:14px; line-height:1.8; }
   .quick { display:flex; gap:var(--sp-3); flex-wrap:wrap; }
   .dialog-wrap { padding:0; }
+  /* ---- 移动端抽屉 ---- */
+  .mbar { display:none; }
+  .mcover { display:none; }
+  .mdot { display:none; }
+  @media (max-width:860px) {
+    body { display:block; height:100vh; height:100dvh; overflow:hidden; }
+    .mbar { display:flex; position:fixed; top:0; left:0; right:0; height:52px; z-index:60; background:var(--brand-900); color:#fff; align-items:center; gap:10px; padding:0 12px; box-sizing:border-box; }
+    .mbar .mburger { width:36px; height:36px; flex:0 0 36px; border-radius:8px; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.14); color:#fff; font-size:18px; line-height:1; cursor:pointer; }
+    .mbar b { font-size:14px; letter-spacing:.3px; }
+    .mbar #mTitle { margin-left:auto; font-size:12px; opacity:.75; max-width:44%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .mbar .mdot { display:inline-block; width:8px; height:8px; flex:0 0 8px; border-radius:50%; margin-left:6px; background:rgba(255,255,255,.45); cursor:pointer; }
+    nav { position:fixed; top:0; bottom:0; left:0; width:268px; max-width:84vw; z-index:70; transform:translateX(-100%); transition:transform .22s ease; box-shadow:8px 0 30px rgba(0,0,0,.25); }
+    nav.open { transform:none; }
+    .mcover { position:fixed; inset:0; z-index:65; background:rgba(0,0,0,.45); }
+    .mcover.show { display:block; }
+    .content { height:100%; padding-top:52px; box-sizing:border-box; }
+    iframe { width:100%; height:100%; }
+    #home { padding:16px 12px; height:calc(100dvh - 52px); }
+    #home h2 { font-size:19px; }
+    #home .sub { font-size:12px; margin-bottom:14px; }
+    #home .grid { grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+    .quick { gap:8px; }
+    .quick button { flex:1 1 46%; }
+    .stat b { font-size:22px; }
+  }
 </style>
+<link rel="stylesheet" href="assets/responsive.css?v=4">
 </head>
 <body>
-<nav>
+<div class="mbar">
+  <button class="mburger" onclick="toggleNav()" aria-label="打开菜单">☰</button>
+  <b>FT Compass</b>
+  <span id="mTitle">工作台</span>
+  <span id="mDot" class="mdot" title="授权状态" onclick="openLicense()"></span>
+</div>
+<div class="mcover" id="mcover" onclick="closeNav()"></div>
+<nav id="appnav">
   <div class="logo">
     <img src="assets/logo.svg" alt="">
     <div><b>FT Compass</b><span>外贸客户开发工作台</span></div>
@@ -50,6 +83,7 @@
     <div class="navitem" data-view="modules/find.html"><span class="em">🔍</span>找客户</div>
     <div class="navitem" data-view="modules/leads.html"><span class="em">👤</span>线索 Pipeline</div>
     <div class="navitem" data-view="modules/customer360.html"><span class="em">🎯</span>客户 360°</div>
+    <div class="navitem" data-view="modules/comps.html"><span class="em">⚔️</span>竞品库</div>
     <div class="navitem" data-view="modules/todos.html"><span class="em">✅</span>待办任务</div>
     <div class="navitem" data-view="modules/templates.html"><span class="em">🗨</span>话术库</div>
     <div class="navitem" data-view="modules/maillog.html"><span class="em">📧</span>发送记录</div>
@@ -111,18 +145,32 @@
   <div style="padding:var(--sp-4)" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js"></script>
+<script src="agnes-ai.js?v=5"></script>
 <script src="js/datastore.js"></script>
 <script src="js/license.js"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261020h';
+var MODULE_V = '20261021a';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){ n.classList.toggle('on', n.dataset.view===view); });
   if (view==='home'){ location.hash=''; $('frame').style.display='none'; $('home').style.display='block'; refresh(); }
   else { $('frame').src=view + (view.indexOf('?')<0?'?':'&') + 'v=' + MODULE_V; $('frame').style.display='block'; $('home').style.display='none'; }
+  var item = document.querySelector('.navitem[data-view="' + view + '"]');
+  var label = item && item.lastChild ? String(item.lastChild.textContent || '').trim() : '';
+  $('mTitle').textContent = view === 'home' ? '工作台' : label;
+  closeNav();
+}
+function toggleNav(){
+  var nav = $('appnav');
+  var open = !nav.classList.contains('open');
+  nav.classList.toggle('open', open);
+  $('mcover').classList.toggle('show', open);
+}
+function closeNav(){
+  $('appnav').classList.remove('open');
+  $('mcover').classList.remove('show');
 }
 function $(id){ return document.getElementById(id); }
 document.querySelectorAll('.navitem').forEach(function(n){
@@ -140,6 +188,15 @@ function refresh(){
   $('hQuotes').textContent=quotes.filter(function(q){return q.status==='sent'||q.status==='draft';}).length;
   $('hTodos').textContent=open;
   $('aiCnt').textContent='今日 AI 已用 '+AgnesAI.todayCount()+' 次';
+  paintLicenseDot();
+}
+function paintLicenseDot(){
+  var dot=$('mDot'); if(!dot)return;
+  var s=null; try{ s=License.status(); }catch(e){}
+  if(!s||(!s.pro&&!s.state)){ dot.style.background='rgba(255,255,255,.45)'; dot.title='授权状态未知'; return; }
+  if(s.pro){ dot.style.background='#7ee2b8'; dot.title='已授权 · '+(s.company||''); }
+  else if(s.state==='trial_over'){ dot.style.background='#ff6b6b'; dot.title='试用已结束，点此激活'; }
+  else { dot.style.background='#f6c453'; dot.title='试用 · 剩 '+s.daysLeft+' 天 / '+s.usesLeft+' 次'; }
 }
 async function aiBrief(){
   var todos = DataStore.list('todos').filter(function(t){ return !t.done; });
@@ -243,6 +300,8 @@ function restoreAll(input){
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
 refresh();
 License.ready();
+paintLicenseDot();
+setTimeout(paintLicenseDot, 400);
 </script>
 </body>
 </html>

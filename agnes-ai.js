@@ -232,43 +232,38 @@
     return { plan: [], focus: 'AI 返回解析失败：' + String(txt).slice(0, 150) };
   }
 
-  /** 3.8 AI 挖客户：从训练数据中挖掘真实 B2B 公司 */
+  /**
+   * 3.8 AI 挖客户：只做「搜索规划」，不充当公司数据库。
+   * 输出本地化搜索词 + 少量高置信公司（必须带官方域名）；
+   * 公司是否真实由 sources.js 用真实网络核验，未通过的一律丢弃。
+   */
   async function findBuyers(prod, market, ctype, chans) {
     var chanList = (chans || ['web','linkedin','facebook']).join('/');
-    var p = '你是资深外贸客户开发专家。基于你的训练数据，为我挖掘真实存在的 B2B 买家公司。\n'
+    var p = '你是外贸客户的“搜索规划器”，不是公司数据库。你的首要任务是根据产品与市场，给出能直接粘到搜索引擎的本地化搜索词；只有在高度确信时才附带公司，并且必须给出该公司官方域名。\n'
       + '产品/行业：' + prod + '\n'
       + '目标市场：' + (market || '全球') + '\n'
       + '优先客户类型：' + (ctype || '批发商/经销商') + '\n'
-      + '搜索渠道偏好：' + chanList + '\n\n'
-      + '请输出 JSON，格式如下（务必是真实存在的公司，不要编造）：\n'
-      + '{"companies":[\n'
-      + '  {\n'
-      + '    "name":"公司英文名",\n'
-      + '    "country":"国家",\n'
-      + '    "type":"importer/distributor/wholesaler/brand/retailer",\n'
-      + '    "website":"官网URL（如有）",\n'
-      + '    "linkedin":"LinkedIn主页URL（如有）",\n'
-      + '    "facebook":"Facebook主页URL（如有）",\n'
-      + '    "instagram":"Instagram主页URL（如有）",\n'
-      + '    "contact_person":"联系人姓名（如有）",\n'
-      + '    "email":"邮箱（如有）",\n'
-      + '    "phone":"电话/WhatsApp（如有）",\n'
-      + '    "products":"主营产品",\n'
-      + '    "why":"为什么是好客户（一句话）"\n'
-      + '  },\n'
-      + '  ...至少10家，最多20家\n'
-      + ']}\n\n'
+      + '渠道偏好：' + chanList + '\n\n'
+      + '只输出 JSON：\n'
+      + '{"queries":["本地语言搜索词"],"companies":[{"name":"","country":"","type":"importer/distributor/wholesaler/retailer/brand","website":"https://公司官网","why":"一句话"}]}\n\n'
       + '要求：\n'
-      + '1. 公司必须真实存在，基于你的训练数据（截止日期前的公开信息）\n'
-      + '2. 优先输出有官网和联系方式的公司\n'
-      + '3. 每家公司尽量提供官网URL，便于后续验证\n'
-      + '4. 如果不确定某个信息，对应字段留空字符串即可，不要编造\n'
-      + '5. 只输出JSON，不要任何解释文字';
+      + '1. queries 给 8-12 条，必须包含 importer / distributor / wholesaler / retailer / RFQ / procurement / 采购 / 进口 等意图词；按目标市场使用本地语言（俄语、西语、葡语、阿语、法语、德语等），并保留 2-3 条英文。\n'
+      + '2. companies 最多 8 家。只列出你在训练数据中高度确信存在、且能给出官方域名的公司；不确定就不要列，宁可 companies 为空。\n'
+      + '3. website 必须是公司官网根域名，不能是 B2B 平台、目录页、LinkedIn、Facebook、新闻或维基页面。\n'
+      + '4. 绝对不要编造公司名、邮箱、电话、联系人；未知信息直接留空。\n'
+      + '5. 不要输出任何解释，只输出 JSON。';
     var txt = await agnesChat([
       { role: 'system', content: SYS_FT },
       { role: 'user', content: p }
-    ], { json: true, temperature: 0.3, maxTokens: 3000 });
-    return parseLoose(txt) || { companies: [] };
+    ], { json: true, temperature: 0.2, maxTokens: 1600 });
+    var r = parseLoose(txt) || {};
+    var qs = Array.isArray(r.queries) ? r.queries.filter(function (q) {
+      return typeof q === 'string' && q.trim().length >= 3;
+    }).map(function (q) { return q.trim(); }).slice(0, 12) : [];
+    return {
+      queries: qs,
+      companies: Array.isArray(r.companies) ? r.companies : []
+    };
   }
 
   /** 3.9 AI 生成报价：根据产品/数量/市场自动输出报价明细 */
