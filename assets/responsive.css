@@ -8,11 +8,12 @@
 @media screen and (max-width: 860px) {
   html, body { max-width: 100%; overflow-x: hidden; }
 
-  /* ---- 顶栏 ---- */
-  header { padding: 11px 14px !important; flex-wrap: wrap !important; gap: 8px !important; }
-  header img { width: 28px !important; height: 28px !important; }
-  header h1 { font-size: 15.5px !important; line-height: 1.35 !important; flex: 1 1 auto !important; min-width: 0; }
-  header h1 span { display: block; font-size: 11px !important; margin-top: 2px; }
+  /* ---- 顶栏 ----
+     外层 mbar 已显示模块名，iframe 内的模块头压缩成纯动作条：
+     只保留按钮，避免手机上两条深绿顶栏叠在一起。没有按钮的模块整条隐藏。 */
+  header { padding: 6px 10px !important; flex-wrap: wrap !important; gap: 8px !important; justify-content: flex-end !important; min-height: 0 !important; }
+  header img, header .logo, header h1 { display: none !important; }
+  header:not(:has(button)) { display: none !important; }
   header button { padding: 6px 10px !important; font-size: 12.5px !important; }
 
   /* ---- 主区域：左右双栏 → 上下堆叠 ---- */
@@ -23,6 +24,8 @@
   /* ---- 工具条 / 按钮 / 筛选 ---- */
   .toolbar, .btnrow, .acts, .paper-tools, .filterbar, .chain, .mrow { flex-wrap: wrap !important; gap: 8px !important; }
   .toolbar input, .toolbar select { min-width: 0 !important; font-size: 13px !important; }
+  /* 搜索输入框独占一行，否则会被后面的按钮挤成省略号 */
+  .toolbar input:not([type="checkbox"]):not([type="radio"]) { flex: 1 1 100% !important; }
   .chain-derive { margin-left: 0 !important; }
   .filterbar input[type=range] { width: 120px !important; }
 

@@ -5,7 +5,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23fff' stroke-width='3.5'/%3E%3Cpath d='M32 15 L38 32 L32 49 L26 32 Z' fill='%23ffc53d'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%230b6e4f'/%3E%3C/svg%3E">
 <title>FT Compass · 外贸线索工作台</title>
 <link rel="stylesheet" href="../assets/tokens.css">
-<script src="../agnes-ai.js?v=5"></script>
+<script src="../agnes-ai.js?v=6"></script>
 <script src="../js/datastore.js"></script>
 <style>
   /* FT Compass 视觉体系（tokens.css 为准）：翡翠绿 / 琥珀 AI 规范 / 米白纸面 */
@@ -59,7 +59,7 @@
   .mrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .cfgbox input, .cfgbox label { font: 14px/1.6 system-ui; }
 </style>
-<link rel="stylesheet" href="../assets/responsive.css?v=4">
+<link rel="stylesheet" href="../assets/responsive.css?v=5">
 </head>
 <body>
 
@@ -71,7 +71,7 @@
       <circle cx="32" cy="32" r="3.4" fill="#0b6e4f"/>
     </svg>
   </div>
-  <h1>FT Compass · 线索工作台</h1>
+  <h1>线索工作台</h1>
   <button class="hbtn" onclick="openCfg()">⚙ AI 设置</button>
 </header>
 
@@ -90,7 +90,6 @@
       <option>试样</option><option>报价</option><option>成交</option>
     </select>
     <button class="btn" onclick="openEdit()">＋ 添加线索</button>
-    <button class="btn ghost" onclick="addDemoRu()" title="插入一条圣彼得堡进口商演示线索，用于俄语单证导出演示">🇷🇺 俄语演示</button>
     <button class="btn ghost" onclick="exportCsv()">导出 CSV</button>
   </div>
 
@@ -185,11 +184,15 @@ function load() {
     if ('_score' in l) { delete l._score; delete l._next; migrated = true; }
   });
   if (migrated) DataStore.saveAll('leads', S.leads);
-  if (!S.leads.length) { // 首次运行放 2 条示例（可删），字段与蓝图数据模型一致
-    DataStore.add('leads', { name: 'Omar', country: 'Egypt', market: '中东', stage: '报价', wa: '+20101234567', email: '', product: 'prayer pillow blue', amount: 2400, last: iso(-4), note: '等PI（示例，可删）', score: null });
-    DataStore.add('leads', { name: 'John', country: 'USA', market: '欧美', stage: '待开发', wa: '', email: 'john@importer.com', product: 'gift box', amount: 0, last: iso(-35), note: '展会名片（示例，可删）', score: null });
-    S.leads = DataStore.list('leads');
-  }
+}
+
+/* 示例数据：只在用户从空态卡点选时写入，不再首次运行自动播种 */
+function loadDemo() {
+  if (S.leads.length && !confirm('当前已有 ' + S.leads.length + ' 条线索。仍要追加 2 条示例吗？')) return;
+  DataStore.add('leads', { name: 'Omar', country: 'Egypt', market: '中东', stage: '报价', wa: '+20101234567', email: '', product: 'prayer pillow blue', amount: 2400, last: iso(-4), note: '等PI（示例，可删）', score: null });
+  DataStore.add('leads', { name: 'John', country: 'USA', market: '欧美', stage: '待开发', wa: '', email: 'john@importer.com', product: 'gift box', amount: 0, last: iso(-35), note: '展会名片（示例，可删）', score: null });
+  S.leads = DataStore.list('leads');
+  render();
 }
 function save() { DataStore.saveAll('leads', S.leads); }
 function uid() { return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
@@ -240,7 +243,21 @@ function render() {
   document.getElementById('stDue').textContent = S.leads.filter(function (l) { return l.last && l.last <= iso(3); }).length;
   document.getElementById('stAmt').textContent = '$' + S.leads.reduce(function (s, l) { return s + (+l.amount || 0); }, 0).toLocaleString();
 
-  var h = list.length ? '' : '<div class="lead" style="text-align:center;color:#8a937f">没有线索，点右上「＋ 添加线索」开始</div>';
+  var h = '';
+  if (!list.length) {
+    if (!S.leads.length) {
+      h = '<div class="lead" style="text-align:center;padding:22px 16px">'
+        + '<div style="font-weight:600;margin-bottom:6px">还没有线索</div>'
+        + '<div style="color:#7b8477;font-size:13px;line-height:1.7;margin-bottom:12px">从「找客户」抓一批，或直接录入第一条。想先熟悉流程也可以用示例数据。</div>'
+        + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
+        + '<button class="btn" onclick="openEdit()">＋ 添加线索</button>'
+        + '<button class="btn ghost" onclick="loadDemo()">载入 2 条示例</button>'
+        + '<button class="btn ghost" onclick="addDemoRu()">载入俄语单证演示</button>'
+        + '</div></div>';
+    } else {
+      h = '<div class="lead" style="text-align:center;color:#8a937f">没有匹配的线索，试试清空搜索或筛选</div>';
+    }
+  }
   list.forEach(function (l) {
     var si = STAGES.indexOf(l.stage);
     var scoreTag = l.score != null ? '<span class="tag ' + (l.score >= 70 ? 'hi' : l.score >= 40 ? 'mid' : 'lo') + '">AI ' + l.score + '</span>' : '';

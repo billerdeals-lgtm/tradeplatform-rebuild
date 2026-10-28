@@ -20,6 +20,9 @@
   .navitem:hover { background:rgba(255,255,255,.08); }
   .navitem.on { background:var(--brand-700); color:#fff; font-weight:600; }
   .navitem .em { width:20px; text-align:center; }
+  .navgroup { padding:12px 12px 4px; font-size:10px; letter-spacing:.14em; color:rgba(255,255,255,.38); }
+  .navgroup + .navitem { margin-top:0; }
+  .homeempty { padding:var(--sp-4); border:1px dashed rgba(11,110,79,.35); background:rgba(11,110,79,.04); }
   .navfoot { padding:12px; border-top:1px solid rgba(255,255,255,.12); font-size:11px; opacity:.6; }
   /* ---- 内容区 ---- */
   .content { flex:1; display:flex; flex-direction:column; min-width:0; }
@@ -63,7 +66,7 @@
     .stat b { font-size:22px; }
   }
 </style>
-<link rel="stylesheet" href="assets/responsive.css?v=4">
+<link rel="stylesheet" href="assets/responsive.css?v=5">
 </head>
 <body>
 <div class="mbar">
@@ -80,17 +83,21 @@
   </div>
   <div class="navlist" id="nav">
     <div class="navitem on" data-view="home"><span class="em">🏠</span>工作台</div>
+    <div class="navgroup">开发</div>
     <div class="navitem" data-view="modules/find.html"><span class="em">🔍</span>找客户</div>
     <div class="navitem" data-view="modules/leads.html"><span class="em">👤</span>线索 Pipeline</div>
     <div class="navitem" data-view="modules/customer360.html"><span class="em">🎯</span>客户 360°</div>
     <div class="navitem" data-view="modules/comps.html"><span class="em">⚔️</span>竞品库</div>
+    <div class="navgroup">跟进</div>
     <div class="navitem" data-view="modules/todos.html"><span class="em">✅</span>待办任务</div>
     <div class="navitem" data-view="modules/templates.html"><span class="em">🗨</span>话术库</div>
     <div class="navitem" data-view="modules/maillog.html"><span class="em">📧</span>发送记录</div>
+    <div class="navgroup">成交</div>
     <div class="navitem" data-view="modules/quotes.html"><span class="em">💰</span>报价管理</div>
     <div class="navitem" data-view="modules/products.html"><span class="em">📦</span>商品库</div>
     <div class="navitem" data-view="modules/calculator.html"><span class="em">🧮</span>利润计算器</div>
     <div class="navitem" data-view="modules/docs.html"><span class="em">📄</span>单证中心</div>
+    <div class="navgroup">经营</div>
     <div class="navitem" data-view="modules/review.html"><span class="em">📊</span>复盘增长</div>
     <div class="navitem" data-view="modules/holidays.html"><span class="em">🎁</span>复购 · 节假日</div>
     <div class="navitem" data-view="modules/profile.html"><span class="em">📇</span>我的资料</div>
@@ -117,6 +124,14 @@
       <div class="ft-card stat" onclick="go('modules/leads.html')"><b id="hScored" style="color:var(--accent-500)">0</b><span>已 AI 评分</span></div>
       <div class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok)">0</b><span>报价中</span></div>
       <div class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn)">0</b><span>待办</span></div>
+    </div>
+    <div class="ft-card homeempty" id="homeEmpty" style="display:none">
+      <b>还没有客户数据</b>
+      <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin:6px 0 12px">先去找客户，或手工录入第一条线索。数据只保存你自己的浏览器里。</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="ft-btn-primary" onclick="go('modules/find.html')">🔍 去找客户</button>
+        <button class="ft-btn-primary" onclick="go('modules/leads.html')">＋ 录入线索</button>
+      </div>
     </div>
     <div class="brief" id="briefWrap">
       <div class="ft-card" style="padding:var(--sp-4);display:flex;align-items:center;gap:var(--sp-3)">
@@ -145,14 +160,14 @@
   <div style="padding:var(--sp-4)" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=5"></script>
+<script src="agnes-ai.js?v=6"></script>
 <script src="js/datastore.js"></script>
 <script src="js/license.js"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261021a';
+var MODULE_V = '20261028a';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){ n.classList.toggle('on', n.dataset.view===view); });
   if (view==='home'){ location.hash=''; $('frame').style.display='none'; $('home').style.display='block'; refresh(); }
@@ -184,6 +199,7 @@ function refresh(){
     if (!t.done) open++;
   });
   $('hLeads').textContent=leads.length;
+  var he=$('homeEmpty'); if(he) he.style.display = leads.length ? 'none' : 'block';
   $('hScored').textContent=leads.filter(function(l){return l.score!=null;}).length;
   $('hQuotes').textContent=quotes.filter(function(q){return q.status==='sent'||q.status==='draft';}).length;
   $('hTodos').textContent=open;

@@ -106,7 +106,7 @@
   .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
   .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
 </style>
-<link rel="stylesheet" href="../assets/responsive.css?v=4">
+<link rel="stylesheet" href="../assets/responsive.css?v=5">
 </head>
 <body>
 <header>
@@ -192,7 +192,7 @@
 <!-- 品牌资料（Logo / 电子签名 / 公司公章 + 工商银行信息） -->
 <div id="brandHost"></div>
 
-<script src="../agnes-ai.js?v=5"></script>
+<script src="../agnes-ai.js?v=6"></script>
 <script src="../js/datastore.js"></script>
 <script src="../js/license.js"></script>
 <script src="../js/docs_data.js"></script>
@@ -446,7 +446,7 @@ function refreshGate(){
   var confNote = confN
     ? '<div style="font-size:11px;color:#92400e;margin-top:4px">🔒 已隔离 '+confN+' 项内部字段（客户版不含）</div>'
     : '';
-  $('gateBox').innerHTML = (gateRan || issues.length)
+  $('gateBox').innerHTML = gateRan
     ? Gate.navigatorHTML(issues) + confNote
     : confNote;
 }

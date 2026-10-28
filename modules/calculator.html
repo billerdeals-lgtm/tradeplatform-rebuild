@@ -61,7 +61,7 @@
   .hist-item .hi-margin.bad { background:#fee2e2; color:#991b1b; }
   @media(max-width:700px) { .grid2 { grid-template-columns:1fr; } }
 </style>
-<link rel="stylesheet" href="../assets/responsive.css?v=4">
+<link rel="stylesheet" href="../assets/responsive.css?v=5">
 </head>
 <body>
 <header>
@@ -79,42 +79,42 @@
       <div class="section">
         <h3>📦 产品成本</h3>
         <div class="frow">
-          <div class="field"><label>采购单价</label><input id="c_cost" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>采购单价</label><input id="c_cost" type="number" step="0.01" value="0" oninput="markCalc()"></div>
           <div class="field"><label>币种</label>
-            <select id="c_costCur" onchange="calc()"><option>CNY</option><option>USD</option></select>
+            <select id="c_costCur" onchange="markCalc()"><option>CNY</option><option>USD</option></select>
           </div>
         </div>
         <div class="frow">
-          <div class="field"><label>国内运费（每件）</label><input id="c_localShip" type="number" step="0.01" value="0" oninput="calc()"></div>
-          <div class="field"><label>包装费（每件）</label><input id="c_packing" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>国内运费（每件）</label><input id="c_localShip" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label>包装费（每件）</label><input id="c_packing" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
         <div class="frow">
-          <div class="field"><label>检验费（每件）</label><input id="c_inspect" type="number" step="0.01" value="0" oninput="calc()"></div>
-          <div class="field"><label>其他费用（每件）</label><input id="c_other" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>检验费（每件）</label><input id="c_inspect" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label>其他费用（每件）</label><input id="c_other" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
       </div>
 
       <div class="section">
         <h3>🚢 物流费用</h3>
         <div class="frow">
-          <div class="field"><label>海运费（整柜/每件分摊）</label><input id="c_ocean" type="number" step="0.01" value="0" oninput="calc()"></div>
-          <div class="field"><label>保险费（每件）</label><input id="c_insurance" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>海运费（整柜/每件分摊）</label><input id="c_ocean" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label>保险费（每件）</label><input id="c_insurance" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
         <div class="frow">
-          <div class="field"><label>报关费（每件分摊）</label><input id="c_customs" type="number" step="0.01" value="0" oninput="calc()"></div>
-          <div class="field"><label>港杂费（每件分摊）</label><input id="c_portFee" type="number" step="0.01" value="0" oninput="calc()"></div>
+          <div class="field"><label>报关费（每件分摊）</label><input id="c_customs" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label>港杂费（每件分摊）</label><input id="c_portFee" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
       </div>
 
       <div class="section">
         <h3>💰 定价策略</h3>
         <div class="frow">
-          <div class="field"><label>目标利润率 (%)</label><input id="c_margin" type="number" step="1" value="30" oninput="calc()"></div>
-          <div class="field"><label>佣金率 (%)</label><input id="c_comm" type="number" step="0.1" value="0" oninput="calc()"></div>
+          <div class="field"><label>目标利润率 (%)</label><input id="c_margin" type="number" step="1" value="30" oninput="markCalc()"></div>
+          <div class="field"><label>佣金率 (%)</label><input id="c_comm" type="number" step="0.1" value="0" oninput="markCalc()"></div>
         </div>
         <div class="frow">
           <div class="field"><label>报价币种</label>
-            <select id="c_sellCur" onchange="calc()">
+            <select id="c_sellCur" onchange="markCalc()">
               <option value="USD">USD 美元</option>
               <option value="EUR">EUR 欧元</option>
               <option value="GBP">GBP 英镑</option>
@@ -123,11 +123,11 @@
               <option value="CNY">CNY 人民币</option>
             </select>
           </div>
-          <div class="field"><label>汇率（1 外币 = ? CNY）</label><input id="c_rate" type="number" step="0.0001" value="7.25" oninput="calc()"></div>
+          <div class="field"><label>汇率（1 外币 = ? CNY）</label><input id="c_rate" type="number" step="0.0001" value="7.25" oninput="markCalc()"></div>
         </div>
         <div class="frow">
-          <div class="field"><label>报价数量</label><input id="c_qty" type="number" step="1" value="1000" oninput="calc()"></div>
-          <div class="field"><label>目标客户价（可选）</label><input id="c_target" type="number" step="0.01" placeholder="知道市场价可填" oninput="calc()"></div>
+          <div class="field"><label>报价数量</label><input id="c_qty" type="number" step="1" value="1000" oninput="markCalc()"></div>
+          <div class="field"><label>目标客户价（可选）</label><input id="c_target" type="number" step="0.01" placeholder="知道市场价可填" oninput="markCalc()"></div>
         </div>
         <div class="btnrow">
           <button class="btn-sm btn-ghost" onclick="resetForm()">🔄 重置</button>
@@ -182,7 +182,7 @@
 </main>
 
 <script src="../js/datastore.js"></script>
-<script src="../agnes-ai.js?v=5"></script>
+<script src="../agnes-ai.js?v=6"></script>
 <script>
 'use strict';
 
@@ -193,7 +193,21 @@ function $(id) { return document.getElementById(id); }
 var RATES = { USD:7.25, EUR:7.85, GBP:9.15, AED:1.97, SAR:1.93, CNY:1 };
 var SYM = { USD:'$', EUR:'€', GBP:'£', AED:'AED', SAR:'SAR', CNY:'¥' };
 
+/* calcRan：用户改动过任一输入后才显示预警，避免空表单首屏就报「利润率极低」 */
+var calcRan = false;
+function markCalc() { calcRan = true; calc(); }
+
 function calc() {
+  if (!calcRan) {
+    ['r_costCNY','r_totalCost','r_fob','r_cif','r_commPrice','r_profit','r_totalProfit'].forEach(function (id) {
+      var el = $(id); if (el) el.textContent = '—';
+    });
+    var m = $('r_margin'); if (m) m.textContent = '—';
+    $('warnArea').innerHTML = '';
+    $('breakdown').innerHTML = '';
+    convert();
+    return;
+  }
   var costCNY = n('c_cost');
   if (v('c_costCur') === 'USD') costCNY *= n('c_rate');
   var localShip = n('c_localShip');
@@ -297,6 +311,7 @@ function resetForm() {
   $('c_comm').value = 0;
   $('c_qty').value = 1000;
   $('c_target').value = '';
+  calcRan = false;
   calc();
 }
 
@@ -360,7 +375,7 @@ async function aiPriceAdvice() {
 $('c_rate').value = RATES[v('c_sellCur')] || 7.25;
 $('c_sellCur').addEventListener('change', function(){
   $('c_rate').value = RATES[v('c_sellCur')] || 7.25;
-  calc();
+  markCalc();
 });
 
 calc();

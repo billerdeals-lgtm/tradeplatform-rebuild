@@ -38,8 +38,14 @@
   }
   function saveCfg(cfg) { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
 
+  /* 本地日期（YYYY-MM-DD）。不能用 toISOString：那是 UTC，北京时间早上 8 点就跨日重置额度 */
+  function localDateStr() {
+    var d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+
   function bumpCount() {
-    var today = new Date().toISOString().slice(0, 10);
+    var today = localDateStr();
     var c; try { c = JSON.parse(localStorage.getItem(LS_CNT) || 'null'); } catch (e) { c = null; }
     if (!c || c.date !== today) c = { date: today, n: 0 };
     c.n++;
@@ -47,7 +53,7 @@
     return c.n;
   }
   function todayCount() {
-    var today = new Date().toISOString().slice(0, 10);
+    var today = localDateStr();
     var c; try { c = JSON.parse(localStorage.getItem(LS_CNT) || 'null'); } catch (e) { c = null; }
     return (c && c.date === today) ? c.n : 0;
   }
