@@ -9,20 +9,130 @@
  *   const mail = await AgnesAI.genOutreach(lead, '首封冷开发信');
  *
  * ⚙️ 配置说明（三要素，均有默认值，可在设置面板里改）：
- *   - AGNES_KEY：API 密钥（已按用户要求直接内联为默认值）
+ *   - 内置密钥：以混淆形式存放（KEY_ENC），运行时还原；可在设置面板换成自己的 key
  *   - AGNES_BASE：接口地址（默认占位，首次使用前请在设置里确认！）
  *   - AGNES_MODEL：模型名（默认 agnes-3.0-flash，可在设置里改）
+ *
+ * ⚠️ 混淆不等于安全：浏览器发请求时仍会明文携带 Authorization 头，
+ *    抓包即可拿到。要真正保护密钥只能走后端代理（Cloudflare Worker）。
  * ============================================================ */
 
 (function (global) {
   'use strict';
 
   /* ---------- 1. 默认配置（Agnes AI 预填，可在设置面板切换其它 API） ---------- */
+  /* 内置密钥：XOR + base64 分片，避免源码里出现 "sk-" 明文。
+     生成/更换：node tools/encode-key.mjs "sk-新的key"
+     再次强调：这是混淆，不是加密。真要防刷额度必须走服务端代理。 */
+  var KEY_MASK = 'FT-Compass-2026';
+  var KEY_ENC = ["NT8AFgs7PgpAO08FeWMEdGB", "VNTY9OFMABEpeewNuIBpPDw", "shRjQSQhlRCVR1Lm1iJAAg"];
+  var _keyCache = null;
+  function defaultKey() {
+    if (_keyCache !== null) return _keyCache;
+    try {
+      var b64 = KEY_ENC.join('');
+      var raw = atob(b64);
+      var out = '';
+      for (var i = 0; i < raw.length; i++) {
+        out += String.fromCharCode(raw.charCodeAt(i) ^ KEY_MASK.charCodeAt(i % KEY_MASK.length));
+      }
+      _keyCache = out;
+    } catch (e) { _keyCache = ''; }
+    return _keyCache;
+  }
+
+  /* 试用期 AI 总次数（与试用挖掘次数分开计）。激活后不限。 */
+  var AI_TRIAL_LIMIT = 5;
+  var AI_STORE_K = ['_a7f1d2', '_e3b9c4'];
+  var AI_CK = '_ftai';
+
+  /* 计数与 license.js 的试用计数同思路：三处冗余 + 混淆，取最大值合并。
+     只是为了挡住"清掉一个 key 就重置"，不是防篡改。 */
+  function aiSeal(n) {
+    try {
+      var k = KEY_MASK;
+      var bytes = new TextEncoder().encode(JSON.stringify({ n: n }));
+      var bin = '';
+      for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i] ^ k.charCodeAt(i % k.length));
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    } catch (e) { return ''; }
+  }
+  function aiUnseal(str) {
+    try {
+      var s = String(str || '').replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      var bin = atob(s);
+      var k = KEY_MASK;
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) ^ k.charCodeAt(i % k.length);
+      var o = JSON.parse(new TextDecoder().decode(bytes));
+      return (o && typeof o.n === 'number' && o.n >= 0 && o.n < 100000) ? o.n : null;
+    } catch (e) { return null; }
+  }
+  function aiCookieGet() {
+    try {
+      var m = String(document.cookie || '').match(/(?:^|;\s*)_ftai=([^;]+)/);
+      return m ? m[1] : null;
+    } catch (e) { return null; }
+  }
+  function aiCookieSet(v) {
+    try { document.cookie = AI_CK + '=' + v + ';path=/;max-age=' + (2 * 365 * 86400) + ';SameSite=Lax'; } catch (e) {}
+  }
+
+  function trialUsed() {
+    var best = 0;
+    var raws = [];
+    AI_STORE_K.forEach(function (k) {
+      try { var v = localStorage.getItem(k); if (v) raws.push(v); } catch (e) {}
+    });
+    var c = aiCookieGet(); if (c) raws.push(c);
+    raws.forEach(function (v) { var n = aiUnseal(v); if (n !== null) best = Math.max(best, n); });
+    return best;
+  }
+  function bumpTrial() {
+    var n = trialUsed() + 1;
+    var s = aiSeal(n);
+    if (!s) return n;
+    AI_STORE_K.forEach(function (k) { try { localStorage.setItem(k, s); } catch (e) {} });
+    aiCookieSet(s);
+    return n;
+  }
+  function isPro() {
+    try {
+      var st = global.License && global.License.status ? global.License.status() : null;
+      if (st && st.pro) return true;
+    } catch (e) {}
+    return readProFromStorage();
+  }
+
+  /* 模块页不一定加载/初始化 license.js，直接读它的本地授权记录兜底。
+     与 license.js 的 seal() 同算法：base64url(XOR(JSON))，键 _c5d8e1。 */
+  function readProFromStorage() {
+    try {
+      var raw = localStorage.getItem('_c5d8e1');
+      if (!raw) return false;
+      var s = String(raw).replace(/-/g, '+').replace(/_/g, '/');
+      while (s.length % 4) s += '=';
+      var bin = atob(s);
+      var mask = 'FT-Compass-2026';
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) {
+        bytes[i] = bin.charCodeAt(i) ^ mask.charCodeAt(i % mask.length);
+      }
+      var o = JSON.parse(new TextDecoder().decode(bytes));
+      return !!(o && o.payload && o.payload.co && o.payload.id);
+    } catch (e) { return false; }
+  }
+  function aiTrialLeft() {
+    if (isPro()) return null;              // null = 已激活，不限次
+    return Math.max(0, AI_TRIAL_LIMIT - trialUsed());
+  }
+
   var DEFAULTS = {
     // Agnes AI 接口地址（OpenAI 兼容格式）
     base: 'https://apihub.agnes-ai.com/v1',
-    // API 密钥（预填，用户可在设置面板替换为其它服务商）
-    key: '[REDACTED-API-KEY]',
+    // 留空 = 使用内置密钥；填了就优先用用户自己的
+    key: '',
     // 模型名：默认 agnes 3.0 flash，可在面板改为其它模型
     model: 'agnes-3.0-flash',
     // 每日调用上限（防失控烧钱，达到后弹提示）
@@ -68,10 +178,15 @@
   async function agnesChat(messages, opts) {
     opts = opts || {};
     var cfg = loadCfg();
+    var apiKey = cfg.key || defaultKey();
     if (!cfg.base) throw new Error('请先在设置面板填写接口地址（OpenAI 兼容格式，/v1 结尾）');
-    if (!cfg.key) throw new Error('请先在设置面板填写 API 密钥');
+    if (!apiKey) throw new Error('请先在设置面板填写 API 密钥');
     if (todayCount() >= cfg.dailyLimit) {
       throw new Error('今日 AI 调用已达上限 ' + cfg.dailyLimit + ' 次，明天再来（可在设置中调整）');
+    }
+    var pro = isPro();
+    if (!pro && !opts.skipTrial && aiTrialLeft() <= 0) {
+      throw new Error('试用 AI 次数已用完（共 ' + AI_TRIAL_LIMIT + ' 次）。激活后不限次数。');
     }
     var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timeout = opts.timeout || 60000;
@@ -93,7 +208,7 @@
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + cfg.key
+          'Authorization': 'Bearer ' + apiKey
         },
         body: JSON.stringify(body),
         signal: ctrl ? ctrl.signal : undefined
@@ -105,6 +220,7 @@
       }
       var data = await resp.json();
       bumpCount();
+      if (!pro && !opts.skipTrial) bumpTrial();
       // 兼容多种返回形态：OpenAI 标准 content / 旧式 text / 推理模型 reasoning_content
       var ch = data.choices && data.choices[0] ? data.choices[0] : null;
       var msg = ch ? (ch.message || {}) : {};
@@ -302,14 +418,16 @@
   /* ---------- 4. 设置面板（可选挂载） ---------- */
   function settingsHTML() {
     var c = loadCfg();
-    var isDefault = c.base === DEFAULTS.base && c.key === DEFAULTS.key;
+    var isDefault = c.base === DEFAULTS.base && !c.key;
     return '<div style="font:14px/1.6 system-ui;max-width:420px">'
       + '<div style="margin-bottom:10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534">✅ 已预填 Agnes AI 配置，开箱即用。如需切换其它 OpenAI 兼容服务，修改下方内容并保存即可。</div>'
       + '<label>接口地址（/v1 结尾）</label><input id="ag_base" value="' + c.base + '" placeholder="https://你的网关/v1" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
-      + '<label style="display:block;margin-top:8px">API 密钥</label><input id="ag_key" value="' + c.key + '" placeholder="sk-..." type="password" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
+      + '<label style="display:block;margin-top:8px">API 密钥</label><input id="ag_key" value="' + (c.key || '') + '" placeholder="留空 = 使用内置密钥" type="password" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">模型名</label><input id="ag_model" value="' + c.model + '" placeholder="agnes-3.0-flash" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">每日上限：<input id="ag_limit" type="number" value="' + c.dailyLimit + '" style="width:80px"></label>'
-      + '<div style="margin-top:6px;color:#888;font-size:12px">今日已调用 ' + todayCount() + ' 次</div>'
+      + '<div style="margin-top:6px;color:#888;font-size:12px">今日已调用 ' + todayCount() + ' 次 · '
+      + (aiTrialLeft() === null ? '已激活，AI 不限次数' : '试用 AI 剩余 ' + aiTrialLeft() + ' / ' + AI_TRIAL_LIMIT + ' 次')
+      + '</div>'
       + '<div style="display:flex;gap:8px;margin-top:10px">'
       + '<button onclick="AgnesAI.saveFromPanel()" style="padding:8px 20px;background:#2563eb;color:#fff;border:0;border-radius:6px;cursor:pointer">保存</button>'
       + '<button onclick="AgnesAI.resetDefaults()" style="padding:8px 16px;background:#f3f4f6;color:#374151;border:1px solid #d1d5db;border-radius:6px;cursor:pointer;font-size:13px">恢复默认</button>'
@@ -331,7 +449,7 @@
   /** 连通性自检：设置完先测这个 */
   async function ping() {
     try {
-      var r = await ask('请只回复两个字母：pong', { maxTokens: 1024, timeout: 30000 });
+      var r = await ask('请只回复两个字母：pong', { maxTokens: 1024, timeout: 30000, skipTrial: true });
       return { ok: true, reply: r };
     } catch (e) { return { ok: false, error: e.message }; }
   }
@@ -363,6 +481,8 @@
     resetDefaults: resetDefaults,
     ping: ping,
     todayCount: todayCount,
+    aiTrialLeft: aiTrialLeft,
+    aiTrialLimit: AI_TRIAL_LIMIT,
     loadCfg: loadCfg
   };
 })(window);

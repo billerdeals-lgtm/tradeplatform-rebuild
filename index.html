@@ -160,14 +160,14 @@
   <div style="padding:var(--sp-4)" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=6"></script>
+<script src="agnes-ai.js?v=7"></script>
 <script src="js/datastore.js"></script>
 <script src="js/license.js"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261028a';
+var MODULE_V = '20261028b';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){ n.classList.toggle('on', n.dataset.view===view); });
   if (view==='home'){ location.hash=''; $('frame').style.display='none'; $('home').style.display='block'; refresh(); }
@@ -203,7 +203,8 @@ function refresh(){
   $('hScored').textContent=leads.filter(function(l){return l.score!=null;}).length;
   $('hQuotes').textContent=quotes.filter(function(q){return q.status==='sent'||q.status==='draft';}).length;
   $('hTodos').textContent=open;
-  $('aiCnt').textContent='今日 AI 已用 '+AgnesAI.todayCount()+' 次';
+  var aiLeft=null; try{ aiLeft=AgnesAI.aiTrialLeft(); }catch(e){}
+  $('aiCnt').textContent='今日 AI 已用 '+AgnesAI.todayCount()+' 次'+(aiLeft===null?'':' · 试用 AI 剩 '+aiLeft+' 次');
   paintLicenseDot();
 }
 function paintLicenseDot(){
