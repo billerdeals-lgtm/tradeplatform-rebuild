@@ -6,6 +6,7 @@
    各模块在 </head> 前引入，确保覆盖模块内联样式。
    ============================================================ */
 .twhint { display: none; }
+.paperhint { display: none; }
 
 /* ---- 独立打开模块页时的「← 工作台」（由 assets/standalone.js 注入） ---- */
 .ft-back {
@@ -94,12 +95,12 @@
   .form-card { overflow-x: auto; }
   .items-table { min-width: 560px; }
 
-  /* ---- 单证 / 报价：A4 纸面横向滚动，不压缩版式 ---- */
+  /* ---- 单证 / 报价：A4 纸面横向滚动，不压缩版式 ----
+     提示挂在纸面自己身上：只有 #paper 真的显示时才出现。
+     旧写法 body:has(.paper) main > .right::before 在报价页会落到编辑表单上方，
+     而那时纸面还是 display:none，用户照着提示滑没有任何反应。 */
   main > .right { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
-  body:has(.paper) main > .right::before {
-    content: '← 左右滑动查看整页 →';
-    display: block; font-size: 11px; color: var(--text-3); margin-bottom: 6px;
-  }
+  main > .right > .paperhint { display: none; }
   .paper { min-width: 0; padding: 28px 30px; }
   .paper table { min-width: 0; }
 
@@ -120,12 +121,13 @@
   .fgrid, .f2 { gap: 10px !important; }
 }
 
-@media screen and (min-width: 641px) and (max-width: 860px) {
-  body:has(.paper) main > .right::before { content: none; }
-}
-
 @media screen and (max-width: 640px) {
+  /* 这一档纸面被固定为 620px，必然横向滚动，提示才有意义；
+     641~860px 纸面自适应宽度、不需要滑，所以不显示。 */
   .paper { min-width: 620px; padding: 24px 26px; }
+  main > .right:has(> #paper[style*="block"]) > .paperhint {
+    display: block; font-size: 11px; color: var(--text-3); margin: 0 2px 6px;
+  }
 }
 
 @media screen and (max-width: 390px) {
