@@ -10,9 +10,10 @@
 
 /* ---- 键盘焦点环 ----
    :focus-visible 只在键盘导航时出现，鼠标点击不留框。
-   琥珀色在浅色卡片与深绿顶栏/侧栏上对比都够。 */
+   浅色区用深琥珀（#a16207，白底 4.9:1）；深绿顶栏/侧栏用亮琥珀（6.3:1）。
+   旧的 #ffc53d 在白底只有 1.58:1，等于没有焦点指示。 */
 :focus-visible {
-  outline: 3px solid #ffc53d;
+  outline: 3px solid #a16207;
   outline-offset: 2px;
 }
 /* 深色底（顶栏、侧栏）用更亮的一档，并离边框远一点 */
@@ -36,6 +37,62 @@ nav :focus-visible,
   text-decoration: none; white-space: nowrap;
 }
 .ft-back:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+/* ---- 右下角提示条 ----
+   由 assets/a11y.js 接管 window.alert 后生成；每条第 role="alert"，
+   屏幕阅读器立即播报。深底白字 14.8:1，不与页面浅色卡片抢注意力。 */
+.ft-toasts {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-width: min(420px, calc(100vw - 32px));
+  pointer-events: none;
+}
+.ft-toast {
+  pointer-events: auto;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px 11px 14px;
+  background: #1f2933;
+  color: #fff;
+  border-radius: var(--r-sm);
+  box-shadow: 0 10px 28px rgba(15,23,32,.28);
+  font-size: 13px;
+  line-height: 1.55;
+  animation: ft-toast-in .18s ease-out;
+}
+.ft-toast-text { flex: 1; min-width: 0; white-space: pre-wrap; word-break: break-word; }
+.ft-toast-x {
+  flex: 0 0 auto;
+  border: 0;
+  background: transparent;
+  color: rgba(255,255,255,.78);
+  font-size: 13px;
+  line-height: 1;
+  padding: 3px 5px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+.ft-toast-x:hover { color: #fff; background: rgba(255,255,255,.16); }
+.ft-toast-x:focus-visible { outline: 2px solid #ffd76e; outline-offset: 1px; }
+.ft-toast.is-out { opacity: 0; transform: translateY(6px); transition: opacity .2s, transform .2s; }
+@keyframes ft-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+@media screen and (max-width: 520px) {
+  .ft-toasts { right: 12px; left: 12px; bottom: 12px; max-width: none; }
+}
+@media print { .ft-toasts { display: none !important; } }
+@media (prefers-reduced-motion: reduce) {
+  .ft-toast { animation: none; }
+  .ft-toast.is-out { transition: none; }
+}
 
 /* ---- 桌面端：顶栏统一 60px（与侧栏 logo 区同高） ---- */
 @media screen and (min-width: 861px) {

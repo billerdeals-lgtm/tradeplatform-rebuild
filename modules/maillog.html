@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 发送记录</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -17,7 +17,7 @@
   .stat b { display:block; font-size:22px; }
   .stat span { font-size:12px; color:var(--text-2); }
   .toolbar { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-4); }
-  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
   .toolbar .grow { flex:1; min-width:160px; }
   .log { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); display:flex; gap:var(--sp-3); align-items:flex-start; }
   .log .body { flex:1; min-width:0; }
@@ -25,8 +25,8 @@
   .log .name { font-weight:600; font-size:14px; }
   .log pre { white-space:pre-wrap; word-break:break-word; font-family:var(--font-sans); font-size:13px; color:var(--text-2); background:var(--bg-inset); border-radius:var(--r-sm); padding:var(--sp-2) var(--sp-3); margin:6px 0 0; max-height:200px; overflow:auto; display:none; }
   .log.open pre { display:block; }
-  .tag-mail { background:var(--info-bg); color:var(--info); }
-  .tag-wa { background:var(--ok-bg); color:var(--ok); }
+  .tag-mail { background:var(--info-bg); color:var(--info-text); }
+  .tag-wa { background:var(--ok-bg); color:var(--ok-text); }
   .tag-ai_rewrite, .tag-ai_followup, .tag-ai_objection { background:var(--accent-100); color:#8a5a00; }
   .tag-holiday { background:#fce7f3; color:#be185d; }
   .tag-manual { background:var(--bg-inset); color:var(--text-2); }
@@ -35,16 +35,16 @@
   dialog::backdrop { background:rgba(31,41,51,.4); }
   dialog h3 { margin:0 0 var(--sp-3); font-size:15px; color:var(--brand-700); }
   label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-2) 0 4px; }
-  dialog input, dialog textarea, dialog select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  dialog input, dialog textarea, dialog select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
   dialog textarea { min-height:80px; resize:vertical; }
 </style>
 <script src="../assets/standalone.js"></script>
-<script src="../assets/a11y.js?v=1"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../assets/logo.svg" alt="">
   <h1>发送记录</h1>
 </header>
 <main>
@@ -56,8 +56,8 @@
   </div>
 
   <div class="toolbar">
-    <input class="grow" id="q" placeholder="搜索客户 / 内容关键词…" oninput="render()">
-    <select id="fType" onchange="render()">
+    <input class="grow" id="q" aria-label="搜索发送记录" placeholder="搜索客户 / 内容关键词…" oninput="render()">
+    <select id="fType" aria-label="按类型筛选" onchange="render()">
       <option value="">全部类型</option>
       <option value="mail">邮件</option>
       <option value="wa">WhatsApp</option>
@@ -75,13 +75,13 @@
 </main>
 
 <!-- 补记录弹窗 -->
-<dialog id="dlgAdd" aria-label="补充触达记录">
+<dialog role="dialog" aria-modal="true" id="dlgAdd" aria-label="补充触达记录">
   <h3>＋ 补充触达记录</h3>
-  <label>客户（线索 Pipeline 内选择）</label>
+  <label for="a_lead">客户（线索 Pipeline 内选择）</label>
   <select id="a_lead"></select>
-  <label>类型</label>
+  <label for="a_type">类型</label>
   <select id="a_type"><option value="mail">邮件</option><option value="wa">WhatsApp</option><option value="call">电话</option></select>
-  <label>内容摘要</label>
+  <label for="a_content">内容摘要</label>
   <textarea id="a_content" placeholder="发了什么、客户反应…"></textarea>
   <div style="display:flex;gap:8px;margin-top:var(--sp-3)">
     <button class="ft-btn-primary" onclick="addManual()">保存</button>

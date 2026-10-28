@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 客户 360°</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -15,7 +15,7 @@
   /* 左：客户列表 */
   .left { width:300px; flex-shrink:0; }
   .left .ft-card { padding:var(--sp-3); }
-  .search-box { width:100%; box-sizing:border-box; padding:8px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; margin-bottom:var(--sp-3); }
+  .search-box { width:100%; box-sizing:border-box; padding:8px 12px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:13px; margin-bottom:var(--sp-3); }
   .clist { max-height:calc(100vh - 220px); overflow:auto; }
   .citem { padding:10px 12px; border-radius:var(--r-sm); cursor:pointer; margin-bottom:4px; border-left:3px solid transparent; transition:all .15s; display:flex; align-items:center; gap:10px; }
   .citem:hover { background:var(--bg-inset); }
@@ -39,9 +39,9 @@
   .tag-type { background:#fef3c7; color:#92400e; }
   .profile-card .quick-actions { display:flex; gap:8px; flex-wrap:wrap; }
   .qa-btn { font-size:12.5px; padding:6px 14px; border-radius:var(--r-sm); border:0; cursor:pointer; display:flex; align-items:center; gap:4px; }
-  .qa-btn.whatsapp { background:#25d366; color:#fff; }
+  .qa-btn.whatsapp { background:#075e54; color:#fff; }
   .qa-btn.email { background:var(--brand-700); color:#fff; }
-  .qa-btn.quote { background:#f59e0b; color:#fff; }
+  .qa-btn.quote { background:#b45309; color:#fff; }
   .qa-btn.todo { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border); }
   /* 统计条 */
   .stats-bar { display:flex; gap:var(--sp-6); padding:0 var(--sp-4) var(--sp-3); }
@@ -71,10 +71,28 @@
   .linked-item .li-sub { font-size:12px; color:var(--text-3); }
   .linked-item .li-amount { font-weight:500; color:var(--brand-700); }
   .empty-tab { text-align:center; color:var(--text-3); padding:var(--sp-6) 0; font-size:13px; }
+  /* 空状态：左栏没有客户 / 搜索无结果 */
+  .empty-state { text-align:center; padding:var(--sp-5) var(--sp-2) var(--sp-3); }
+  .empty-state .es-icon { font-size:30px; line-height:1; }
+  .empty-state .es-title { font-size:14.5px; font-weight:600; margin:10px 0 6px; }
+  .empty-state .es-desc { font-size:12.5px; color:var(--text-2); line-height:1.7; margin:0 0 14px; }
+  .es-actions { display:flex; flex-direction:column; gap:8px; }
+  .es-btn { width:100%; padding:9px 12px; border-radius:var(--r-sm); border:1px solid var(--border-field); background:var(--bg-card); color:var(--text-1); font-size:13px; font-family:var(--font-sans); cursor:pointer; }
+  .es-btn.primary { background:var(--brand-700); border-color:var(--brand-700); color:#fff; font-weight:600; }
+  .es-btn:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  .es-btn.primary:hover { background:#095c42; border-color:#095c42; color:#fff; }
+  .es-link { margin-top:10px; border:0; background:none; color:var(--brand-700); font-size:12.5px; text-decoration:underline; cursor:pointer; font-family:var(--font-sans); padding:4px; }
+  /* 右栏默认说明卡（无客户时不再指向空左栏） */
+  .detail-empty { padding:var(--sp-5) var(--sp-4); }
+  .detail-empty .de-icon { font-size:30px; line-height:1; }
+  .detail-empty .de-title { font-size:15px; font-weight:600; margin:10px 0 6px; }
+  .detail-empty .de-desc { font-size:13px; color:var(--text-2); line-height:1.75; margin:0 0 14px; max-width:52ch; }
+  .detail-empty ul { margin:0; padding:0; list-style:none; display:grid; gap:9px; }
+  .detail-empty li { font-size:13px; color:var(--text-2); line-height:1.6; display:flex; gap:8px; align-items:flex-start; }
+  .detail-empty li b { color:var(--text-1); font-weight:600; }
   .note-box { background:var(--bg-inset); border-radius:var(--r-sm); padding:var(--sp-3); margin-top:var(--sp-3); }
   .note-box textarea { width:100%; box-sizing:border-box; border:0; background:transparent; font-size:13px; font-family:var(--font-sans); resize:vertical; min-height:60px; }
-  .note-box textarea:focus { outline:none; }
-  .note-box .note-saved { font-size:12px; color:var(--ok); margin-top:4px; }
+  .note-box .note-saved { font-size:12px; color:var(--ok-text); margin-top:4px; }
   /* 竞品 */
   .comp-item { border:1px solid var(--border); border-radius:var(--r-sm); padding:10px 12px; margin-bottom:8px; background:var(--bg-inset); }
   .comp-top { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
@@ -86,7 +104,7 @@
   .comp-acts { margin-left:auto; display:flex; gap:6px; }
   .comp-acts button { padding:3px 9px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--bg-card); font-size:11.5px; cursor:pointer; }
   .comp-acts button:hover { border-color:var(--brand-700); color:var(--brand-700); }
-  .comp-acts .del:hover { border-color:var(--danger); color:var(--danger); }
+  .comp-acts .del:hover { border-color:var(--danger); color:var(--danger-text); }
   .comp-empty { text-align:center; color:var(--text-3); padding:var(--sp-5) 0; font-size:13px; }
   dialog#dlgComp { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:640px; width:94%; }
   dialog#dlgComp::backdrop { background:rgba(31,41,51,.4); }
@@ -95,48 +113,57 @@
   .f2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
   .f2 .full { grid-column:1/-1; }
   .dlg-b label { display:block; font-size:12px; color:var(--text-2); margin-bottom:3px; }
-  .dlg-b input, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
+  .dlg-b input, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
   .dlg-b textarea { min-height:56px; resize:vertical; }
   .df { display:flex; gap:var(--sp-3); padding:0 var(--sp-4) var(--sp-4); justify-content:flex-end; }
   .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
 <script src="../assets/standalone.js"></script>
-<script src="../assets/a11y.js?v=1"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../assets/logo.svg" alt="">
   <h1>客户 360°</h1>
 </header>
 <main>
   <div class="left">
     <div class="ft-card">
-      <input class="search-box" id="searchC" placeholder="搜索客户名/国家/产品…" oninput="renderList()">
+      <input class="search-box" id="searchC" aria-label="搜索客户" placeholder="搜索客户名/国家/产品…" oninput="renderList()">
       <div class="clist" id="clist"></div>
     </div>
   </div>
   <div class="right">
     <div id="detailArea">
-      <div style="text-align:center;color:var(--text-3);padding:var(--sp-8) 0">← 从左侧选择客户查看 360° 视图</div>
+      <div class="ft-card detail-empty" id="detailEmpty">
+        <div class="de-icon" aria-hidden="true">📇</div>
+        <div class="de-title">选择一个客户，查看完整 360° 视图</div>
+        <p class="de-desc">这里把散落在各模块的信息拼到一起，不用来回翻页。左侧列表为空时，可以先去找客户，或录入手上的线索。</p>
+        <ul>
+          <li>🕒 <span><b>跟进时间线</b>：谁在什么时候联系过，报价走到哪一步</span></li>
+          <li>📄 <span><b>关联单据</b>：报价、单证、邮件与待办，一处看全</span></li>
+          <li>🧠 <span><b>AI 摘要</b>：给这个客户的下一步建议</span></li>
+        </ul>
+      </div>
     </div>
   </div>
 </main>
 
-<dialog id="dlgComp" aria-labelledby="ce_title">
-  <div class="dlg-h"><span id="ce_title">添加竞品</span><button class="iconbtn" onclick="dlgComp.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgComp" aria-labelledby="ce_title">
+  <div class="dlg-h"><span id="ce_title">添加竞品</span><button class="iconbtn" onclick="dlgComp.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
     <div class="f2">
-      <div class="full"><label>竞品公司 / 品牌 *</label><input id="ce_name" placeholder="客户可能选择的对手"></div>
-      <div><label>国家 / 市场</label><input id="ce_country"></div>
-      <div><label>官网</label><input id="ce_website" placeholder="https://example.com"></div>
-      <div class="full"><label>对标产品 / 品类</label><input id="ce_product"></div>
-      <div><label>价格 / 报价</label><input id="ce_price"></div>
-      <div><label>MOQ</label><input id="ce_moq"></div>
-      <div class="full"><label>对方优势</label><textarea id="ce_advantage" rows="2"></textarea></div>
-      <div class="full"><label>对我们的威胁 / 应对</label><textarea id="ce_threat" rows="2"></textarea></div>
-      <div class="full"><label>备注</label><textarea id="ce_note" rows="2"></textarea></div>
+      <div class="full"><label for="ce_name">竞品公司 / 品牌 *</label><input id="ce_name" placeholder="客户可能选择的对手"></div>
+      <div><label for="ce_country">国家 / 市场</label><input id="ce_country"></div>
+      <div><label for="ce_website">官网</label><input id="ce_website" placeholder="https://example.com"></div>
+      <div class="full"><label for="ce_product">对标产品 / 品类</label><input id="ce_product"></div>
+      <div><label for="ce_price">价格 / 报价</label><input id="ce_price"></div>
+      <div><label for="ce_moq">MOQ</label><input id="ce_moq"></div>
+      <div class="full"><label for="ce_advantage">对方优势</label><textarea id="ce_advantage" rows="2"></textarea></div>
+      <div class="full"><label for="ce_threat">对我们的威胁 / 应对</label><textarea id="ce_threat" rows="2"></textarea></div>
+      <div class="full"><label for="ce_note">备注</label><textarea id="ce_note" rows="2"></textarea></div>
     </div>
   </div>
   <div class="df"><button class="dx" onclick="dlgComp.close()">取消</button><button class="ds" onclick="saveComp()">保存竞品</button></div>
@@ -161,13 +188,32 @@ function safeUrl(u) {
 
 function renderList() {
   var q = $('searchC').value.toLowerCase();
-  var leads = DataStore.list('leads').filter(function(l) {
+  var all = DataStore.list('leads');
+  var leads = all.filter(function(l) {
     if (!q) return true;
     return (l.name||'').toLowerCase().includes(q) || (l.country||'').toLowerCase().includes(q) || (l.product||'').toLowerCase().includes(q);
   }).reverse();
 
   var box = $('clist');
-  if (!leads.length) { box.innerHTML = '<div class="empty-tab">暂无线索数据</div>'; return; }
+  if (!leads.length) {
+    box.innerHTML = all.length
+      ? '<div class="empty-state">'
+        + '<div class="es-title">没有匹配的客户</div>'
+        + '<div class="es-desc">换个关键词，或清空搜索看全部客户。</div>'
+        + '<button type="button" class="es-btn" onclick="clearSearch()">清空搜索</button>'
+        + '</div>'
+      : '<div class="empty-state">'
+        + '<div class="es-icon" aria-hidden="true">🧭</div>'
+        + '<div class="es-title">还没有客户</div>'
+        + '<div class="es-desc">客户 360° 会自动汇总线索、报价、单证和待办。先去找一批客户，或录入手上的线索；想先看效果也可以载入示例。</div>'
+        + '<div class="es-actions">'
+        + '<button type="button" class="es-btn primary" onclick="FT.go(\'modules/find.html\')">🔍 去找客户</button>'
+        + '<button type="button" class="es-btn" onclick="FT.go(\'modules/leads.html\')">＋ 录入线索</button>'
+        + '</div>'
+        + '<button type="button" class="es-link" onclick="loadDemoLeads()">载入 2 条示例</button>'
+        + '</div>';
+    return;
+  }
   box.innerHTML = leads.map(function(l) {
     var initials = (l.name||'?').slice(0,1).toUpperCase();
     var st = l.stage || '待开发';
@@ -178,6 +224,25 @@ function renderList() {
       + '<span class="ci-badge tag-stage">' + esc(st) + '</span>'
       + '</div>';
   }).join('');
+}
+
+function clearSearch() {
+  $('searchC').value = '';
+  renderList();
+  $('searchC').focus();
+}
+
+function iso(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
+
+/* 空态卡里的「载入示例」：只在没有任何线索时写入，避免重复播种 */
+function loadDemoLeads() {
+  if (DataStore.list('leads').length) { renderList(); return; }
+  DataStore.add('leads', { name: 'Omar', country: 'Egypt', market: '中东', stage: '报价', wa: '+20101234567', email: '', product: 'prayer pillow blue', amount: 2400, last: iso(-4), note: '等PI（示例，可删）', score: null });
+  DataStore.add('leads', { name: 'John', country: 'USA', market: '欧美', stage: '待开发', wa: '', email: 'john@importer.com', product: 'gift box', amount: 0, last: iso(-35), note: '展会名片（示例，可删）', score: null });
+  renderList();
+  var first = document.querySelector('#clist .citem');
+  if (first) first.click();
+  if (window.FT && FT.toast) FT.toast('已载入 2 条示例客户');
 }
 
 function selectLead(id, el) {
@@ -222,7 +287,7 @@ function renderDetail() {
     + '<div class="quick-actions">'
     +   (l.wa ? '<a class="qa-btn whatsapp" href="https://wa.me/' + esc(l.wa.replace(/\D/g,'')) + '" target="_blank">💬 WhatsApp</a>' : '')
     +   (l.email ? '<a class="qa-btn email" href="mailto:' + esc(l.email) + '">✉ 邮件</a>' : '')
-    +   '<button class="qa-btn quote" onclick="parent.go && parent.go(\'modules/quotes.html\')">💰 报价</button>'
+    +   '<button class="qa-btn quote" onclick="FT.go(\'modules/quotes.html\')">💰 报价</button>'
     +   '<button class="qa-btn todo" onclick="addTodo()">✅ 加待办</button>'
     + '</div>'
     + '</div>';
@@ -352,12 +417,12 @@ function renderDetail() {
 
   // 备注
   html += '<div class="tab-content" id="tc-notes" role="tabpanel" aria-labelledby="tab-notes">'
-    + '<div class="note-box"><textarea id="noteArea" placeholder="记录关于这个客户的备注…">' + esc(l.note||'') + '</textarea>'
-    + '<div class="note-saved" id="noteSaved"></div>'
+    + '<div class="note-box"><textarea id="noteArea" aria-label="客户备注" placeholder="记录关于这个客户的备注…">' + esc(l.note||'') + '</textarea>'
+    + '<div class="note-saved" id="noteSaved" role="status"></div>'
     + '<button class="btn-sm" style="margin-top:6px;padding:4px 12px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="saveNote()">保存备注</button>'
     + '</div>'
     + '<div class="note-box" style="margin-top:var(--sp-3)"><b style="font-size:13px">AI 客户摘要</b>'
-    + '<div id="aiSummary" style="font-size:13px;color:var(--text-2);margin-top:6px">点击下方按钮生成 AI 对该客户的分析摘要</div>'
+    + '<div id="aiSummary" style="font-size:13px;color:var(--text-2);margin-top:6px" aria-live="polite">点击下方按钮生成 AI 对该客户的分析摘要</div>'
     + '<button class="btn-sm" style="margin-top:8px;padding:4px 12px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="aiSummary()">🧠 AI 生成摘要</button>'
     + '</div>'
     + '</div>';

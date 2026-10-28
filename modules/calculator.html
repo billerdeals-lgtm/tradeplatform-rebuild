@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 利润计算器</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -20,10 +20,10 @@
   .frow .field { flex:1; min-width:120px; }
   .frow label { display:block; font-size:11.5px; color:var(--text-2); margin-bottom:3px; }
   .frow input, .frow select {
-    width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong);
+    width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field);
     border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans);
   }
-  .frow input:focus, .frow select:focus { outline:none; border-color:var(--brand-600); }
+  .frow input:focus, .frow select:focus { border-color:var(--brand-600); }
   .frow .unit { font-size:12px; color:var(--text-3); padding-bottom:8px; white-space:nowrap; }
   .result-box { background:linear-gradient(135deg,#f0fdf4,#ecfdf5); border:1px solid #86efac; border-radius:var(--r-md); padding:var(--sp-4); margin-top:var(--sp-4); }
   .result-box h3 { color:#166534; margin:0 0 var(--sp-3); }
@@ -62,11 +62,12 @@
   @media(max-width:700px) { .grid2 { grid-template-columns:1fr; } }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../assets/logo.svg" alt="">
   <h1>利润计算器</h1>
 </header>
 <main>
@@ -80,41 +81,41 @@
       <div class="section">
         <h3>📦 产品成本</h3>
         <div class="frow">
-          <div class="field"><label>采购单价</label><input id="c_cost" type="number" step="0.01" value="0" oninput="markCalc()"></div>
-          <div class="field"><label>币种</label>
+          <div class="field"><label for="c_cost">采购单价</label><input id="c_cost" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_costCur">币种</label>
             <select id="c_costCur" onchange="markCalc()"><option>CNY</option><option>USD</option></select>
           </div>
         </div>
         <div class="frow">
-          <div class="field"><label>国内运费（每件）</label><input id="c_localShip" type="number" step="0.01" value="0" oninput="markCalc()"></div>
-          <div class="field"><label>包装费（每件）</label><input id="c_packing" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_localShip">国内运费（每件）</label><input id="c_localShip" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_packing">包装费（每件）</label><input id="c_packing" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
         <div class="frow">
-          <div class="field"><label>检验费（每件）</label><input id="c_inspect" type="number" step="0.01" value="0" oninput="markCalc()"></div>
-          <div class="field"><label>其他费用（每件）</label><input id="c_other" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_inspect">检验费（每件）</label><input id="c_inspect" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_other">其他费用（每件）</label><input id="c_other" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
       </div>
 
       <div class="section">
         <h3>🚢 物流费用</h3>
         <div class="frow">
-          <div class="field"><label>海运费（整柜/每件分摊）</label><input id="c_ocean" type="number" step="0.01" value="0" oninput="markCalc()"></div>
-          <div class="field"><label>保险费（每件）</label><input id="c_insurance" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_ocean">海运费（整柜/每件分摊）</label><input id="c_ocean" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_insurance">保险费（每件）</label><input id="c_insurance" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
         <div class="frow">
-          <div class="field"><label>报关费（每件分摊）</label><input id="c_customs" type="number" step="0.01" value="0" oninput="markCalc()"></div>
-          <div class="field"><label>港杂费（每件分摊）</label><input id="c_portFee" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_customs">报关费（每件分摊）</label><input id="c_customs" type="number" step="0.01" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_portFee">港杂费（每件分摊）</label><input id="c_portFee" type="number" step="0.01" value="0" oninput="markCalc()"></div>
         </div>
       </div>
 
       <div class="section">
         <h3>💰 定价策略</h3>
         <div class="frow">
-          <div class="field"><label>目标利润率 (%)</label><input id="c_margin" type="number" step="1" value="30" oninput="markCalc()"></div>
-          <div class="field"><label>佣金率 (%)</label><input id="c_comm" type="number" step="0.1" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_margin">目标利润率 (%)</label><input id="c_margin" type="number" step="1" value="30" oninput="markCalc()"></div>
+          <div class="field"><label for="c_comm">佣金率 (%)</label><input id="c_comm" type="number" step="0.1" value="0" oninput="markCalc()"></div>
         </div>
         <div class="frow">
-          <div class="field"><label>报价币种</label>
+          <div class="field"><label for="c_sellCur">报价币种</label>
             <select id="c_sellCur" onchange="markCalc()">
               <option value="USD">USD 美元</option>
               <option value="EUR">EUR 欧元</option>
@@ -124,24 +125,24 @@
               <option value="CNY">CNY 人民币</option>
             </select>
           </div>
-          <div class="field"><label>汇率（1 外币 = ? CNY）</label><input id="c_rate" type="number" step="0.0001" value="7.25" oninput="markCalc()"></div>
+          <div class="field"><label for="c_rate">汇率（1 外币 = ? CNY）</label><input id="c_rate" type="number" step="0.0001" value="7.25" oninput="markCalc()"></div>
         </div>
         <div class="frow">
-          <div class="field"><label>报价数量</label><input id="c_qty" type="number" step="1" value="1000" oninput="markCalc()"></div>
-          <div class="field"><label>目标客户价（可选）</label><input id="c_target" type="number" step="0.01" placeholder="知道市场价可填" oninput="markCalc()"></div>
+          <div class="field"><label for="c_qty">报价数量</label><input id="c_qty" type="number" step="1" value="1000" oninput="markCalc()"></div>
+          <div class="field"><label for="c_target">目标客户价（可选）</label><input id="c_target" type="number" step="0.01" placeholder="知道市场价可填" oninput="markCalc()"></div>
         </div>
         <div class="btnrow">
           <button class="btn-sm btn-ghost" onclick="resetForm()">🔄 重置</button>
           <button class="btn-sm btn-ghost" onclick="saveCalc()">💾 保存本次计算</button>
           <button class="btn-sm btn-primary" onclick="aiPriceAdvice()">🧠 AI 定价建议</button>
         </div>
-        <div class="ai-out" id="aiOut"></div>
+        <div class="ai-out" id="aiOut" aria-live="polite"></div>
       </div>
     </div>
 
     <!-- 右：结果 -->
     <div>
-      <div class="result-box" id="resultBox">
+      <div class="result-box" id="resultBox" aria-live="polite">
         <h3>📊 计算结果</h3>
         <div class="result-row"><span class="label">单位成本（人民币）</span><span class="value" id="r_costCNY">¥0.00</span></div>
         <div class="result-row"><span class="label">单位总成本（含运费）</span><span class="value" id="r_totalCost">¥0.00</span></div>
@@ -153,7 +154,7 @@
         <div class="result-row"><span class="label">实际利润率</span><span class="value" id="r_margin">0%</span></div>
       </div>
 
-      <div id="warnArea"></div>
+      <div id="warnArea" role="status" aria-live="polite"></div>
 
       <div class="section" style="margin-top:var(--sp-4)">
         <h3>📋 成本拆解</h3>
@@ -163,15 +164,15 @@
       <div class="section">
         <h3>🔄 快速换算</h3>
         <div class="frow">
-          <div class="field"><label>输入金额</label><input id="conv_amt" type="number" step="0.01" value="0" oninput="convert()"></div>
-          <div class="field"><label>从</label>
+          <div class="field"><label for="conv_amt">输入金额</label><input id="conv_amt" type="number" step="0.01" value="0" oninput="convert()"></div>
+          <div class="field"><label for="conv_from">从</label>
             <select id="conv_from" onchange="convert()"><option>USD</option><option>EUR</option><option>CNY</option><option>GBP</option><option>AED</option><option>SAR</option></select>
           </div>
-          <div class="field"><label>到</label>
+          <div class="field"><label for="conv_to">到</label>
             <select id="conv_to" onchange="convert()"><option>CNY</option><option>USD</option><option>EUR</option><option>GBP</option><option>AED</option><option>SAR</option></select>
           </div>
         </div>
-        <div style="font-size:18px;font-weight:600;color:var(--brand-700);text-align:center;padding:8px 0" id="convResult">= ¥0.00</div>
+        <div style="font-size:18px;font-weight:600;color:var(--brand-700);text-align:center;padding:8px 0" id="convResult" role="status" aria-live="polite">= ¥0.00</div>
       </div>
     </div>
   </div>

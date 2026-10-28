@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 待办工作台</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -18,7 +18,7 @@
   .stat b { display:block; font-size:26px; margin-bottom:2px; }
   .stat span { font-size:12px; color:var(--text-2); }
   .toolbar { display:flex; gap:var(--sp-2); align-items:center; flex-wrap:wrap; margin-bottom:var(--sp-4); }
-  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
   .toolbar .grow { flex:1; min-width:160px; }
   .todo { display:flex; align-items:flex-start; gap:var(--sp-3); padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); }
   .todo.done { opacity:.5; }
@@ -36,13 +36,13 @@
   .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
   .dlg-b { padding:var(--sp-4); }
   .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
-  .dlg-b input, .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  .dlg-b input, .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
   .focus-card { margin-bottom:var(--sp-4); }
 </style>
 <script src="../assets/standalone.js"></script>
-<script src="../assets/a11y.js?v=1"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
@@ -54,8 +54,8 @@
   <!-- 统计卡 -->
   <div class="stats">
     <div class="ft-card stat"><b style="color:var(--brand-700)" id="stOpen">0</b><span>未完成待办</span></div>
-    <div class="ft-card stat"><b style="color:var(--warn)" id="stToday">0</b><span>今日到期</span></div>
-    <div class="ft-card stat"><b style="color:var(--danger)" id="stOver">0</b><span>已逾期</span></div>
+    <div class="ft-card stat"><b style="color:var(--warn-text)" id="stToday">0</b><span>今日到期</span></div>
+    <div class="ft-card stat"><b style="color:var(--danger-text)" id="stOver">0</b><span>已逾期</span></div>
     <div class="ft-card stat"><b style="color:var(--text-3)" id="stDone">0</b><span>已完成</span></div>
   </div>
 
@@ -68,8 +68,8 @@
     <button class="ft-btn-ai" id="btnPlan" onclick="aiPlan()">🧭 AI 排序：今天先做谁</button>
     <button class="iconbtn" onclick="importFromLeads()">↘ 从线索评分导入 nextAction</button>
     <span style="flex:1"></span>
-    <input class="grow" id="q" placeholder="搜索待办/关联客户…" oninput="render()">
-    <select id="fFilter" onchange="render()">
+    <input class="grow" id="q" aria-label="搜索待办" placeholder="搜索待办/关联客户…" oninput="render()">
+    <select id="fFilter" aria-label="按状态筛选" onchange="render()">
       <option value="">全部</option>
       <option value="over">逾期</option>
       <option value="today">今日到期</option>
@@ -83,13 +83,13 @@
 </main>
 
 <!-- 新建/编辑待办 -->
-<dialog id="dlgEdit" aria-labelledby="dlgTitle">
-  <div class="dlg-h"><span id="dlgTitle">新建待办</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgEdit" aria-labelledby="dlgTitle">
+  <div class="dlg-h"><span id="dlgTitle">新建待办</span><button class="iconbtn" onclick="dlgEdit.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
-    <label>事项 *</label><input id="f_title" placeholder="例如：给 Omar 发样品报价跟进">
-    <label>关联线索（可选）</label><select id="f_lead"></select>
-    <label>到期日</label><input id="f_due" type="date">
-    <label>备注</label><textarea id="f_note" rows="2" placeholder="补充上下文…"></textarea>
+    <label for="f_title">事项 *</label><input id="f_title" placeholder="例如：给 Omar 发样品报价跟进">
+    <label for="f_lead">关联线索（可选）</label><select id="f_lead"></select>
+    <label for="f_due">到期日</label><input id="f_due" type="date">
+    <label for="f_note">备注</label><textarea id="f_note" rows="2" placeholder="补充上下文…"></textarea>
     <div style="margin-top:var(--sp-4);text-align:right">
       <button class="ft-btn-primary" onclick="saveEdit()">保存</button>
     </div>
@@ -97,14 +97,14 @@
 </dialog>
 
 <!-- AI 设置 -->
-<dialog id="dlgSettings" aria-label="AI 设置">
-  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置">
+  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
 <!-- AI 输出弹窗 -->
-<dialog id="dlgAI" aria-labelledby="aiTitle">
-  <div class="dlg-h"><span id="aiTitle">AI 输出</span><button class="iconbtn" onclick="dlgAI.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgAI" aria-labelledby="aiTitle">
+  <div class="dlg-h"><span id="aiTitle">AI 输出</span><button class="iconbtn" onclick="dlgAI.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
     <div class="ft-ai-output" id="aiBody" style="white-space:pre-wrap;font-size:14px;line-height:1.7">生成中…</div>
     <div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);justify-content:flex-end" id="aiActions"></div>
@@ -173,10 +173,10 @@ function render(){
 
     var lead = t.leadId ? leads[t.leadId] : null;
     var ds = dueState(t);
-    var dueHtml = t.due ? '<span class="ft-tag" style="background:'+(ds==='over'?'var(--danger-bg);color:var(--danger)':ds==='today'?'var(--warn-bg);color:var(--warn)':'var(--bg-inset);color:var(--text-2)')+'">📅 '+esc(t.due)+(ds==='over'?' 逾期':ds==='today'?' 今天':'')+'</span>' : '';
+    var dueHtml = t.due ? '<span class="ft-tag" style="background:'+(ds==='over'?'var(--danger-bg);color:var(--danger-text)':ds==='today'?'var(--warn-bg);color:var(--warn-text)':'var(--bg-inset);color:var(--text-2)')+'">📅 '+esc(t.due)+(ds==='over'?' 逾期':ds==='today'?' 今天':'')+'</span>' : '';
     var aiHtml = t.aiPriority ? '<span class="ft-tag" style="background:var(--accent-100);color:#8a6100">AI #'+t.aiPriority+'</span>' : '';
     html += '<div class="ft-card todo '+(t.done?'done':'')+'">'
-      + '<input type="checkbox" class="checkbox" '+(t.done?'checked':'')+' onchange="toggleDone(\''+t.id+'\')">'
+      + '<input type="checkbox" class="checkbox" aria-label="标记完成：'+esc(t.title)+'" '+(t.done?'checked':'')+' onchange="toggleDone(\''+t.id+'\')">'
       + '<div class="body" role="button" tabindex="0" aria-expanded="false" onclick="this.parentElement.classList.toggle(\'open\')">'
       +   '<div class="title">'+(t.done?'<s>':'')+esc(t.title)+(t.done?'</s>':'')+'</div>'
       +   '<div class="meta">'+aiHtml+dueHtml

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 话术库</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -14,7 +14,7 @@
   header button { background:rgba(255,255,255,.12); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); padding:6px 14px; cursor:pointer; }
   main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
   .toolbar { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-4); align-items:center; }
-  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar input, .toolbar select { padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
   .toolbar .grow { flex:1; min-width:160px; }
   .tpl { padding:var(--sp-4); margin-bottom:var(--sp-3); }
   .tpl .hd { display:flex; align-items:center; gap:var(--sp-2); margin-bottom:var(--sp-2); flex-wrap:wrap; }
@@ -30,11 +30,12 @@
   .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
   .dlg-b { padding:var(--sp-4); }
   .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
-  .dlg-b select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; }
+  .dlg-b select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; }
   .ai-out { white-space:pre-wrap; font-size:14px; line-height:1.7; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
@@ -44,9 +45,9 @@
 </header>
 <main>
   <div class="toolbar">
-    <input class="grow" id="q" placeholder="搜索标题/分类/正文（支持中英文）…" oninput="render()">
-    <select id="fCat" onchange="render()"><option value="">全部分类</option></select>
-    <select id="fSort" onchange="render()">
+    <input class="grow" id="q" aria-label="搜索话术" placeholder="搜索标题/分类/正文（支持中英文）…" oninput="render()">
+    <select id="fCat" aria-label="按分类筛选" onchange="render()"><option value="">全部分类</option></select>
+    <select id="fSort" aria-label="排序方式" onchange="render()">
       <option value="n">按环节顺序</option>
       <option value="hot">按使用热度</option>
     </select>
@@ -55,12 +56,12 @@
 </main>
 
 <!-- AI 改写弹窗 -->
-<dialog id="dlgAI" aria-labelledby="aiTitle">
-  <div class="dlg-h"><span id="aiTitle">AI 改写</span><button class="iconbtn" onclick="dlgAI.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgAI" aria-labelledby="aiTitle">
+  <div class="dlg-h"><span id="aiTitle">AI 改写</span><button class="iconbtn" onclick="dlgAI.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
-    <label>套用到哪条线索（改写时自动注入国家/产品/阶段上下文）</label>
+    <label for="aiLead">套用到哪条线索（改写时自动注入国家/产品/阶段上下文）</label>
     <select id="aiLead"></select>
-    <label>附加要求（可选，留空按标准改写）</label>
+    <label for="aiHint">附加要求（可选，留空按标准改写）</label>
     <input id="aiHint" placeholder="例如：更口语、强调可定制、提到斋月备货…">
     <div style="margin-top:var(--sp-3)">
       <button class="ft-btn-ai" id="btnRewrite" onclick="doRewrite()">✨ 开始 AI 改写</button>
@@ -71,8 +72,8 @@
 </dialog>
 
 <!-- AI 设置 -->
-<dialog id="dlgSettings" aria-label="AI 设置">
-  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置">
+  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 

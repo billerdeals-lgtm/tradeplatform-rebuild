@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 找客户</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -17,12 +17,12 @@
   .field { flex:1; min-width:150px; }
   .field.wide { flex:2.5; min-width:220px; }
   .field label { display:block; font-size:12px; color:var(--text-2); margin-bottom:4px; }
-  .field input, .field select { width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
-  .field input:focus, .field select:focus { outline:none; border-color:var(--brand-600); }
+  .field input, .field select { width:100%; box-sizing:border-box; padding:9px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .field input:focus, .field select:focus { border-color:var(--brand-600); }
   .srcw { margin-top:var(--sp-3); }
-  .srcw > label { display:block; font-size:12px; color:var(--text-2); margin-bottom:6px; }
+  .srcw > .srclabel { display:block; font-size:12px; color:var(--text-2); margin-bottom:6px; }
   .srclist { display:flex; flex-wrap:wrap; gap:8px; }
-  .srcchip { display:flex; align-items:center; gap:6px; border:1px solid var(--border-strong); border-radius:999px; padding:5px 12px 5px 9px; cursor:pointer; font-size:12.5px; background:var(--bg-card); user-select:none; }
+  .srcchip { display:flex; align-items:center; gap:6px; border:1px solid var(--border-field); border-radius:999px; padding:5px 12px 5px 9px; cursor:pointer; font-size:12.5px; background:var(--bg-card); user-select:none; }
   .srcchip:hover { border-color:var(--brand-600); }
   .srcchip input { margin:0; }
   .srcchip b { font-weight:600; }
@@ -61,10 +61,10 @@
   .bs { font-size:12px; padding:5px 12px; border-radius:var(--r-sm); border:0; cursor:pointer; white-space:nowrap; }
   .bi { background:var(--brand-700); color:#fff; } .bi:hover { background:var(--brand-800); }
   .bd { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
-  .imp { font-size:11px; color:var(--ok); }
+  .imp { font-size:11px; color:var(--ok-text); }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; font-size:14px; }
   .log { font-size:12px; color:var(--text-3); margin-top:var(--sp-3); max-height:140px; overflow:auto; background:var(--bg-inset); border-radius:var(--r-sm); padding:8px 12px; display:none; }
-  .log div { margin-bottom:1px; } .log .ok { color:var(--ok); } .log .fail { color:var(--danger); }
+  .log div { margin-bottom:1px; } .log .ok { color:var(--ok-text); } .log .fail { color:var(--danger-text); }
   dialog { border:0; border-radius:var(--r-lg); box-shadow:0 20px 60px rgba(0,0,0,.3); padding:0; max-width:420px; width:90%; overflow:hidden; }
   dialog::backdrop { background:rgba(0,0,0,.5); backdrop-filter:blur(4px); }
   .dh { background:var(--brand-900); color:#fff; padding:var(--sp-3) var(--sp-4); display:flex; justify-content:space-between; align-items:center; }
@@ -73,9 +73,9 @@
   .db { padding:var(--sp-4); }
   .dr { margin-bottom:var(--sp-3); }
   .dr label { display:block; font-size:12px; color:var(--text-2); margin-bottom:4px; }
-  .dr input, .dr textarea { width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  .dr input, .dr textarea { width:100%; box-sizing:border-box; padding:9px 12px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
   .dr textarea { min-height:50px; resize:vertical; }
-  .dr input:focus, .dr textarea:focus { outline:none; border-color:var(--brand-600); }
+  .dr input:focus, .dr textarea:focus { border-color:var(--brand-600); }
   .dr2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
   .df { display:flex; gap:var(--sp-3); padding:0 var(--sp-4) var(--sp-4); }
   .df button { flex:1; padding:10px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
@@ -84,22 +84,23 @@
   .srcnote { font-size:11.5px; color:var(--text-3); padding:0 var(--sp-4) var(--sp-4); line-height:1.55; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
-<header><img src="../assets/logo.svg" alt="logo"><h1>找客户</h1></header>
+<header><img src="../assets/logo.svg" alt=""><h1>找客户</h1></header>
 <main>
   <div class="sa">
     <div class="row">
-      <div class="field wide"><label>产品关键词（英文）</label><input id="k_prod" placeholder="如：washing powder, LED light, solar panel"></div>
-      <div class="field"><label>目标市场</label>
+      <div class="field wide"><label for="k_prod">产品关键词（英文）</label><input id="k_prod" placeholder="如：washing powder, LED light, solar panel"></div>
+      <div class="field"><label for="k_region">目标市场</label>
         <select id="k_region"><option value="">全球</option><option value="Southeast Asia">东南亚</option><option value="Middle East">中东</option><option value="USA">美国</option><option value="Europe">欧洲</option><option value="Africa">非洲</option><option value="Latin America">拉美</option></select>
       </div>
-      <div class="field"><label>客户类型</label>
+      <div class="field"><label for="k_type">客户类型</label>
         <select id="k_type"><option value="wholesaler">批发商</option><option value="distributor">经销商</option><option value="importer">进口商</option><option value="retailer">零售商</option></select>
       </div>
     </div>
-    <div class="srcw"><label>数据来源（可多选）</label><div class="srclist" id="srclist"></div></div>
+    <div class="srcw"><span class="srclabel" id="srcLbl">数据来源（可多选）</span><div class="srclist" id="srclist" role="group" aria-labelledby="srcLbl"></div></div>
     <div class="srcnote">AI 挖掘只负责规划本地化搜索词；它点名的公司必须官网可访问、且名称与域名/标题匹配才会保留，未通过核验的不会出现在结果里。</div>
     <div class="acts">
       <button class="btn-main btn-ai" id="btnS" onclick="doSearch()">🔍 开始挖掘</button>
@@ -111,31 +112,31 @@
   <div class="stats">
     <div class="stat"><b id="sN">0</b><span>找到公司</span></div>
     <div class="stat"><b id="sH" style="color:#c2410c">0</b><span>高意向(≥7)</span></div>
-    <div class="stat"><b id="sC" style="color:var(--ok)">0</b><span>有联系方式</span></div>
+    <div class="stat"><b id="sC" style="color:var(--ok-text)">0</b><span>有联系方式</span></div>
     <div class="stat"><b id="sI" style="color:var(--brand-700)">0</b><span>已转线索</span></div>
   </div>
   <div class="filterbar" id="fbar">
     <span>最低意向分</span>
-    <input type="range" id="minScore" min="0" max="12" step="1" value="4" oninput="applyFilter()">
+    <input type="range" id="minScore" aria-label="最低 AI 评分" min="0" max="12" step="1" value="4" oninput="applyFilter()">
     <b id="minVal">4</b><span>/12</span>
-    <span id="fInfo" style="color:var(--text-3)"></span>
+    <span id="fInfo" style="color:var(--text-3)" role="status"></span>
   </div>
   <div class="acts" id="bR" style="display:none;margin-top:0">
     <button class="btn-main btn-ai" onclick="bulkImp()">⬇ 一键导入有联系方式的</button>
     <span class="status" id="bS"></span>
   </div>
   <div class="twhint" id="twhint">← 左右滑动查看完整列 →</div>
-  <div class="tw"><table id="rT" style="display:none"><thead><tr><th>公司</th><th>国家</th><th>意向</th><th>联系方式</th><th>来源</th><th></th></tr></thead><tbody id="rB"></tbody></table></div>
+  <div class="tw"><table id="rT" aria-label="客户搜索结果" style="display:none"><thead><tr><th scope="col">公司</th><th scope="col">国家</th><th scope="col">意向</th><th scope="col">联系方式</th><th scope="col">来源</th><th scope="col"></th></tr></thead><tbody id="rB"></tbody></table></div>
   <div id="eS"><div class="empty">输入产品关键词，选择来源，点击「开始挖掘」<br>系统用询盘式关键词多源搜索，规则引擎剔除供应商页，AI 给出买家意向分</div></div>
-  <div class="log" id="log"></div>
+  <div class="log" id="log" role="log"></div>
 </main>
-<dialog id="dlg" aria-label="导入线索"><div class="dh"><h3>导入线索</h3><button class="dc" onclick="dlg.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlg" aria-label="导入线索"><div class="dh"><h3>导入线索</h3><button class="dc" onclick="dlg.close()" aria-label="关闭">✕</button></div>
   <div class="db">
-    <div class="dr"><label>公司名 *</label><input id="c_name"></div>
-    <div class="dr2"><div class="dr"><label>国家</label><input id="c_country"></div><div class="dr"><label>联系人</label><input id="c_person"></div></div>
-    <div class="dr2"><div class="dr"><label>邮箱</label><input id="c_email"></div><div class="dr"><label>WhatsApp/电话</label><input id="c_wa"></div></div>
-    <div class="dr"><label>官网</label><input id="c_web"></div>
-    <div class="dr"><label>备注</label><textarea id="c_note"></textarea></div>
+    <div class="dr"><label for="c_name">公司名 *</label><input id="c_name"></div>
+    <div class="dr2"><div class="dr"><label for="c_country">国家</label><input id="c_country"></div><div class="dr"><label for="c_person">联系人</label><input id="c_person"></div></div>
+    <div class="dr2"><div class="dr"><label for="c_email">邮箱</label><input id="c_email"></div><div class="dr"><label for="c_wa">WhatsApp/电话</label><input id="c_wa"></div></div>
+    <div class="dr"><label for="c_web">官网</label><input id="c_web"></div>
+    <div class="dr"><label for="c_note">备注</label><textarea id="c_note"></textarea></div>
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>

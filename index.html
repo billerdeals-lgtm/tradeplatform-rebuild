@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 外贸客户开发工作台</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<link rel="stylesheet" href="assets/tokens.css">
+<link rel="stylesheet" href="assets/tokens.css?v=2">
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); display:flex; height:100vh; overflow:hidden; }
@@ -31,7 +31,7 @@
   .skip { position:absolute; left:-9999px; top:0; z-index:200; padding:10px 16px;
     background:var(--brand-700); color:#fff; border-radius:0 0 var(--r-sm) 0; font-size:13px; }
   .skip:focus { left:0; }
-  .navgroup { padding:12px 12px 4px; font-size:10px; letter-spacing:.14em; color:rgba(255,255,255,.38); }
+  .navgroup { padding:12px 12px 4px; font-size:10px; letter-spacing:.14em; color:rgba(255,255,255,.62); }
   .navgroup + .navitem { margin-top:0; }
   .homeempty { padding:var(--sp-4); border:1px dashed rgba(11,110,79,.35); background:rgba(11,110,79,.04); }
   .navfoot { padding:12px; border-top:1px solid rgba(255,255,255,.12); }
@@ -87,7 +87,7 @@
     .stat b { font-size:22px; }
   }
 </style>
-<link rel="stylesheet" href="assets/responsive.css?v=8">
+<link rel="stylesheet" href="assets/responsive.css?v=9">
 </head>
 <body>
 <a class="skip" href="#content">跳到主要内容</a>
@@ -134,7 +134,7 @@
       <button onclick="backupAll()">⬇ 备份</button>
       <button onclick="document.getElementById('restoreFile').click()">⬆ 恢复</button>
     </div>
-    <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreAll(this)">
+    <input type="file" id="restoreFile" aria-label="选择备份文件" accept=".json" style="display:none" onchange="restoreAll(this)">
   </div>
 </nav>
 
@@ -146,8 +146,8 @@
     <div class="grid">
       <button type="button" class="ft-card stat" onclick="go('modules/leads.html')"><b id="hLeads" style="color:var(--brand-700)">0</b><span>线索总数</span></button>
       <button type="button" class="ft-card stat" onclick="go('modules/leads.html')"><b id="hScored" style="color:var(--accent-500)">0</b><span>已 AI 评分</span></button>
-      <button type="button" class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok)">0</b><span>报价中</span></button>
-      <button type="button" class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn)">0</b><span>待办</span></button>
+      <button type="button" class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok-text)">0</b><span>报价中</span></button>
+      <button type="button" class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn-text)">0</b><span>待办</span></button>
     </div>
     <div class="ft-card homeempty" id="homeEmpty" style="display:none">
       <b>还没有客户数据</b>
@@ -176,10 +176,10 @@
   <iframe id="frame" style="display:none"></iframe>
 </div>
 
-<dialog id="dlgSettings" aria-label="AI 设置" class="dialog-wrap">
+<dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置" class="dialog-wrap">
   <div class="dlg-h" style="background:var(--bg-inset);padding:var(--sp-3) var(--sp-4);font-weight:600;display:flex;justify-content:space-between">
     <span>AI 设置（Agnes 3.0 Flash）</span>
-    <button class="iconbtn" onclick="dlgSettings.close()">✕</button>
+    <button class="iconbtn" onclick="dlgSettings.close()" aria-label="关闭">✕</button>
   </div>
   <div style="padding:var(--sp-4)" id="agPanel"></div>
 </dialog>
@@ -187,11 +187,12 @@
 <script src="agnes-ai.js?v=8"></script>
 <script src="js/datastore.js"></script>
 <script src="js/license.js?v=3"></script>
+<script src="assets/a11y.js?v=2"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261028f';
+var MODULE_V = '20261028g';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -205,6 +206,15 @@ function go(view){
   $('mTitle').textContent = view === 'home' ? '工作台' : label;
   closeNav();
 }
+/* 模块 iframe 里的 FT.go() 优先直接调用 parent.go()；
+   跨域或沙箱环境会退回 postMessage，这里接住并做白名单校验。 */
+window.addEventListener('message', function(e){
+  if (e.origin !== window.location.origin) return;
+  var d = e.data;
+  if (!d || d.type !== 'ft:navigate' || typeof d.view !== 'string') return;
+  if (!/^modules\/[a-z0-9_-]+\.html$/i.test(d.view)) return;
+  go(d.view);
+});
 function toggleNav(){
   var nav = $('appnav');
   var open = !nav.classList.contains('open');

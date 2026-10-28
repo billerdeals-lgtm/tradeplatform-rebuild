@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 竞品库</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -17,7 +17,7 @@
   .stats { display:flex; gap:var(--sp-6); margin-bottom:var(--sp-3); }
   .stat { text-align:center; } .stat b { display:block; font-size:22px; font-weight:700; color:var(--brand-700); } .stat span { font-size:11.5px; color:var(--text-3); }
   .toolbar { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-bottom:var(--sp-3); align-items:center; }
-  .toolbar input, .toolbar select { padding:8px 12px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
+  .toolbar input, .toolbar select { padding:8px 12px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; background:var(--bg-card); }
   .toolbar input[type=search] { flex:1; min-width:190px; }
   .tw { background:var(--bg-card); border:1px solid var(--border); border-radius:var(--r-md); box-shadow:var(--shadow-card); overflow:auto; }
   table { width:100%; border-collapse:collapse; font-size:13px; }
@@ -34,7 +34,7 @@
   .acts { white-space:nowrap; }
   .acts button { padding:5px 10px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--bg-inset); font-size:12px; cursor:pointer; margin-right:4px; }
   .acts button:hover { border-color:var(--brand-700); color:var(--brand-700); }
-  .acts .del:hover { border-color:var(--danger); color:var(--danger); }
+  .acts .del:hover { border-color:var(--danger); color:var(--danger-text); }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; font-size:14px; }
   dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:680px; width:94%; }
   dialog::backdrop { background:rgba(31,41,51,.4); }
@@ -43,14 +43,15 @@
   .f2 { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
   .f2 .full { grid-column:1/-1; }
   .dlg-b label { display:block; font-size:12px; color:var(--text-2); margin-bottom:3px; }
-  .dlg-b input, .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
+  .dlg-b input, .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); background:var(--bg-card); }
   .dlg-b textarea { min-height:56px; resize:vertical; }
   .df { display:flex; gap:var(--sp-3); padding:0 var(--sp-4) var(--sp-4); justify-content:flex-end; }
   .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
@@ -65,9 +66,9 @@
     <div class="stat"><b id="sW">0</b><span>有官网</span></div>
   </div>
   <div class="toolbar">
-    <input type="search" id="q" placeholder="搜索竞品 / 产品 / 优势 / 威胁…" oninput="render()">
-    <select id="fLead" onchange="render()"><option value="">全部客户</option></select>
-    <select id="fSort" onchange="render()">
+    <input type="search" id="q" aria-label="搜索竞品" placeholder="搜索竞品 / 产品 / 优势 / 威胁…" oninput="render()">
+    <select id="fLead" aria-label="按关联客户筛选" onchange="render()"><option value="">全部客户</option></select>
+    <select id="fSort" aria-label="排序方式" onchange="render()">
       <option value="upd">最近更新</option>
       <option value="name">按竞品名</option>
       <option value="country">按国家</option>
@@ -75,10 +76,10 @@
   </div>
   <div class="twhint" id="twhint">← 左右滑动查看完整列（优势 / 威胁 / 关联客户）→</div>
   <div class="tw" id="tw" style="display:none">
-    <table>
+    <table aria-label="竞品列表">
       <thead><tr>
-        <th>竞品</th><th>国家 / 官网</th><th>对标产品</th><th>价格 / MOQ</th>
-        <th>优势 / 威胁</th><th>关联客户</th><th></th>
+        <th scope="col">竞品</th><th scope="col">国家 / 官网</th><th scope="col">对标产品</th><th scope="col">价格 / MOQ</th>
+        <th scope="col">优势 / 威胁</th><th scope="col">关联客户</th><th scope="col"></th>
       </tr></thead>
       <tbody id="rows"></tbody>
     </table>
@@ -86,20 +87,20 @@
   <div class="empty" id="empty">竞品库是空的<br><br><button class="ft-btn-primary" onclick="openEdit()">＋ 录入第一个竞品</button></div>
 </main>
 
-<dialog id="dlgEdit" aria-labelledby="dlgTitle">
-  <div class="dlg-h"><span id="dlgTitle">新建竞品</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgEdit" aria-labelledby="dlgTitle">
+  <div class="dlg-h"><span id="dlgTitle">新建竞品</span><button class="iconbtn" onclick="dlgEdit.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
     <div class="f2">
-      <div class="full"><label>竞品公司 / 品牌 *</label><input id="e_name" placeholder="如：Nordic Home ApS"></div>
-      <div><label>国家 / 市场</label><input id="e_country" placeholder="如：Germany"></div>
-      <div><label>官网</label><input id="e_website" placeholder="https://example.com"></div>
-      <div class="full"><label>对标产品 / 品类</label><input id="e_product" placeholder="如：LED Panel Light 600×600"></div>
-      <div><label>价格 / 报价</label><input id="e_price" placeholder="如：USD 3.20/pc 或 低于我们 8%"></div>
-      <div><label>MOQ</label><input id="e_moq" placeholder="如：500 pcs"></div>
-      <div class="full"><label>对方优势</label><textarea id="e_advantage" rows="2" placeholder="交期、认证、价格、渠道、账期…"></textarea></div>
-      <div class="full"><label>对我们的威胁 / 应对</label><textarea id="e_threat" rows="2" placeholder="客户为什么可能选它？我们该怎么打？"></textarea></div>
-      <div class="full"><label>关联客户</label><select id="e_lead"></select></div>
-      <div class="full"><label>备注</label><textarea id="e_note" rows="2" placeholder="报价单链接、展会、联系人等"></textarea></div>
+      <div class="full"><label for="e_name">竞品公司 / 品牌 *</label><input id="e_name" placeholder="如：Nordic Home ApS"></div>
+      <div><label for="e_country">国家 / 市场</label><input id="e_country" placeholder="如：Germany"></div>
+      <div><label for="e_website">官网</label><input id="e_website" placeholder="https://example.com"></div>
+      <div class="full"><label for="e_product">对标产品 / 品类</label><input id="e_product" placeholder="如：LED Panel Light 600×600"></div>
+      <div><label for="e_price">价格 / 报价</label><input id="e_price" placeholder="如：USD 3.20/pc 或 低于我们 8%"></div>
+      <div><label for="e_moq">MOQ</label><input id="e_moq" placeholder="如：500 pcs"></div>
+      <div class="full"><label for="e_advantage">对方优势</label><textarea id="e_advantage" rows="2" placeholder="交期、认证、价格、渠道、账期…"></textarea></div>
+      <div class="full"><label for="e_threat">对我们的威胁 / 应对</label><textarea id="e_threat" rows="2" placeholder="客户为什么可能选它？我们该怎么打？"></textarea></div>
+      <div class="full"><label for="e_lead">关联客户</label><select id="e_lead"></select></div>
+      <div class="full"><label for="e_note">备注</label><textarea id="e_note" rows="2" placeholder="报价单链接、展会、联系人等"></textarea></div>
     </div>
   </div>
   <div class="df"><button class="dx" onclick="dlgEdit.close()">取消</button><button class="ds" onclick="saveC()">保存竞品</button></div>

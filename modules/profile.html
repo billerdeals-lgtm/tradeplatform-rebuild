@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 我的资料</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -19,24 +19,25 @@
   .full { grid-column:1/-1; }
   label { display:block; font-size:12.5px; color:var(--text-3); margin-bottom:5px; }
   input, textarea {
-    width:100%; box-sizing:border-box; padding:10px 2px; border:0; border-bottom:1.5px solid var(--border-strong);
+    width:100%; box-sizing:border-box; padding:10px 2px; border:0; border-bottom:1.5px solid var(--border-field);
     font-size:14.5px; font-family:var(--font-sans); background:transparent; color:var(--text-1); transition:border-color .15s;
   }
-  input:focus, textarea:focus { outline:none; border-bottom-color:var(--brand-700); }
+  input:focus, textarea:focus { border-bottom-color:var(--brand-700); }
   textarea { resize:vertical; min-height:56px; line-height:1.6; }
-  ::placeholder { color:var(--text-3); opacity:.55; }
+  ::placeholder { color:var(--text-3); opacity:1; }
   .sellrow { display:flex; gap:var(--sp-4); align-items:flex-end; }
   .sellrow textarea { flex:1; }
   .btnrow { display:flex; gap:var(--sp-3); margin-top:var(--sp-6); align-items:center; }
-  .saved { color:var(--ok); font-size:13px; display:none; }
+  .saved { color:var(--ok-text); font-size:13px; display:none; }
   .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="logo">
+  <img src="../assets/logo.svg" alt="">
   <h1>我的资料</h1>
 </header>
 <main>
@@ -45,36 +46,36 @@
   <section>
     <h2>发信人署名</h2>
     <div class="grid">
-      <div><label>我的称呼（英文信里用）</label><input id="p_name"></div>
-      <div><label>职位</label><input id="p_role"></div>
-      <div class="full"><label>公司名（英文）</label><input id="p_company"></div>
-      <div><label>WhatsApp</label><input id="p_wa"></div>
-      <div><label>邮箱</label><input id="p_email"></div>
+      <div><label for="p_name">我的称呼（英文信里用）</label><input id="p_name"></div>
+      <div><label for="p_role">职位</label><input id="p_role"></div>
+      <div class="full"><label for="p_company">公司名（英文）</label><input id="p_company"></div>
+      <div><label for="p_wa">WhatsApp</label><input id="p_wa"></div>
+      <div><label for="p_email">邮箱</label><input id="p_email"></div>
     </div>
   </section>
 
   <section>
     <h2>业务底盘</h2>
     <div class="grid">
-      <div class="full"><label>主营产品</label><textarea id="p_products"></textarea></div>
+      <div class="full"><label for="p_products">主营产品</label><textarea id="p_products"></textarea></div>
       <div class="full">
-        <label>核心卖点（AI 写信必引用）</label>
+        <label for="p_selling">核心卖点（AI 写信必引用）</label>
         <div class="sellrow">
           <textarea id="p_selling"></textarea>
           <button class="ft-btn-ai" onclick="aiPolish()" title="AI 润色卖点">✨ 润色</button>
         </div>
-        <div id="polish_out" class="ft-ai-output"></div>
+        <div id="polish_out" class="ft-ai-output" aria-live="polite"></div>
       </div>
-      <div><label>起运港</label><input id="p_port"></div>
-      <div><label>常用付款方式</label><input id="p_payment"></div>
-      <div><label>MOQ 政策</label><input id="p_moq"></div>
-      <div><label>公司网站</label><input id="p_site"></div>
+      <div><label for="p_port">起运港</label><input id="p_port"></div>
+      <div><label for="p_payment">常用付款方式</label><input id="p_payment"></div>
+      <div><label for="p_moq">MOQ 政策</label><input id="p_moq"></div>
+      <div><label for="p_site">公司网站</label><input id="p_site"></div>
     </div>
   </section>
 
   <div class="btnrow">
     <button class="ft-btn-primary" onclick="save()">保存资料</button>
-    <span class="saved" id="saved">✓ 已保存，各模块即刻生效</span>
+    <span class="saved" id="saved" role="status">✓ 已保存，各模块即刻生效</span>
   </div>
 
   <!-- 品牌资料（Logo / 电子签名 / 公司公章 + 收款信息） -->
@@ -134,7 +135,7 @@ function paintBrand(){
   var box = document.getElementById('brandSummary');
   function pill(done, html){
     var bg = done ? 'var(--ok-bg)' : 'var(--bg-inset)';
-    var fg = done ? 'var(--ok)' : 'var(--text-3)';
+    var fg = done ? 'var(--ok-text)' : 'var(--text-3)';
     var bd = done ? 'var(--ok)' : 'var(--border)';
     return '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;line-height:1;'
       + 'padding:6px 11px;border-radius:999px;background:'+bg+';color:'+fg+';border:1px '+(done?'solid':'dashed')+' '+bd+'">'
@@ -148,7 +149,7 @@ function paintBrand(){
   var out = [];
   if (b.sellerFull) out.push(tag('🏢 ' + escTxt(b.sellerFull)));
   out.push(b.logo
-    ? pill(true, '<img src="'+b.logo+'" alt="logo" style="height:15px;width:auto;display:block"> <span>Logo ✓</span>')
+    ? pill(true, '<img src="'+b.logo+'" alt="" style="height:15px;width:auto;display:block"> <span>Logo ✓</span>')
     : pill(false, 'Logo 未设置'));
   out.push(b.sign ? pill(true, '签名 ✓') : pill(false, '签名未设置'));
   out.push(b.seal ? pill(true, '公章 ✓') : pill(false, '公章未设置'));

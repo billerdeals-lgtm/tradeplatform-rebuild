@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 单证中心</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -16,12 +16,12 @@
   /* 左：选择 + 表单 */
   .left { width:400px; flex-shrink:0; }
   .doclist { max-height:180px; overflow:auto; display:flex; flex-wrap:wrap; gap:6px; padding:var(--sp-3); }
-  .docchip { font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--border-strong); background:var(--bg-card); cursor:pointer; }
+  .docchip { font-size:12px; padding:5px 10px; border-radius:999px; border:1px solid var(--border-field); background:var(--bg-card); cursor:pointer; }
   .docchip.on { background:var(--brand-700); color:#fff; border-color:var(--brand-700); }
   .catlbl { width:100%; font-size:11px; color:var(--text-3); margin-top:4px; }
   /* ---- 单据链 ---- */
   .chain { display:flex; align-items:center; gap:2px; padding:10px var(--sp-3); flex-wrap:wrap; }
-  .chain-step { font-size:11.5px; padding:4px 9px; border-radius:999px; border:1px solid var(--border-strong); background:var(--bg-card); cursor:pointer; color:var(--text-2); white-space:nowrap; }
+  .chain-step { font-size:11.5px; padding:4px 9px; border-radius:999px; border:1px solid var(--border-field); background:var(--bg-card); cursor:pointer; color:var(--text-2); white-space:nowrap; }
   .chain-step:hover { border-color:var(--brand-700); color:var(--brand-700); }
   .chain-step.done { background:var(--brand-100); border-color:var(--brand-500); color:var(--brand-700); }
   .chain-step.on { background:var(--brand-700); border-color:var(--brand-700); color:#fff; font-weight:600; }
@@ -35,7 +35,7 @@
   .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
   .fgrid .full { grid-column:1 / -1; }
   .fgrid label { font-size:11px; color:var(--text-2); display:block; margin-bottom:2px; }
-  .fgrid input { width:100%; box-sizing:border-box; padding:7px 9px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; }
+  .fgrid input { width:100%; box-sizing:border-box; padding:7px 9px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:13px; }
   .btnrow { display:flex; gap:var(--sp-2); flex-wrap:wrap; margin-top:var(--sp-3); }
   /* 右：预览（A4 纸面） */
   .right { flex:1; min-width:0; }
@@ -54,7 +54,7 @@
   .paper .sig { position:relative; display:flex; justify-content:space-between; align-items:flex-end; margin-top:48px; font-size:13px; min-height:24px; }
   .aicheck { margin-top:var(--sp-3); font-size:13px; line-height:1.7; }
   .paper-tools { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-  .paper-tools select { padding:5px 8px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:12px; background:var(--bg-card); }
+  .paper-tools select { padding:5px 8px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:12px; background:var(--bg-card); }
   /* ---- CONFIDENTIAL 内部区（feature 7） ---- */
   .conf-sect { border:1px dashed #f0b429; background:#fffbeb; border-radius:var(--r-sm); padding:8px 10px; margin-top:8px; }
   .conf-badge { display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.04em; color:#92400e; background:#fde68a; border-radius:4px; padding:2px 7px; margin-bottom:6px; }
@@ -84,15 +84,15 @@
   .br-view { height:96px; border:1.5px dashed var(--border-strong); border-radius:var(--r-sm); background:var(--bg-inset); display:flex; align-items:center; justify-content:center; overflow:hidden; }
   .br-view img { max-width:92%; max-height:88px; object-fit:contain; }
   .br-view span { font-size:12px; color:var(--text-3); }
-  .br-pick { padding:7px 0; border:1px solid var(--border-strong); border-radius:var(--r-sm); background:var(--bg-card); cursor:pointer; font-size:13px; }
+  .br-pick { padding:7px 0; border:1px solid var(--border-field); border-radius:var(--r-sm); background:var(--bg-card); cursor:pointer; font-size:13px; }
   .br-pick:hover { border-color:var(--brand-700); color:var(--brand-700); }
   .br-hint { font-size:11px; color:var(--text-3); line-height:1.45; }
-  .br-name { font-size:11px; color:var(--ok); }
+  .br-name { font-size:11px; color:var(--ok-text); }
   .br-two { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-3); }
   .br-dr { margin-bottom:var(--sp-3); }
   .br-dr label { display:block; font-size:12px; color:var(--text-2); margin-bottom:4px; }
-  .br-dr input, .br-dr textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
-  .br-dr input:focus, .br-dr textarea:focus { outline:none; border-color:var(--brand-600, var(--brand-700)); }
+  .br-dr input, .br-dr textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  .br-dr input:focus, .br-dr textarea:focus { border-color:var(--brand-600, var(--brand-700)); }
   .br-f { display:flex; gap:var(--sp-3); justify-content:flex-end; padding:0 var(--sp-4) var(--sp-4); }
   @media print {
     body * { visibility:hidden; }
@@ -104,11 +104,11 @@
   .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
   .dlg-b { padding:var(--sp-4); }
   .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
-  .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
+  .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
 </style>
 <script src="../assets/standalone.js"></script>
-<script src="../assets/a11y.js?v=1"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
@@ -142,7 +142,7 @@
         <button class="iconbtn" onclick="runGate(true)" title="Formal Output Gate：必填校验 + Issue Navigator">🔎 输出校验</button>
       </div>
       <div id="gateBox"></div>
-      <div class="ft-ai-output aicheck" id="aiOut" style="display:none"></div>
+      <div class="ft-ai-output aicheck" id="aiOut" style="display:none" aria-live="polite"></div>
     </div>
   </div>
   <div class="right">
@@ -153,29 +153,29 @@
 </main>
 
 <!-- 单证夹 -->
-<dialog id="dlgSaved" aria-label="单证夹">
-  <div class="dlg-h"><span>单证夹（已保存单证）</span><button class="iconbtn" onclick="dlgSaved.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgSaved" aria-label="单证夹">
+  <div class="dlg-h"><span>单证夹（已保存单证）</span><button class="iconbtn" onclick="dlgSaved.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b" id="savedList" style="max-height:400px;overflow:auto"></div>
 </dialog>
 
 <!-- AI 润色 -->
-<dialog id="dlgPolish" aria-label="AI 润色备注">
-  <div class="dlg-h"><span>✨ AI 润色备注</span><button class="iconbtn" onclick="dlgPolish.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgPolish" aria-label="AI 润色备注">
+  <div class="dlg-h"><span>✨ AI 润色备注</span><button class="iconbtn" onclick="dlgPolish.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
-    <label>要润色的内容（中文可）</label>
+    <label for="polishIn">要润色的内容（中文可）</label>
     <textarea id="polishIn" rows="3" placeholder="例如：请尽快安排余款，我们收到后 3 天内安排发货"></textarea>
     <div style="margin-top:var(--sp-3)">
       <button class="ft-btn-ai" id="btnPolish" onclick="doPolish()">✨ 润色为商务英文</button>
     </div>
-    <div class="ft-ai-output" id="polishOut" style="display:none;margin-top:var(--sp-3);white-space:pre-wrap;font-size:14px;line-height:1.7"></div>
+    <div class="ft-ai-output" id="polishOut" style="display:none;margin-top:var(--sp-3);white-space:pre-wrap;font-size:14px;line-height:1.7" aria-live="polite"></div>
   </div>
 </dialog>
 
 <!-- 从线索带入 -->
-<dialog id="dlgImport" aria-label="从线索带入客户信息">
-  <div class="dlg-h"><span>从线索带入客户信息</span><button class="iconbtn" onclick="dlgImport.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgImport" aria-label="从线索带入客户信息">
+  <div class="dlg-h"><span>从线索带入客户信息</span><button class="iconbtn" onclick="dlgImport.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
-    <label>选择线索（自动带入买方名/地址/产品，AI 评分高的排前面）</label>
+    <label for="impLead">选择线索（自动带入买方名/地址/产品，AI 评分高的排前面）</label>
     <select id="impLead"></select>
     <div style="margin-top:var(--sp-3);text-align:right">
       <button class="ft-btn-primary" onclick="doImport()">带入</button>
@@ -184,14 +184,14 @@
 </dialog>
 
 <!-- AI 设置 -->
-<dialog id="dlgSettings" aria-label="AI 设置">
-  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置">
+  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
 <!-- 从商品库选 -->
-<dialog id="dlgPicker" aria-label="从商品库带入">
-  <div class="dlg-h"><span>📦 从商品库带入</span><button class="iconbtn" onclick="dlgPicker.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgPicker" aria-label="从商品库带入">
+  <div class="dlg-h"><span>📦 从商品库带入</span><button class="iconbtn" onclick="dlgPicker.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b" id="pickerList" style="max-height:60vh;overflow:auto"></div>
 </dialog>
 
@@ -353,8 +353,8 @@ function fieldInput(f){
   var ph = f.ph ? ' placeholder="'+esc(f.ph)+'"' : '';
   var cls = (['seller','buyer','product','remark'].indexOf(f.k)>=0) ? 'full' : '';
   var label = f.label || I18N.fieldLabel(f);
-  return '<div class="'+cls+'"><label>'+esc(label)+'</label>'
-    + '<input data-k="'+f.k+'" type="'+(f.type||'text')+'"'+ph+' value="'+esc(values[f.k]||'')+'" oninput="onVal(this)"></div>';
+  return '<div class="'+cls+'"><label for="f_'+f.k+'">'+esc(label)+'</label>'
+    + '<input id="f_'+f.k+'" data-k="'+f.k+'" type="'+(f.type||'text')+'"'+ph+' value="'+esc(values[f.k]||'')+'" oninput="onVal(this)"></div>';
 }
 function confidentialHTML(){
   var conf = [
@@ -366,8 +366,8 @@ function confidentialHTML(){
     + '<div class="conf-badge">🔒 CONFIDENTIAL · 内部字段</div>'
     + '<div class="fgrid">'
     + conf.map(function(f){
-      return '<div class="'+(f.k==='internalNote'?'full':'')+'"><label>'+esc(f.label)+'</label>'
-        + '<input data-k="'+f.k+'" type="text"'+(f.ph?' placeholder="'+esc(f.ph)+'"':'')
+      return '<div class="'+(f.k==='internalNote'?'full':'')+'"><label for="f_'+f.k+'">'+esc(f.label)+'</label>'
+        + '<input id="f_'+f.k+'" data-k="'+f.k+'" type="text"'+(f.ph?' placeholder="'+esc(f.ph)+'"':'')
         + ' value="'+esc(values[f.k]||'')+'" oninput="onVal(this)"></div>';
     }).join('')
     + '</div>'
@@ -395,8 +395,8 @@ function renderPaper(){
   var pub = Confidential.strip(values); // feature 7：纸面永不带内部字段
   var rowsHtml = '';
   if (d.table !== false){
-    rowsHtml = '<table><tr><th style="width:50%">'+esc(I18N.t('t.desc'))+'</th><th>'+esc(I18N.t('t.qty'))+'</th><th>'+esc(I18N.t('t.unitPrice'))+'</th><th>'+esc(I18N.t('t.amount'))+'</th></tr>'
-      + '<tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></table>';
+    rowsHtml = '<table aria-label="货物明细"><thead><tr><th scope="col" style="width:50%">'+esc(I18N.t('t.desc'))+'</th><th scope="col">'+esc(I18N.t('t.qty'))+'</th><th scope="col">'+esc(I18N.t('t.unitPrice'))+'</th><th scope="col">'+esc(I18N.t('t.amount'))+'</th></tr></thead>'
+      + '<tbody><tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></tbody></table>';
   }
   var notes = I18N.docNotes(d).map(function(n){ return '<div>'+rep(n)+'</div>'; }).join('');
   // 品牌：顶部 Logo + 卖方信息增强（全称/地址/税号）
@@ -599,9 +599,9 @@ async function doPolish(){
       {role:'system', content:'你是外贸单证英文润色助手。输出礼貌、专业、简洁的商务英文，直接给润色结果，不要解释。'},
       {role:'user', content:'润色成英文备注（用于「'+current.title+'」单证，上下文：客户 '+ (values.buyer||'') +'，金额 '+ (values.currency||'')+' '+(values.total||'') +'）：\n'+src}
     ], {temperature:0.5, maxTokens:300});
-    $('polishOut').textContent = txt; $('polishOut').style.display='block';
+    $('polishOut').style.display='block'; $('polishOut').textContent = txt;
     values.remark = txt; renderPaper(); syncInput('remark', txt);
-  } catch(e){ $('polishOut').textContent='润色失败：'+e.message; $('polishOut').style.display='block'; }
+  } catch(e){ $('polishOut').style.display='block'; $('polishOut').textContent='润色失败：'+e.message; }
   $('btnPolish').disabled=false; $('btnPolish').textContent='✨ 润色为商务英文';
 }
 function syncInput(k,v){ var el=document.querySelector('input[data-k="'+k+'"]'); if(el) el.value=v; }
@@ -632,11 +632,11 @@ function renderSaved(){
     return '<div class="ft-card" style="padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px">'
       + '<div style="flex:1"><b style="font-size:13px">'+esc(d.docTitle)+'</b>'
       + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(d.values.no||'—')+' · '+esc(d.values.buyer||'—')+' · '+esc((d.updatedAt||d.createdAt||'').slice(0,10))
-      + (d.aiCheck?' · <span style="color:'+(d.aiCheck.ok?'var(--ok)':'var(--danger)')+'">AI 校验'+(d.aiCheck.ok?'通过':'有问题')+'</span>':'')
+      + (d.aiCheck?' · <span style="color:'+(d.aiCheck.ok?'var(--ok-text)':'var(--danger-text)')+'">AI 校验'+(d.aiCheck.ok?'通过':'有问题')+'</span>':'')
       + ((d.values||{}).derivedFrom?' · <span style="color:var(--brand-700)">⛓ 派生</span>':'')+'</div></div>'
       + (canDerive?'<button class="iconbtn" onclick="deriveFromSaved(\''+d.id+'\')" title="从此单派生下一环">⛓ 派生</button>':'')
       + '<button class="iconbtn" onclick="loadSaved(\''+d.id+'\')">打开</button>'
-      + '<button class="iconbtn" onclick="DataStore.remove(\'docs\',\''+d.id+'\');renderSaved()">🗑</button></div>';
+      + '<button class="iconbtn" onclick="DataStore.remove(\'docs\',\''+d.id+'\');renderSaved()" aria-label="删除">🗑</button></div>';
   }).join('') : '<div style="color:var(--text-3);text-align:center;padding:20px">单证夹是空的</div>';
 }
 function loadSaved(id){

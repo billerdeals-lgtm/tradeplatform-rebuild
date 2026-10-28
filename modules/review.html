@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 复盘增长</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -36,7 +36,8 @@
   .dlg-b { padding:var(--sp-4); }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
@@ -53,8 +54,8 @@
   <h2>📈 关键指标</h2>
   <div class="kpis">
     <div class="ft-card kpi"><b id="kTouch" style="color:var(--brand-700)">0</b><span>触达次数（累计）</span></div>
-    <div class="ft-card kpi"><b id="kTodo" style="color:var(--warn)">0%</b><span>待办完成率</span></div>
-    <div class="ft-card kpi"><b id="kOver" style="color:var(--danger)">0</b><span>逾期未清</span></div>
+    <div class="ft-card kpi"><b id="kTodo" style="color:var(--warn-text)">0%</b><span>待办完成率</span></div>
+    <div class="ft-card kpi"><b id="kOver" style="color:var(--danger-text)">0</b><span>逾期未清</span></div>
     <div class="ft-card kpi"><b id="kAmt" style="color:var(--accent-500)">$0</b><span>成交阶段金额</span></div>
   </div>
 
@@ -69,8 +70,8 @@
   <div id="hist"></div>
 </main>
 
-<dialog id="dlgSettings" aria-label="AI 设置">
-  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置">
+  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
@@ -152,7 +153,7 @@ function renderHist(){
       + ' · 线索 '+r.stats.leads+' · 触达 '+r.stats.touch+' · 完成率 '+r.stats.todoRate+'</div>'
       + '<div class="sum">'+esc(oneLine.slice(0,80))+(oneLine.length>80?'…':'')+'</div>'
       + '<div style="margin-top:6px"><button class="iconbtn" onclick="this.closest(\'.hist\').querySelector(\'.full\').style.display=this.closest(\'.hist\').querySelector(\'.full\').style.display===\'none\'?\'block\':\'none\'">展开全文</button>'
-      + '<button class="iconbtn" onclick="DataStore.remove(\'reviews\',\''+r.id+'\');renderHist()">🗑</button></div>'
+      + '<button class="iconbtn" onclick="DataStore.remove(\'reviews\',\''+r.id+'\');renderHist()" aria-label="删除">🗑</button></div>'
       + '<div class="ft-ai-output full" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.8;white-space:pre-wrap">'+esc(r.summary)+'</div></div>';
   }).join('') : '<div class="empty">还没有复盘记录，点上方「生成本期复盘」开始</div>';
 }

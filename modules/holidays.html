@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 节假日问候</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -15,7 +15,7 @@
   main { max-width:960px; margin:0 auto; padding:var(--sp-6); }
   h2 { font-size:16px; margin:var(--sp-6) 0 var(--sp-3); }
   .toolbar { display:flex; gap:var(--sp-2); margin-bottom:var(--sp-4); align-items:center; }
-  .toolbar select { padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; }
+  .toolbar select { padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; }
   .hday { padding:var(--sp-3) var(--sp-4); margin-bottom:var(--sp-2); }
   .hday .row1 { display:flex; align-items:center; gap:var(--sp-2); flex-wrap:wrap; }
   .hday .name { font-weight:700; font-size:15px; }
@@ -23,18 +23,19 @@
   .hday .note { font-size:12.5px; color:var(--text-2); margin-top:4px; }
   .hday .leadmatch { font-size:12px; color:var(--brand-700); margin-top:4px; }
   .hday .greeted { font-size:11px; color:var(--text-3); }
-  .trade { background:var(--warn-bg); color:var(--warn); font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600; }
+  .trade { background:var(--warn-bg); color:var(--warn-text); font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600; }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
   dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:0; max-width:560px; width:92%; }
   dialog::backdrop { background:rgba(31,41,51,.4); }
   .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
   .dlg-b { padding:var(--sp-4); }
   .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
-  .dlg-b select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; }
+  .dlg-b select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; }
   .ai-out { white-space:pre-wrap; font-size:14px; line-height:1.7; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 <header>
@@ -46,7 +47,7 @@
   <h2>📅 即将到来的节日（未来 60 天）</h2>
   <div class="toolbar">
     <span style="font-size:12px;color:var(--text-2)">匹配我的市场：</span>
-    <select id="fMarket" onchange="render()">
+    <select id="fMarket" aria-label="按市场筛选" onchange="render()">
       <option value="">全部市场</option>
       <option>中东</option><option>东南亚</option><option>欧美</option><option>非洲</option><option>其他</option>
     </select>
@@ -58,22 +59,22 @@
 </main>
 
 <!-- 问候生成 -->
-<dialog id="dlgGreet" aria-labelledby="gTitle">
-  <div class="dlg-h"><span id="gTitle">🧭 生成节日问候</span><button class="iconbtn" onclick="dlgGreet.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgGreet" aria-labelledby="gTitle">
+  <div class="dlg-h"><span id="gTitle">🧭 生成节日问候</span><button class="iconbtn" onclick="dlgGreet.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b">
-    <label>选客户（已按节日涉及市场过滤）</label>
+    <label for="gLead">选客户（已按节日涉及市场过滤）</label>
     <select id="gLead"></select>
     <div style="margin-top:var(--sp-3)">
       <button class="ft-btn-ai" id="btnGreet" onclick="doGreet()">✨ AI 生成问候语</button>
     </div>
-    <div class="ft-ai-output ai-out" id="gOut" style="display:none;margin-top:var(--sp-3)"></div>
+    <div class="ft-ai-output ai-out" id="gOut" style="display:none;margin-top:var(--sp-3)" aria-live="polite"></div>
     <div style="margin-top:var(--sp-3);display:flex;gap:var(--sp-2);justify-content:flex-end" id="gActions"></div>
   </div>
 </dialog>
 
 <!-- AI 设置 -->
-<dialog id="dlgSettings" aria-label="AI 设置">
-  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
+<dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置">
+  <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()" aria-label="关闭">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
@@ -174,7 +175,7 @@ async function doGreet(){
   $('btnGreet').disabled=true; $('btnGreet').textContent='⏳ 生成中…';
   try {
     var txt = await AgnesAI.genHolidayGreet(lead, currentHoliday.name + (currentHoliday.en?' ('+currentHoliday.en+')':''));
-    $('gOut').textContent = txt; $('gOut').style.display='block';
+    $('gOut').style.display='block'; $('gOut').textContent = txt;
     var send = txt.split('【中文翻译】')[0].split('中文翻译')[0];
     var acts = '<button class="iconbtn" onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>alert(\'已复制\'))" data-t="'+esc(send)+'">📋 复制</button>';
     if (lead.whatsapp) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+String(lead.whatsapp).replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(send)+'">💬 WhatsApp 发送</a>';
@@ -184,7 +185,7 @@ async function doGreet(){
     DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'holiday',
       holiday:currentHoliday.name, hdate:dstr(currentHoliday.y,currentHoliday.m,currentHoliday.d), content:txt });
     render();
-  } catch(e){ $('gOut').textContent='生成失败：'+e.message; $('gOut').style.display='block'; }
+  } catch(e){ $('gOut').style.display='block'; $('gOut').textContent='生成失败：'+e.message; }
   $('btnGreet').disabled=false; $('btnGreet').textContent='✨ AI 生成问候语';
 }
 

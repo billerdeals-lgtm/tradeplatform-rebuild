@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23fff' stroke-width='3.5'/%3E%3Cpath d='M32 15 L38 32 L32 49 L26 32 Z' fill='%23ffc53d'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%230b6e4f'/%3E%3C/svg%3E">
 <title>FT Compass · 外贸线索工作台</title>
-<link rel="stylesheet" href="../assets/tokens.css">
+<link rel="stylesheet" href="../assets/tokens.css?v=2">
 <script src="../agnes-ai.js?v=8"></script>
 <script src="../js/datastore.js"></script>
 <style>
@@ -60,7 +60,8 @@
   .cfgbox input, .cfgbox label { font: 14px/1.6 system-ui; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=8">
+<script src="../assets/a11y.js?v=2"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
 <body>
 
@@ -85,8 +86,8 @@
   </div>
 
   <div class="toolbar">
-    <input id="q" placeholder="搜索客户名 / 产品 / 备注…" oninput="render()">
-    <select id="fStage" onchange="render()">
+    <input id="q" aria-label="搜索线索" placeholder="搜索客户名 / 产品 / 备注…" oninput="render()">
+    <select id="fStage" aria-label="按阶段筛选" onchange="render()">
       <option value="">全部阶段</option><option>待开发</option><option>已联系</option>
       <option>试样</option><option>报价</option><option>成交</option>
     </select>
@@ -102,16 +103,16 @@
   <div class="modal">
     <h3 id="editTitle">添加线索</h3>
     <div class="grid2">
-      <div><label>客户名 *</label><input id="e_name"></div>
-      <div><label>国家</label><input id="e_country" placeholder="Egypt / USA…"></div>
-      <div><label>市场</label><select id="e_market"><option>中东</option><option>东南亚</option><option>欧美</option><option>非洲</option><option>其他</option></select></div>
-      <div><label>阶段</label><select id="e_stage"><option>待开发</option><option>已联系</option><option>试样</option><option>报价</option><option>成交</option></select></div>
-      <div><label>WhatsApp（含国家码）</label><input id="e_wa" placeholder="+2010…"></div>
-      <div><label>邮箱</label><input id="e_email" placeholder="buyer@company.com"></div>
-      <div><label>关注产品</label><input id="e_product" placeholder="prayer pillow"></div>
-      <div><label>预估金额 (USD)</label><input id="e_amount" type="number" value="0"></div>
+      <div><label for="e_name">客户名 *</label><input id="e_name"></div>
+      <div><label for="e_country">国家</label><input id="e_country" placeholder="Egypt / USA…"></div>
+      <div><label for="e_market">市场</label><select id="e_market"><option>中东</option><option>东南亚</option><option>欧美</option><option>非洲</option><option>其他</option></select></div>
+      <div><label for="e_stage">阶段</label><select id="e_stage"><option>待开发</option><option>已联系</option><option>试样</option><option>报价</option><option>成交</option></select></div>
+      <div><label for="e_wa">WhatsApp（含国家码）</label><input id="e_wa" placeholder="+2010…"></div>
+      <div><label for="e_email">邮箱</label><input id="e_email" placeholder="buyer@company.com"></div>
+      <div><label for="e_product">关注产品</label><input id="e_product" placeholder="prayer pillow"></div>
+      <div><label for="e_amount">预估金额 (USD)</label><input id="e_amount" type="number" value="0"></div>
     </div>
-    <label>备注</label><textarea id="e_note" placeholder="展会名片 / 等 PI / 嫌贵…"></textarea>
+    <label for="e_note">备注</label><textarea id="e_note" placeholder="展会名片 / 等 PI / 嫌贵…"></textarea>
     <div class="mrow">
       <button class="btn" onclick="saveEdit()">保存</button>
       <button class="btn ghost" onclick="hide('mEdit')">取消</button>
@@ -129,22 +130,22 @@
       <button class="btn sm ghost" id="tabObjection" onclick="touchTab('objection')">⚡ 异议应对</button>
     </div>
     <div id="paneMail">
-      <label>场景</label>
+      <label for="t_scene">场景</label>
       <select id="t_scene"><option>首封冷开发信</option><option>询盘首复</option><option>样品跟进</option><option>报价跟进</option><option>久未回复二次跟进</option></select>
-      <label>我的署名信息（一句话即可）</label>
+      <label for="t_me">我的署名信息（一句话即可）</label>
       <input id="t_me" placeholder="Wei, Beijing Northwind Trading Co., Ltd, 工厂直供/低MOQ/免费样品">
     </div>
     <div id="paneReply" style="display:none">
-      <label>粘贴客户原话（WhatsApp/邮件）</label>
+      <label for="t_cw">粘贴客户原话（WhatsApp/邮件）</label>
       <textarea id="t_cw" placeholder="Hi, the price is too high…"></textarea>
     </div>
     <div id="paneObjection" style="display:none">
-      <label>客户提出了什么异议？</label>
+      <label for="t_objPre">客户提出了什么异议？</label>
       <select id="t_objPre"><option value="">— 常见异议快捷选择 —</option><option>价格太贵 Your price is too high</option><option>其他供应商报得更低 Another supplier quoted lower</option><option>我要请示老板 I need to ask my boss</option><option>先下一小单试试 We'll try a small order first</option><option>付款条件不合适 Payment terms don't work</option></select>
-      <textarea id="t_obj" placeholder="或直接粘贴客户原话/描述异议…" style="min-height:60px"></textarea>
+      <textarea id="t_obj" aria-label="异议原话或描述" placeholder="或直接粘贴客户原话/描述异议…" style="min-height:60px"></textarea>
     </div>
     <div class="mrow"><button class="btn" id="btnGen" onclick="genTouch()">AI 生成</button></div>
-    <div class="mout" id="t_out"></div>
+    <div class="mout" id="t_out" aria-live="polite"></div>
     <div class="mrow" id="t_sendRow" style="display:none">
       <button class="btn sm amber" onclick="sendWa()">WhatsApp 发送</button>
       <button class="btn sm amber" onclick="sendGmail()">Gmail 发送</button>
