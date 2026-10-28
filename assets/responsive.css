@@ -1,20 +1,51 @@
 /* ============================================================
-   FT Compass · 全站移动端适配
-   仅作用于屏幕且宽度 ≤ 860px；打印样式完全不受影响。
+   FT Compass · 全站响应式适配
+   ≤860px 负责移动端；≥861px 负责把 14 个模块的顶栏高度
+   钉死在同一数值，与外层侧栏 logo 区齐平（否则两边各自按内容
+   算高度，会出现 66 / 67px 的发丝缝）。
    各模块在 </head> 前引入，确保覆盖模块内联样式。
    ============================================================ */
 .twhint { display: none; }
+
+/* ---- 独立打开模块页时的「← 工作台」（由 assets/standalone.js 注入） ---- */
+.ft-back {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center;
+  font-size: 12.5px; line-height: 1;
+  padding: 7px 10px;
+  color: rgba(255,255,255,.85);
+  background: rgba(255,255,255,.1);
+  border: 1px solid rgba(255,255,255,.26);
+  border-radius: var(--r-sm);
+  text-decoration: none; white-space: nowrap;
+}
+.ft-back:hover { background: rgba(255,255,255,.2); color: #fff; }
+
+/* ---- 桌面端：顶栏统一 60px（与侧栏 logo 区同高） ---- */
+@media screen and (min-width: 861px) {
+  header { min-height: 60px !important; padding-top: 8px !important; padding-bottom: 8px !important; box-sizing: border-box; }
+}
 
 @media screen and (max-width: 860px) {
   html, body { max-width: 100%; overflow-x: hidden; }
 
   /* ---- 顶栏 ----
      外层 mbar 已显示模块名，iframe 内的模块头压缩成纯动作条：
-     只保留按钮，避免手机上两条深绿顶栏叠在一起。没有按钮的模块整条隐藏。 */
-  header { padding: 6px 10px !important; flex-wrap: wrap !important; gap: 8px !important; justify-content: flex-end !important; min-height: 0 !important; }
-  header img, header .logo, header h1 { display: none !important; }
-  header:not(:has(button)) { display: none !important; }
-  header button { padding: 6px 10px !important; font-size: 12.5px !important; }
+     只保留按钮，避免手机上两条深绿顶栏叠在一起。没有按钮的模块整条隐藏。
+     ft-standalone = 直接访问模块 URL，没有外层顶栏，标题必须保留。 */
+  html:not(.ft-standalone) header { padding: 6px 10px !important; flex-wrap: wrap !important; gap: 8px !important; justify-content: flex-end !important; min-height: 0 !important; }
+  html:not(.ft-standalone) header img,
+  html:not(.ft-standalone) header .logo,
+  html:not(.ft-standalone) header h1 { display: none !important; }
+  html:not(.ft-standalone) header:not(:has(button)) { display: none !important; }
+  html:not(.ft-standalone) header button { padding: 6px 10px !important; font-size: 12.5px !important; }
+
+  /* ---- 独立打开：保留标题，收紧尺寸避免换行 ---- */
+  html.ft-standalone header { padding: 10px 12px !important; gap: 8px !important; flex-wrap: wrap !important; }
+  html.ft-standalone header img, html.ft-standalone header .logo { width: 28px !important; height: 28px !important; }
+  html.ft-standalone header h1 { font-size: 15px !important; line-height: 1.35 !important; flex: 1 1 auto !important; min-width: 0; }
+  html.ft-standalone header button { padding: 6px 10px !important; font-size: 12.5px !important; }
+  html.ft-standalone .ft-back { padding: 6px 9px; font-size: 12px; }
 
   /* ---- 主区域：左右双栏 → 上下堆叠 ---- */
   main { display: block !important; max-width: none !important; width: auto !important; padding: 12px 12px 72px !important; }

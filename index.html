@@ -11,7 +11,7 @@
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); display:flex; height:100vh; overflow:hidden; }
   /* ---- 侧边栏 ---- */
   nav { width:200px; background:var(--brand-900); color:#fff; display:flex; flex-direction:column; flex-shrink:0; }
-  .logo { display:flex; align-items:center; gap:10px; padding:18px 16px 14px; }
+  .logo { display:flex; align-items:center; gap:10px; height:60px; padding:0 16px; box-sizing:border-box; }
   .logo img { width:34px; height:34px; }
   .logo b { font-size:16px; letter-spacing:.5px; }
   .logo span { font-size:10px; opacity:.65; display:block; }
@@ -23,7 +23,18 @@
   .navgroup { padding:12px 12px 4px; font-size:10px; letter-spacing:.14em; color:rgba(255,255,255,.38); }
   .navgroup + .navitem { margin-top:0; }
   .homeempty { padding:var(--sp-4); border:1px dashed rgba(11,110,79,.35); background:rgba(11,110,79,.04); }
-  .navfoot { padding:12px; border-top:1px solid rgba(255,255,255,.12); font-size:11px; opacity:.6; }
+  .navfoot { padding:12px; border-top:1px solid rgba(255,255,255,.12); }
+  .footchips { display:flex; align-items:center; gap:6px; }
+  .footchip { min-width:0; font-size:11px; line-height:1; padding:6px 8px; border-radius:var(--r-sm);
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.82);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
+  .footchip:hover { background:rgba(255,255,255,.16); }
+  #aiCnt { margin-left:auto; }
+  .footacts { display:flex; gap:8px; margin-top:8px; }
+  .footacts button { flex:1; min-width:0; padding:6px 0; font-size:11.5px; line-height:1.2; cursor:pointer;
+    color:#fff; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); }
+  .footacts button:hover { background:rgba(255,255,255,.2); }
+  .footacts button:first-child { background:rgba(255,255,255,.22); border-color:rgba(255,255,255,.45); }
   /* ---- 内容区 ---- */
   .content { flex:1; display:flex; flex-direction:column; min-width:0; }
   iframe { flex:1; border:0; background:var(--bg-page); }
@@ -66,7 +77,7 @@
     .stat b { font-size:22px; }
   }
 </style>
-<link rel="stylesheet" href="assets/responsive.css?v=5">
+<link rel="stylesheet" href="assets/responsive.css?v=6">
 </head>
 <body>
 <div class="mbar">
@@ -102,13 +113,15 @@
     <div class="navitem" data-view="modules/holidays.html"><span class="em">🎁</span>复购 · 节假日</div>
     <div class="navitem" data-view="modules/profile.html"><span class="em">📇</span>我的资料</div>
   </div>
-  <div class="navfoot" style="opacity:1;padding:10px 12px">
-    <div id="licBadge" style="font-size:11px;line-height:1.7;margin-bottom:4px"></div>
-    <div style="font-size:11px;opacity:.6">数据 100% 本机存储 · <span id="aiCnt"></span></div>
-    <div style="display:flex;gap:6px;margin-top:7px">
-      <button onclick="openLicense()" style="flex:1;background:rgba(255,255,255,.22);color:#fff;border:1px solid rgba(255,255,255,.45);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">🔑 授权</button>
-      <button onclick="backupAll()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">⬇ 备份</button>
-      <button onclick="document.getElementById('restoreFile').click()" style="flex:1;background:rgba(255,255,255,.12);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:6px;padding:5px 0;font-size:11px;cursor:pointer">⬆ 恢复</button>
+  <div class="navfoot">
+    <div class="footchips">
+      <span id="licBadge" class="footchip">授权</span>
+      <span id="aiCnt" class="footchip" onclick="dlgSettings.showModal()">AI —</span>
+    </div>
+    <div class="footacts">
+      <button onclick="openLicense()">🔑 授权</button>
+      <button onclick="backupAll()">⬇ 备份</button>
+      <button onclick="document.getElementById('restoreFile').click()">⬆ 恢复</button>
     </div>
     <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restoreAll(this)">
   </div>
@@ -162,12 +175,12 @@
 
 <script src="agnes-ai.js?v=8"></script>
 <script src="js/datastore.js"></script>
-<script src="js/license.js"></script>
+<script src="js/license.js?v=2"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261028c';
+var MODULE_V = '20261028d';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){ n.classList.toggle('on', n.dataset.view===view); });
   if (view==='home'){ location.hash=''; $('frame').style.display='none'; $('home').style.display='block'; refresh(); }
@@ -204,7 +217,13 @@ function refresh(){
   $('hQuotes').textContent=quotes.filter(function(q){return q.status==='sent'||q.status==='draft';}).length;
   $('hTodos').textContent=open;
   var aiLeft=null; try{ aiLeft=AgnesAI.aiTrialLeft(); }catch(e){}
-  $('aiCnt').textContent='今日 AI 已用 '+AgnesAI.todayCount()+' 次'+(aiLeft===null?'':' · 试用 AI 剩 '+aiLeft+' 次');
+  var aiUsed=0; try{ aiUsed=AgnesAI.todayCount(); }catch(e){}
+  var aiChip=$('aiCnt');
+  if (aiChip){
+    aiChip.textContent = aiLeft===null ? 'AI 不限' : 'AI 剩 '+aiLeft;
+    aiChip.title = '今日已用 '+aiUsed+' 次 · '
+      + (aiLeft===null ? '已激活，不限次数' : '试用共 '+AgnesAI.aiTrialLimit+' 次 · 点击设置');
+  }
   paintLicenseDot();
 }
 function paintLicenseDot(){
