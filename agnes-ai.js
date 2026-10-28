@@ -25,7 +25,7 @@
      生成/更换：node tools/encode-key.mjs "sk-新的key"
      再次强调：这是混淆，不是加密。真要防刷额度必须走服务端代理。 */
   var KEY_MASK = 'FT-Compass-2026';
-  var KEY_ENC = ["NT8AFgs7PgpAO08FeWMEdGB", "VNTY9OFMABEpeewNuIBpPDw", "shRjQSQhlRCVR1Lm1iJAAg"];
+  var KEY_ENC = ["NT8ANgAhFgkmPGxFalVmKCN","0GggbGAsaHxpeaUJlKQd1Bw","srHwQjRH1LYEB+JWxaACpb"];
   var _keyCache = null;
   function defaultKey() {
     if (_keyCache !== null) return _keyCache;
