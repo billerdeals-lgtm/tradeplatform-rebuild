@@ -8,6 +8,21 @@
 .twhint { display: none; }
 .paperhint { display: none; }
 
+/* ---- 键盘焦点环 ----
+   :focus-visible 只在键盘导航时出现，鼠标点击不留框。
+   琥珀色在浅色卡片与深绿顶栏/侧栏上对比都够。 */
+:focus-visible {
+  outline: 3px solid #ffc53d;
+  outline-offset: 2px;
+}
+/* 深色底（顶栏、侧栏）用更亮的一档，并离边框远一点 */
+header :focus-visible,
+nav :focus-visible,
+.mbar :focus-visible {
+  outline-color: #ffd76e;
+  outline-offset: 3px;
+}
+
 /* ---- 独立打开模块页时的「← 工作台」（由 assets/standalone.js 注入） ---- */
 .ft-back {
   flex: 0 0 auto;

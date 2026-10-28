@@ -52,7 +52,7 @@
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -80,7 +80,7 @@
 </main>
 
 <!-- 编辑商品 -->
-<dialog id="dlgEdit">
+<dialog id="dlgEdit" aria-labelledby="dlgTitle">
   <div class="dlg-h"><span id="dlgTitle">新建商品</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
   <div class="dlg-b">
     <div class="f2">
@@ -118,7 +118,7 @@
 </dialog>
 
 <!-- Excel 导出 -->
-<dialog id="dlgXls">
+<dialog id="dlgXls" aria-label="导出 Excel">
   <div class="dlg-h"><span>导出 Excel（数据版 .xls）</span><button class="iconbtn" onclick="dlgXls.close()">✕</button></div>
   <div class="dlg-b">
     <p style="font-size:13px;color:var(--text-2);line-height:1.7;margin-top:0">全部商品主数据一个多 sheet 工作簿，适合导入采购/财务/ERP。客户版报价 Excel 在「报价管理」内导出。</p>

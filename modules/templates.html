@@ -34,7 +34,7 @@
   .ai-out { white-space:pre-wrap; font-size:14px; line-height:1.7; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -55,7 +55,7 @@
 </main>
 
 <!-- AI 改写弹窗 -->
-<dialog id="dlgAI">
+<dialog id="dlgAI" aria-labelledby="aiTitle">
   <div class="dlg-h"><span id="aiTitle">AI 改写</span><button class="iconbtn" onclick="dlgAI.close()">✕</button></div>
   <div class="dlg-b">
     <label>套用到哪条线索（改写时自动注入国家/产品/阶段上下文）</label>
@@ -71,7 +71,7 @@
 </dialog>
 
 <!-- AI 设置 -->
-<dialog id="dlgSettings">
+<dialog id="dlgSettings" aria-label="AI 设置">
   <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>

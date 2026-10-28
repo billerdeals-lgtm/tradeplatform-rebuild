@@ -102,7 +102,8 @@
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<script src="../assets/a11y.js?v=1"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -123,7 +124,7 @@
   </div>
 </main>
 
-<dialog id="dlgComp">
+<dialog id="dlgComp" aria-labelledby="ce_title">
   <div class="dlg-h"><span id="ce_title">添加竞品</span><button class="iconbtn" onclick="dlgComp.close()">✕</button></div>
   <div class="dlg-b">
     <div class="f2">
@@ -170,7 +171,7 @@ function renderList() {
   box.innerHTML = leads.map(function(l) {
     var initials = (l.name||'?').slice(0,1).toUpperCase();
     var st = l.stage || '待开发';
-    return '<div class="citem" onclick="selectLead(\'' + l.id + '\')">'
+    return '<div class="citem" role="button" tabindex="0" onclick="selectLead(\'' + l.id + '\',this)">'
       + '<div class="avatar">' + esc(initials) + '</div>'
       + '<div class="ci-info"><div class="ci-name">' + esc(l.name) + '</div>'
       + '<div class="ci-sub">' + esc(l.country||'') + ' · ' + esc(l.product||'') + '</div></div>'
@@ -179,13 +180,17 @@ function renderList() {
   }).join('');
 }
 
-function selectLead(id) {
+function selectLead(id, el) {
   S.lead = DataStore.get('leads', id);
   if (!S.lead) return;
   renderDetail();
-  // 高亮
-  document.querySelectorAll('.citem').forEach(function(el){ el.classList.remove('on'); });
-  event.currentTarget.classList.add('on');
+  // 高亮（显式传 el：键盘触发时 window.event 不可靠）
+  el = el || (window.event && window.event.currentTarget);
+  document.querySelectorAll('.citem').forEach(function(x){
+    x.classList.remove('on');
+    x.removeAttribute('aria-current');
+  });
+  if (el && el.classList) { el.classList.add('on'); el.setAttribute('aria-current', 'true'); }
 }
 
 function renderDetail() {
@@ -234,14 +239,14 @@ function renderDetail() {
 
   // 标签页
   html += '<div class="ft-card">'
-    + '<div class="tabs">'
-    +   '<div class="tab on" data-tab="timeline" onclick="switchTab(\'timeline\',this)">📅 时间线</div>'
-    +   '<div class="tab" data-tab="quotes" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
-    +   '<div class="tab" data-tab="docs" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
-    +   '<div class="tab" data-tab="todos" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
-    +   '<div class="tab" data-tab="outreach" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
-    +   '<div class="tab" data-tab="comps" onclick="switchTab(\'comps\',this)">⚔️ 竞品 (' + comps.length + ')</div>'
-    +   '<div class="tab" data-tab="notes" onclick="switchTab(\'notes\',this)">📝 备注</div>'
+    + '<div class="tabs" role="tablist" aria-label="客户资料分类">'
+    +   '<div class="tab on" role="tab" aria-selected="true" tabindex="0" id="tab-timeline" aria-controls="tc-timeline" data-tab="timeline" onclick="switchTab(\'timeline\',this)">📅 时间线</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-quotes" aria-controls="tc-quotes" data-tab="quotes" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-docs" aria-controls="tc-docs" data-tab="docs" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-todos" aria-controls="tc-todos" data-tab="todos" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-outreach" aria-controls="tc-outreach" data-tab="outreach" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-comps" aria-controls="tc-comps" data-tab="comps" onclick="switchTab(\'comps\',this)">⚔️ 竞品 (' + comps.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-notes" aria-controls="tc-notes" data-tab="notes" onclick="switchTab(\'notes\',this)">📝 备注</div>'
     + '</div>';
 
   // 时间线
@@ -258,7 +263,7 @@ function renderDetail() {
   });
   events.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
 
-  html += '<div class="tab-content on" id="tc-timeline">';
+  html += '<div class="tab-content on" id="tc-timeline" role="tabpanel" aria-labelledby="tab-timeline">';
   if (events.length) {
     html += '<div class="timeline">' + events.slice(0,15).map(function(ev){
       return '<div class="tl-item' + (ev.done ? ' done' : '') + '">'
@@ -271,7 +276,7 @@ function renderDetail() {
   html += '</div>';
 
   // 报价
-  html += '<div class="tab-content" id="tc-quotes">';
+  html += '<div class="tab-content" id="tc-quotes" role="tabpanel" aria-labelledby="tab-quotes">';
   if (quotes.length) {
     quotes.forEach(function(q){
       html += '<div class="linked-item"><span class="li-icon">💰</span><div class="li-info">'
@@ -283,7 +288,7 @@ function renderDetail() {
   html += '</div>';
 
   // 单证
-  html += '<div class="tab-content" id="tc-docs">';
+  html += '<div class="tab-content" id="tc-docs" role="tabpanel" aria-labelledby="tab-docs">';
   if (docs.length) {
     docs.forEach(function(d){
       html += '<div class="linked-item"><span class="li-icon">📄</span><div class="li-info">'
@@ -295,7 +300,7 @@ function renderDetail() {
   html += '</div>';
 
   // 待办
-  html += '<div class="tab-content" id="tc-todos">';
+  html += '<div class="tab-content" id="tc-todos" role="tabpanel" aria-labelledby="tab-todos">';
   if (todos.length) {
     todos.forEach(function(t){
       html += '<div class="linked-item"><span class="li-icon">' + (t.done ? '✅' : '⬜') + '</span><div class="li-info">'
@@ -307,7 +312,7 @@ function renderDetail() {
   html += '</div>';
 
   // 触达
-  html += '<div class="tab-content" id="tc-outreach">';
+  html += '<div class="tab-content" id="tc-outreach" role="tabpanel" aria-labelledby="tab-outreach">';
   if (outreach.length) {
     outreach.forEach(function(o){
       html += '<div class="linked-item"><span class="li-icon">📧</span><div class="li-info">'
@@ -319,7 +324,7 @@ function renderDetail() {
   html += '</div>';
 
   // 竞品
-  html += '<div class="tab-content" id="tc-comps">';
+  html += '<div class="tab-content" id="tc-comps" role="tabpanel" aria-labelledby="tab-comps">';
   html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
     + '<b style="font-size:13px">竞品对比（' + comps.length + '）</b>'
     + '<button class="btn-sm" style="padding:4px 12px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="openCompEdit()">＋ 添加竞品</button>'
@@ -346,7 +351,7 @@ function renderDetail() {
   html += '</div>';
 
   // 备注
-  html += '<div class="tab-content" id="tc-notes">'
+  html += '<div class="tab-content" id="tc-notes" role="tabpanel" aria-labelledby="tab-notes">'
     + '<div class="note-box"><textarea id="noteArea" placeholder="记录关于这个客户的备注…">' + esc(l.note||'') + '</textarea>'
     + '<div class="note-saved" id="noteSaved"></div>'
     + '<button class="btn-sm" style="margin-top:6px;padding:4px 12px;background:var(--brand-700);color:#fff;border:0;border-radius:var(--r-sm);cursor:pointer;font-size:12.5px" onclick="saveNote()">保存备注</button>'
@@ -363,9 +368,12 @@ function renderDetail() {
 
 function switchTab(name, el) {
   document.querySelectorAll('.tab-content').forEach(function(tc){ tc.classList.remove('on'); });
-  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('on'); });
+  document.querySelectorAll('.tab').forEach(function(t){
+    var on = t === el;
+    t.classList.toggle('on', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
   $('tc-' + name).classList.add('on');
-  el.classList.add('on');
 }
 
 function saveNote() {

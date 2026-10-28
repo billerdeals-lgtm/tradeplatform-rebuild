@@ -25,6 +25,12 @@
   .navitem:hover { background:rgba(255,255,255,.08); }
   .navitem.on { background:var(--brand-700); color:#fff; font-weight:600; }
   .navitem .em { width:20px; text-align:center; }
+  /* 导航项与统计卡是 <button>：清掉浏览器默认外观，保持原来的块状样式 */
+  button.navitem { width:100%; background:none; border:0; font-family:inherit; text-align:left; line-height:inherit; }
+  button.stat { width:100%; font:inherit; color:inherit; }
+  .skip { position:absolute; left:-9999px; top:0; z-index:200; padding:10px 16px;
+    background:var(--brand-700); color:#fff; border-radius:0 0 var(--r-sm) 0; font-size:13px; }
+  .skip:focus { left:0; }
   .navgroup { padding:12px 12px 4px; font-size:10px; letter-spacing:.14em; color:rgba(255,255,255,.38); }
   .navgroup + .navitem { margin-top:0; }
   .homeempty { padding:var(--sp-4); border:1px dashed rgba(11,110,79,.35); background:rgba(11,110,79,.04); }
@@ -81,41 +87,42 @@
     .stat b { font-size:22px; }
   }
 </style>
-<link rel="stylesheet" href="assets/responsive.css?v=7">
+<link rel="stylesheet" href="assets/responsive.css?v=8">
 </head>
 <body>
+<a class="skip" href="#content">跳到主要内容</a>
 <div class="mbar">
-  <button class="mburger" onclick="toggleNav()" aria-label="打开菜单">☰</button>
+  <button class="mburger" id="mBurger" onclick="toggleNav()" aria-label="打开菜单" aria-expanded="false" aria-controls="appnav">☰</button>
   <b>FT Compass</b>
   <span id="mTitle">工作台</span>
   <span id="mDot" class="mdot" title="授权状态" onclick="openLicense()"></span>
 </div>
-<div class="mcover" id="mcover" onclick="closeNav()"></div>
+<div class="mcover" id="mcover" aria-hidden="true" onclick="closeNav()"></div>
 <nav id="appnav">
   <div class="logo">
     <img src="assets/logo.svg" alt="">
     <div><b>FT Compass</b><span>外贸客户开发工作台</span></div>
   </div>
   <div class="navlist" id="nav">
-    <div class="navitem on" data-view="home"><span class="em">🏠</span>工作台</div>
+    <button type="button" class="navitem on" aria-current="page" data-view="home"><span class="em">🏠</span>工作台</button>
     <div class="navgroup">开发</div>
-    <div class="navitem" data-view="modules/find.html"><span class="em">🔍</span>找客户</div>
-    <div class="navitem" data-view="modules/leads.html"><span class="em">👤</span>线索 Pipeline</div>
-    <div class="navitem" data-view="modules/customer360.html"><span class="em">🎯</span>客户 360°</div>
-    <div class="navitem" data-view="modules/comps.html"><span class="em">⚔️</span>竞品库</div>
+    <button type="button" class="navitem" data-view="modules/find.html"><span class="em">🔍</span>找客户</button>
+    <button type="button" class="navitem" data-view="modules/leads.html"><span class="em">👤</span>线索 Pipeline</button>
+    <button type="button" class="navitem" data-view="modules/customer360.html"><span class="em">🎯</span>客户 360°</button>
+    <button type="button" class="navitem" data-view="modules/comps.html"><span class="em">⚔️</span>竞品库</button>
     <div class="navgroup">跟进</div>
-    <div class="navitem" data-view="modules/todos.html"><span class="em">✅</span>待办任务</div>
-    <div class="navitem" data-view="modules/templates.html"><span class="em">🗨</span>话术库</div>
-    <div class="navitem" data-view="modules/maillog.html"><span class="em">📧</span>发送记录</div>
+    <button type="button" class="navitem" data-view="modules/todos.html"><span class="em">✅</span>待办任务</button>
+    <button type="button" class="navitem" data-view="modules/templates.html"><span class="em">🗨</span>话术库</button>
+    <button type="button" class="navitem" data-view="modules/maillog.html"><span class="em">📧</span>发送记录</button>
     <div class="navgroup">成交</div>
-    <div class="navitem" data-view="modules/quotes.html"><span class="em">💰</span>报价管理</div>
-    <div class="navitem" data-view="modules/products.html"><span class="em">📦</span>商品库</div>
-    <div class="navitem" data-view="modules/calculator.html"><span class="em">🧮</span>利润计算器</div>
-    <div class="navitem" data-view="modules/docs.html"><span class="em">📄</span>单证中心</div>
+    <button type="button" class="navitem" data-view="modules/quotes.html"><span class="em">💰</span>报价管理</button>
+    <button type="button" class="navitem" data-view="modules/products.html"><span class="em">📦</span>商品库</button>
+    <button type="button" class="navitem" data-view="modules/calculator.html"><span class="em">🧮</span>利润计算器</button>
+    <button type="button" class="navitem" data-view="modules/docs.html"><span class="em">📄</span>单证中心</button>
     <div class="navgroup">经营</div>
-    <div class="navitem" data-view="modules/review.html"><span class="em">📊</span>复盘增长</div>
-    <div class="navitem" data-view="modules/holidays.html"><span class="em">🎁</span>复购 · 节假日</div>
-    <div class="navitem" data-view="modules/profile.html"><span class="em">📇</span>我的资料</div>
+    <button type="button" class="navitem" data-view="modules/review.html"><span class="em">📊</span>复盘增长</button>
+    <button type="button" class="navitem" data-view="modules/holidays.html"><span class="em">🎁</span>复购 · 节假日</button>
+    <button type="button" class="navitem" data-view="modules/profile.html"><span class="em">📇</span>我的资料</button>
   </div>
   <div class="navfoot">
     <div class="footchips">
@@ -131,16 +138,16 @@
   </div>
 </nav>
 
-<div class="content" id="content">
+<div class="content" id="content" tabindex="-1">
   <!-- 首页简报 -->
   <div id="home">
     <h2>早上好 🧭</h2>
     <div class="sub">FT Compass 自研版 · 8 步闭环第一步已就绪（线索 → 触达 → 成交）</div>
     <div class="grid">
-      <div class="ft-card stat" onclick="go('modules/leads.html')"><b id="hLeads" style="color:var(--brand-700)">0</b><span>线索总数</span></div>
-      <div class="ft-card stat" onclick="go('modules/leads.html')"><b id="hScored" style="color:var(--accent-500)">0</b><span>已 AI 评分</span></div>
-      <div class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok)">0</b><span>报价中</span></div>
-      <div class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn)">0</b><span>待办</span></div>
+      <button type="button" class="ft-card stat" onclick="go('modules/leads.html')"><b id="hLeads" style="color:var(--brand-700)">0</b><span>线索总数</span></button>
+      <button type="button" class="ft-card stat" onclick="go('modules/leads.html')"><b id="hScored" style="color:var(--accent-500)">0</b><span>已 AI 评分</span></button>
+      <button type="button" class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok)">0</b><span>报价中</span></button>
+      <button type="button" class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn)">0</b><span>待办</span></button>
     </div>
     <div class="ft-card homeempty" id="homeEmpty" style="display:none">
       <b>还没有客户数据</b>
@@ -169,7 +176,7 @@
   <iframe id="frame" style="display:none"></iframe>
 </div>
 
-<dialog id="dlgSettings" class="dialog-wrap">
+<dialog id="dlgSettings" aria-label="AI 设置" class="dialog-wrap">
   <div class="dlg-h" style="background:var(--bg-inset);padding:var(--sp-3) var(--sp-4);font-weight:600;display:flex;justify-content:space-between">
     <span>AI 设置（Agnes 3.0 Flash）</span>
     <button class="iconbtn" onclick="dlgSettings.close()">✕</button>
@@ -184,9 +191,13 @@
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261028e';
+var MODULE_V = '20261028f';
 function go(view){
-  document.querySelectorAll('.navitem').forEach(function(n){ n.classList.toggle('on', n.dataset.view===view); });
+  document.querySelectorAll('.navitem').forEach(function(n){
+    var on = n.dataset.view===view;
+    n.classList.toggle('on', on);
+    if (on) n.setAttribute('aria-current','page'); else n.removeAttribute('aria-current');
+  });
   if (view==='home'){ location.hash=''; $('frame').style.display='none'; $('home').style.display='block'; refresh(); }
   else { $('frame').src=view + (view.indexOf('?')<0?'?':'&') + 'v=' + MODULE_V; $('frame').style.display='block'; $('home').style.display='none'; }
   var item = document.querySelector('.navitem[data-view="' + view + '"]');
@@ -199,10 +210,14 @@ function toggleNav(){
   var open = !nav.classList.contains('open');
   nav.classList.toggle('open', open);
   $('mcover').classList.toggle('show', open);
+  var b = $('mBurger');
+  if (b){ b.setAttribute('aria-expanded', open ? 'true' : 'false'); b.setAttribute('aria-label', open ? '关闭菜单' : '打开菜单'); }
 }
 function closeNav(){
   $('appnav').classList.remove('open');
   $('mcover').classList.remove('show');
+  var b = $('mBurger');
+  if (b){ b.setAttribute('aria-expanded','false'); b.setAttribute('aria-label','打开菜单'); }
 }
 function $(id){ return document.getElementById(id); }
 document.querySelectorAll('.navitem').forEach(function(n){

@@ -107,7 +107,8 @@
   .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<script src="../assets/a11y.js?v=1"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -152,13 +153,13 @@
 </main>
 
 <!-- 单证夹 -->
-<dialog id="dlgSaved">
+<dialog id="dlgSaved" aria-label="单证夹">
   <div class="dlg-h"><span>单证夹（已保存单证）</span><button class="iconbtn" onclick="dlgSaved.close()">✕</button></div>
   <div class="dlg-b" id="savedList" style="max-height:400px;overflow:auto"></div>
 </dialog>
 
 <!-- AI 润色 -->
-<dialog id="dlgPolish">
+<dialog id="dlgPolish" aria-label="AI 润色备注">
   <div class="dlg-h"><span>✨ AI 润色备注</span><button class="iconbtn" onclick="dlgPolish.close()">✕</button></div>
   <div class="dlg-b">
     <label>要润色的内容（中文可）</label>
@@ -171,7 +172,7 @@
 </dialog>
 
 <!-- 从线索带入 -->
-<dialog id="dlgImport">
+<dialog id="dlgImport" aria-label="从线索带入客户信息">
   <div class="dlg-h"><span>从线索带入客户信息</span><button class="iconbtn" onclick="dlgImport.close()">✕</button></div>
   <div class="dlg-b">
     <label>选择线索（自动带入买方名/地址/产品，AI 评分高的排前面）</label>
@@ -183,13 +184,13 @@
 </dialog>
 
 <!-- AI 设置 -->
-<dialog id="dlgSettings">
+<dialog id="dlgSettings" aria-label="AI 设置">
   <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
 <!-- 从商品库选 -->
-<dialog id="dlgPicker">
+<dialog id="dlgPicker" aria-label="从商品库带入">
   <div class="dlg-h"><span>📦 从商品库带入</span><button class="iconbtn" onclick="dlgPicker.close()">✕</button></div>
   <div class="dlg-b" id="pickerList" style="max-height:60vh;overflow:auto"></div>
 </dialog>
@@ -498,7 +499,7 @@ function openPicker(){
     return;
   }
   $('pickerList').innerHTML = prods.map(function(p){
-    return '<div class="ft-card" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\''+p.id+'\')">'
+    return '<div class="ft-card" role="button" tabindex="0" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\''+p.id+'\')">'
       + (p.image?'<img src="'+p.image+'" style="width:44px;height:44px;object-fit:contain;background:var(--bg-inset);border-radius:4px" alt="">':'<span style="font-size:22px">📦</span>')
       + '<div style="flex:1;min-width:0"><b style="font-size:13px;display:block">'+esc(p.name)+'</b>'
       + '<span style="font-size:11px;color:var(--text-3)">'

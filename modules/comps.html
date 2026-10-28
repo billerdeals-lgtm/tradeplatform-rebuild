@@ -50,7 +50,7 @@
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -86,7 +86,7 @@
   <div class="empty" id="empty">竞品库是空的<br><br><button class="ft-btn-primary" onclick="openEdit()">＋ 录入第一个竞品</button></div>
 </main>
 
-<dialog id="dlgEdit">
+<dialog id="dlgEdit" aria-labelledby="dlgTitle">
   <div class="dlg-h"><span id="dlgTitle">新建竞品</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
   <div class="dlg-b">
     <div class="f2">

@@ -41,7 +41,8 @@
   .focus-card { margin-bottom:var(--sp-4); }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<script src="../assets/a11y.js?v=1"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -82,7 +83,7 @@
 </main>
 
 <!-- 新建/编辑待办 -->
-<dialog id="dlgEdit">
+<dialog id="dlgEdit" aria-labelledby="dlgTitle">
   <div class="dlg-h"><span id="dlgTitle">新建待办</span><button class="iconbtn" onclick="dlgEdit.close()">✕</button></div>
   <div class="dlg-b">
     <label>事项 *</label><input id="f_title" placeholder="例如：给 Omar 发样品报价跟进">
@@ -96,13 +97,13 @@
 </dialog>
 
 <!-- AI 设置 -->
-<dialog id="dlgSettings">
+<dialog id="dlgSettings" aria-label="AI 设置">
   <div class="dlg-h"><span>AI 设置（Agnes 3.0 Flash）</span><button class="iconbtn" onclick="dlgSettings.close()">✕</button></div>
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
 <!-- AI 输出弹窗 -->
-<dialog id="dlgAI">
+<dialog id="dlgAI" aria-labelledby="aiTitle">
   <div class="dlg-h"><span id="aiTitle">AI 输出</span><button class="iconbtn" onclick="dlgAI.close()">✕</button></div>
   <div class="dlg-b">
     <div class="ft-ai-output" id="aiBody" style="white-space:pre-wrap;font-size:14px;line-height:1.7">生成中…</div>
@@ -176,7 +177,7 @@ function render(){
     var aiHtml = t.aiPriority ? '<span class="ft-tag" style="background:var(--accent-100);color:#8a6100">AI #'+t.aiPriority+'</span>' : '';
     html += '<div class="ft-card todo '+(t.done?'done':'')+'">'
       + '<input type="checkbox" class="checkbox" '+(t.done?'checked':'')+' onchange="toggleDone(\''+t.id+'\')">'
-      + '<div class="body" onclick="this.parentElement.classList.toggle(\'open\')">'
+      + '<div class="body" role="button" tabindex="0" aria-expanded="false" onclick="this.parentElement.classList.toggle(\'open\')">'
       +   '<div class="title">'+(t.done?'<s>':'')+esc(t.title)+(t.done?'</s>':'')+'</div>'
       +   '<div class="meta">'+aiHtml+dueHtml
       +     (t.leadName?'<span class="ft-tag" style="background:var(--brand-100);color:var(--brand-700)">👤 '+esc(t.leadName)+'</span>':'')

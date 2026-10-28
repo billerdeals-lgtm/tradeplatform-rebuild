@@ -102,7 +102,8 @@
   .status-bar select { padding:6px 10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); font-size:13px; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<script src="../assets/a11y.js?v=1"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -225,7 +226,7 @@
 </main>
 
 <!-- 从商品库选 -->
-<dialog id="dlgPicker" style="border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);padding:0;max-width:560px;width:94%">
+<dialog id="dlgPicker" aria-label="从商品库选入明细" style="border:1px solid var(--border);border-radius:var(--r-lg);box-shadow:var(--shadow-pop);padding:0;max-width:560px;width:94%">
   <div style="background:var(--bg-inset);padding:var(--sp-3) var(--sp-4);font-weight:600;display:flex;justify-content:space-between;align-items:center">
     <span>📦 从商品库选入明细</span>
     <button class="iconbtn" onclick="dlgPicker.close()">✕</button>
@@ -361,7 +362,7 @@ function openPicker() {
     return;
   }
   $('pickerList').innerHTML = prods.map(function(p) {
-    return '<div class="ft-card" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\'' + p.id + '\')">'
+    return '<div class="ft-card" role="button" tabindex="0" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\'' + p.id + '\')">'
       + (p.image ? '<img src="' + p.image + '" style="width:44px;height:44px;object-fit:contain;background:var(--bg-inset);border-radius:4px" alt="">' : '<span style="font-size:22px">📦</span>')
       + '<div style="flex:1;min-width:0"><b style="font-size:13px;display:block">' + esc(p.name) + '</b>'
       + '<span style="font-size:11px;color:var(--text-3)">' + esc(p.sku || '') + (p.spec ? ' · ' + esc(p.spec) : '') + (p.price ? ' · ' + esc(p.currency || 'USD') + ' ' + esc(p.price) : '') + '</span></div>'
@@ -504,7 +505,8 @@ function renderList() {
   var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[v('q_currency') || 'USD'] || '$';
   box.innerHTML = list.map(function(item) {
     var stLabel = {draft:'草稿',sent:'已发送',accepted:'已接受',rejected:'已拒绝',expired:'已过期'}[item.status] || item.status;
-    return '<div class="qitem' + (S.current === item.id ? ' on' : '') + '" onclick="loadQuote(\'' + item.id + '\')">'
+    var on = S.current === item.id;
+    return '<div class="qitem' + (on ? ' on' : '') + '" role="button" tabindex="0"' + (on ? ' aria-current="true"' : '') + ' onclick="loadQuote(\'' + item.id + '\')">'
       + '<div class="qi-top"><span class="qi-no">' + esc(item.no || '未编号') + '</span>'
       + '<span class="qi-status st-' + esc(item.status) + '">' + stLabel + '</span></div>'
       + '<div class="qi-client">' + esc(item.leadName || '未关联线索') + ' · ' + esc(item.product || '') + '</div>'

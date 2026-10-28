@@ -39,7 +39,8 @@
   dialog textarea { min-height:80px; resize:vertical; }
 </style>
 <script src="../assets/standalone.js"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=7">
+<script src="../assets/a11y.js?v=1"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=8">
 </head>
 <body>
 <header>
@@ -74,7 +75,7 @@
 </main>
 
 <!-- 补记录弹窗 -->
-<dialog id="dlgAdd">
+<dialog id="dlgAdd" aria-label="补充触达记录">
   <h3>＋ 补充触达记录</h3>
   <label>客户（线索 Pipeline 内选择）</label>
   <select id="a_lead"></select>
@@ -117,7 +118,7 @@ function render() {
   if (!rows.length) { box.innerHTML = '<div class="empty">暂无记录 · 触达类操作会自动落库，也可右上角手动补录</div>'; return; }
   box.innerHTML = rows.map(function(o) {
     var cls = 'tag-' + String(o.type).replace(/[^a-z_]/g, '');
-    return '<div class="ft-card log" onclick="this.classList.toggle(\'open\')">'
+    return '<div class="ft-card log" role="button" tabindex="0" aria-expanded="false" onclick="this.classList.toggle(\'open\')">'
       + '<div class="body"><div class="meta">'
       + '<span class="name">' + esc(o.leadName || '未关联客户') + '</span>'
       + '<span class="ft-tag ' + cls + '">' + esc(TYPE_NAME[o.type] || o.type) + '</span>'
