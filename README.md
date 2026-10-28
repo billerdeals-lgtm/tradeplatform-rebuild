@@ -22,7 +22,16 @@
 
 ## 部署
 
+线上地址：**https://up.wopen.de5.net/**
+
 GitHub Actions 自动部署到 GitHub Pages（`.github/workflows/deploy-pages.yml`），推送到 `main` 即发布。
+
+域名绑定的两处配置，迁移或重建仓库时别丢：
+
+- DNS：`up.wopen` **CNAME** → `billerdeals-lgtm.github.io`（DNS only / 灰云）
+- 仓库根目录 `CNAME` 文件内容 `up.wopen.de5.net`，GitHub Pages 靠它锁定自定义域名
+
+自定义域名生效后，旧的 `billerdeals-lgtm.github.io/tradeplatform-rebuild/` 会 301 跳到新域名。
 
 > 注意：纯静态托管下 CORS 部分网关可能限制浏览器直连，若 AI 请求被拦，换支持 CORS 的网关或自建 Cloudflare Worker 反代。
 
