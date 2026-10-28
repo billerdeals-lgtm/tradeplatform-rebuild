@@ -306,12 +306,12 @@ function renderDetail() {
   html += '<div class="ft-card">'
     + '<div class="tabs" role="tablist" aria-label="客户资料分类">'
     +   '<div class="tab on" role="tab" aria-selected="true" tabindex="0" id="tab-timeline" aria-controls="tc-timeline" data-tab="timeline" onclick="switchTab(\'timeline\',this)">📅 时间线</div>'
-    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-quotes" aria-controls="tc-quotes" data-tab="quotes" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
-    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-docs" aria-controls="tc-docs" data-tab="docs" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
-    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-todos" aria-controls="tc-todos" data-tab="todos" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
-    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-outreach" aria-controls="tc-outreach" data-tab="outreach" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
-    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-comps" aria-controls="tc-comps" data-tab="comps" onclick="switchTab(\'comps\',this)">⚔️ 竞品 (' + comps.length + ')</div>'
-    +   '<div class="tab" role="tab" aria-selected="false" tabindex="0" id="tab-notes" aria-controls="tc-notes" data-tab="notes" onclick="switchTab(\'notes\',this)">📝 备注</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-quotes" aria-controls="tc-quotes" data-tab="quotes" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-docs" aria-controls="tc-docs" data-tab="docs" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-todos" aria-controls="tc-todos" data-tab="todos" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-outreach" aria-controls="tc-outreach" data-tab="outreach" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-comps" aria-controls="tc-comps" data-tab="comps" onclick="switchTab(\'comps\',this)">⚔️ 竞品 (' + comps.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-notes" aria-controls="tc-notes" data-tab="notes" onclick="switchTab(\'notes\',this)">📝 备注</div>'
     + '</div>';
 
   // 时间线
@@ -437,6 +437,8 @@ function switchTab(name, el) {
     var on = t === el;
     t.classList.toggle('on', on);
     t.setAttribute('aria-selected', on ? 'true' : 'false');
+    // roving tabindex：只有选中项留在 Tab 序列里，其余用方向键进入
+    t.tabIndex = on ? 0 : -1;
   });
   $('tc-' + name).classList.add('on');
 }

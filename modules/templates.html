@@ -90,9 +90,8 @@ var rewriting = null; // 当前改写的模板
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
-  t.style.cssText='position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
-  document.body.appendChild(t); setTimeout(function(){t.remove();},2200); }
+/* 统一走 assets/a11y.js 的右下角提示条，避免同一句提示出现在多个位置 */
+function toast(msg){ if (window.FT && FT.toast) FT.toast(msg); }
 function usage(){ try{ return JSON.parse(localStorage.getItem('ftc_tpl_usage')||'{}'); }catch(e){ return {}; } }
 function bumpUse(n){ var u=usage(); u[n]=(u[n]||0)+1; localStorage.setItem('ftc_tpl_usage',JSON.stringify(u)); }
 function copyText(s){ navigator.clipboard.writeText(s).then(function(){toast('已复制');}); }

@@ -68,7 +68,7 @@
 
 ### 3. 弹窗显式补 `role="dialog" aria-modal="true"`
 
-原生 `<dialog>` 用 `showModal()` 时浏览器有隐式 `role=dialog`、`aria-modal=true`，但不同辅助技术实现不一致。21 个弹窗全部显式写出，名称沿用已有的 `aria-label` / `aria-labelledby`。
+原生 `<dialog>` 用 `showModal()` 时浏览器有隐式 `role=dialog`、`aria-modal=true`，但不同辅助技术实现不一致。24 个弹窗（含线索页 3 个由 `div.mask` 迁来的）全部显式写出，名称沿用已有的 `aria-label` / `aria-labelledby`。
 
 ### 4. 结果区补 live region
 
@@ -106,14 +106,42 @@
 - `assets/standalone.js`：`FT.go`。
 - `index.html`：引入 `a11y.js`、`ft:navigate` 监听、侧栏分组标题 alpha。
 - 14 个模块：label `for`/`id`、控件 `aria-label`、`th scope`、表名、图片 alt、弹窗语义、live region、对比度 token 替换。
-- 版本号：`responsive.css?v=9`、`tokens.css?v=2`、`a11y.js?v=2`、`MODULE_V=20261028g`。
+- 版本号：`responsive.css?v=9`、`tokens.css?v=2`、`a11y.js?v=2`、`MODULE_V=20261028h`。
+
+## 追加收口
+
+首轮上线后复查发现三处遗留，一并处理：
+
+### 线索页弹窗迁到原生 `<dialog>`
+
+`leads.html` 是唯一还在用 `div.mask` 的页面（3 个弹窗）。改为：
+
+- `<dialog class="mask" role="dialog" aria-modal="true" aria-labelledby="…">`；
+- `show(id)` 调 `showModal()` 并把焦点移进弹窗第一个控件；`hide(id)` 调 `close()`；
+- Esc、焦点圈定、关闭后焦点归还触发按钮由浏览器负责；
+- 遮罩改用 `::backdrop`，`dialog.mask[open] { display:flex }` 维持原来的顶部对齐布局；
+- 顺手修掉该页硬编码的输入框边框 `#d5d2c4`（1.48:1）→ `--border-field`，以及 `#77806f` / `#7b8477` / `#8a937f` 三处提示文字 → `--text-2`。
+
+### 标签页 roving tabindex
+
+客户 360° 的 7 个 tab 原本全是 `tabindex="0"`，纯键盘用户要按 7 次 Tab 才能穿过标签栏。改为选中项 `0`、其余 `-1`，`switchTab()` 同步 `tabIndex`；方向键逻辑不变（`a11y.js` 已处理）。
+
+### 提示条统一
+
+8 处本地 `toast()`（7 个模块 + 首页）原本各自 `position:fixed; top:16px` 渲染在顶部居中或右上角，与 `alert` 的右下角提示条并存，同一句反馈可能出现在三个位置。全部改为：
+
+```js
+function toast(msg){ if (window.FT && FT.toast) FT.toast(msg); }
+```
+
+调用方一行未改，位置、时长、关闭方式、播报语义全部统一。
 
 ## 验证
 
 - `node --check`：`a11y.js`、`standalone.js` 通过；15 个页面内联脚本全部通过。
 - CSS 花括号：`tokens.css` 10/10、`responsive.css` 88/88，各页 `<style>` 平衡。
 - 对比度扫描：129 组「文字色 + 背景色」规则，13 组不达标，全部为半透明背景导致的误报（实际叠在深绿/深底上均为 1.00 之外的正常值）。
-- 结构校验：所有 `label for` 目标存在、19 张图有 alt、30 个 th 有 scope、5 张表有名称、21 个弹窗语义完整。
+- 结构校验：所有 `label for` 目标存在、19 张图有 alt、30 个 th 有 scope、5 张表有名称、24 个弹窗语义完整；7 个 tab 中仅选中项 `tabindex="0"`；8 处本地 toast 全部委托 `FT.toast`。
 - 既有测试：license 31/31、docs-i18n 2951/2951、ai-verify 15/15、ai-source 11/11。
 
 ## 已知边界

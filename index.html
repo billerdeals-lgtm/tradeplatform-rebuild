@@ -192,7 +192,7 @@
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261028g';
+var MODULE_V = '20261028h';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -285,9 +285,8 @@ async function aiBrief(){
   } catch(e){ toast('简报失败：'+e.message.slice(0,80)); }
   $('btnBrief').textContent='🧭 生成简报'; $('btnBrief').disabled=false;
 }
-function toast(msg){ var t=document.createElement('div'); t.textContent=msg;
-  t.style.cssText='position:fixed;top:16px;right:16px;background:var(--brand-900);color:#fff;padding:8px 20px;border-radius:999px;font-size:13px;z-index:99';
-  document.body.appendChild(t); setTimeout(function(){t.remove();},2600); }
+/* 统一走 assets/a11y.js 的右下角提示条，避免同一句提示出现在多个位置 */
+function toast(msg){ if (window.FT && FT.toast) FT.toast(msg); }
 
 /* ---------- 备份 / 恢复 v2：完整 JSON 覆盖全部 11 个存储键（HUIDI feature 5） ---------- */
 var COLL_LABEL = {

@@ -18,7 +18,7 @@
   main { max-width: 1080px; margin: 0 auto; padding: 20px 16px 70px; }
 
   .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-  .toolbar input, .toolbar select { padding: 9px 12px; border: 1px solid #d5d2c4; border-radius: 9px; font-size: 14px; background: #fff; }
+  .toolbar input, .toolbar select { padding: 9px 12px; border: 1px solid var(--border-field); border-radius: 9px; font-size: 14px; background: #fff; }
   .toolbar input { flex: 1; min-width: 180px; }
   .btn { padding: 9px 18px; border: 0; border-radius: 9px; background: #0b6e4f; color: #fff; cursor: pointer; font-size: 14px; }
   .btn.amber { background: #ffc53d; color: #4a3800; }
@@ -39,19 +39,22 @@
   .tag.s2 { background: #e8ddf3; color: #5b3a86; } .tag.s3 { background: #f7ddd8; color: #99412f; }
   .tag.s4 { background: #d9efe2; color: #1d6b45; }
   .tag.hi { background: #0b6e4f; color: #fff; } .tag.mid { background: #ffc53d; color: #4a3800; } .tag.lo { background: #e4e2d8; }
-  .lead .meta { color: #77806f; font-size: 13px; margin-top: 4px; }
+  .lead .meta { color: var(--text-2); font-size: 13px; margin-top: 4px; }
   .lead .acts { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 10px; }
   /* AI 输出容器：琥珀规范（tokens.css）——一眼识别"AI 说的" */
   .aiout, .mout { background: var(--accent-100); border-left: 3px solid var(--accent-500); border-radius: 10px; padding: 10px 13px; font-size: 13.5px; white-space: pre-wrap; }
   .aiout { margin-top: 10px; display: none; }
 
-  /* 弹窗 */
-  .mask { position: fixed; inset: 0; background: #22301f66; display: none; align-items: flex-start; justify-content: center; z-index: 100; overflow: auto; padding: 40px 14px; }
+  /* 弹窗：原生 dialog 元素，由 show()/hide() 调 showModal()/close()。
+     用 [open] 而不是 .show，Esc、焦点圈定、背景 inert 都交给浏览器。 */
+  dialog.mask { position: fixed; inset: 0; z-index: 100; box-sizing: border-box; width: 100%; max-width: none; height: 100%; max-height: none; margin: 0; border: 0; padding: 40px 14px; background: transparent; overflow: auto; }
+  dialog.mask[open] { display: flex; align-items: flex-start; justify-content: center; }
+  dialog.mask::backdrop { background: rgba(34,48,31,.4); }
   .mask.show { display: flex; }
   .modal { background: #fff; border-radius: 14px; padding: 22px 24px; width: 640px; max-width: 96vw; }
   .modal h3 { font-size: 16px; margin-bottom: 12px; color: #0b6e4f; }
   .modal label { display: block; font-size: 12.5px; color: #5c6657; margin: 10px 0 4px; }
-  .modal input, .modal select, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid #d5d2c4; border-radius: 9px; font-size: 14px; background: #fcfcfa; }
+  .modal input, .modal select, .modal textarea { width: 100%; padding: 9px 12px; border: 1px solid var(--border-field); border-radius: 9px; font-size: 14px; background: #fcfcfa; }
   .modal textarea { min-height: 76px; resize: vertical; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   .mrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
@@ -99,7 +102,7 @@
 </main>
 
 <!-- 新增/编辑线索 -->
-<div class="mask" id="mEdit">
+<dialog class="mask" id="mEdit" role="dialog" aria-modal="true" aria-labelledby="editTitle">
   <div class="modal">
     <h3 id="editTitle">添加线索</h3>
     <div class="grid2">
@@ -118,10 +121,10 @@
       <button class="btn ghost" onclick="hide('mEdit')">取消</button>
     </div>
   </div>
-</div>
+</dialog>
 
 <!-- AI 触达：生成开发信 / 回复草稿 -->
-<div class="mask" id="mTouch">
+<dialog class="mask" id="mTouch" role="dialog" aria-modal="true" aria-labelledby="touchTitle">
   <div class="modal">
     <h3 id="touchTitle">AI 触达</h3>
     <div class="mrow" style="margin:0 0 6px">
@@ -154,16 +157,16 @@
     </div>
     <div class="mrow"><button class="btn ghost" onclick="hide('mTouch')">关闭</button></div>
   </div>
-</div>
+</dialog>
 
 <!-- AI 设置（复用 AgnesAI 面板） -->
-<div class="mask" id="mCfg">
+<dialog class="mask" id="mCfg" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
   <div class="modal cfgbox">
-    <h3>AI 设置（Agnes 3.0 Flash）</h3>
+    <h3 id="cfgTitle">AI 设置（Agnes 3.0 Flash）</h3>
     <div id="cfgHolder"></div>
     <div class="mrow"><button class="btn ghost" onclick="hide('mCfg')">关闭</button></div>
   </div>
-</div>
+</dialog>
 
 <script>
 /* ================= FT Compass 线索工作台 v0.2 =================
@@ -227,8 +230,25 @@ function addDemoRu() {
   alert('已添加俄语演示线索。\n\n下一步：单证中心 → 从线索带入 → 选择 ООО «Балтийский Торг»\n系统会自动切到俄语并填好数量/单价/付款/港口，直接打印或导出即可。');
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
-function show(id) { document.getElementById(id).classList.add('show'); }
-function hide(id) { document.getElementById(id).classList.remove('show'); }
+function show(id) {
+  var d = document.getElementById(id);
+  if (!d) return;
+  if (typeof d.showModal === 'function') {
+    if (!d.open) d.showModal();
+    // 焦点必须进弹窗，不能留在触发按钮上
+    var first = d.querySelector('input:not([type=hidden]), select, textarea, button');
+    if (first) setTimeout(function () { try { first.focus(); } catch (e) {} }, 0);
+    else { d.tabIndex = -1; d.focus(); }
+  } else {
+    d.classList.add('show');
+  }
+}
+function hide(id) {
+  var d = document.getElementById(id);
+  if (!d) return;
+  if (typeof d.close === 'function' && d.open) d.close();
+  else d.classList.remove('show');
+}
 
 /* ---------- 渲染 ---------- */
 function render() {
@@ -250,14 +270,14 @@ function render() {
     if (!S.leads.length) {
       h = '<div class="lead" style="text-align:center;padding:22px 16px">'
         + '<div style="font-weight:600;margin-bottom:6px">还没有线索</div>'
-        + '<div style="color:#7b8477;font-size:13px;line-height:1.7;margin-bottom:12px">从「找客户」抓一批，或直接录入第一条。想先熟悉流程也可以用示例数据。</div>'
+        + '<div style="color:var(--text-2);font-size:13px;line-height:1.7;margin-bottom:12px">从「找客户」抓一批，或直接录入第一条。想先熟悉流程也可以用示例数据。</div>'
         + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
         + '<button class="btn" onclick="openEdit()">＋ 添加线索</button>'
         + '<button class="btn ghost" onclick="loadDemo()">载入 2 条示例</button>'
         + '<button class="btn ghost" onclick="addDemoRu()">载入俄语单证演示</button>'
         + '</div></div>';
     } else {
-      h = '<div class="lead" style="text-align:center;color:#8a937f">没有匹配的线索，试试清空搜索或筛选</div>';
+      h = '<div class="lead" style="text-align:center;color:var(--text-2)">没有匹配的线索，试试清空搜索或筛选</div>';
     }
   }
   list.forEach(function (l) {
