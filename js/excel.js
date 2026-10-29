@@ -213,7 +213,12 @@
         ['Delivery', q.delivery || ''], ['Total', Number(q.total) || 0],
         ['Status', q.status || ''], ['Note', q.note || ''],
         /* feature 7：内部字段仅出现在数据版 */
-        ['Internal Note', q.internalNote || '']
+        ['Internal Note', q.internalNote || ''],
+        /* AI 留痕：仅数据版；客户版导出与打印不出现任何 AI 字样 */
+        ['AI Assisted', q.aiEstimated ? 'Yes' : 'No'],
+        ['Price Verified', q.aiEstimated ? 'No - pending manual check' : (q.aiGeneratedAt ? 'Yes' : 'N/A')],
+        ['AI Generated At', q.aiGeneratedAt || ''],
+        ['Price Verified At', q.aiVerifiedAt || '']
       ].forEach(function (r) {
         head.push(row(r, { style: 'td' }));
       });

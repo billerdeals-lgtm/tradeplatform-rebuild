@@ -71,6 +71,13 @@
   .conf-hint { font-size:11px; color:#92400e; margin-top:4px; }
   #gateBox { margin-top:var(--sp-2); }
   .ai-out { font-size:13px; line-height:1.7; padding:var(--sp-3); background:var(--bg-inset); border-radius:var(--r-sm); margin-top:var(--sp-3); display:none; white-space:pre-wrap; }
+  /* AI 估算单价核价提示：只在编辑器里，打印/客户版不带 */
+  .ai-price-warn { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0 0 8px;
+    padding:9px 12px; background:#fff7e6; border:1px solid #e2c98f; border-left:3px solid #c99a3f;
+    border-radius:var(--r-sm); font-size:12.5px; line-height:1.5; color:var(--warn-text); }
+  .ai-price-warn[hidden] { display:none; }
+  .ai-price-warn .warn-msg { flex:1 1 auto; min-width:12em; }
+  .ai-price-warn button { flex:0 0 auto; }
   /* 预览纸 */
   .preview-toggle { margin-left:auto; }
   .paper { background:#fff; border:1px solid var(--border); border-radius:var(--r-sm); box-shadow:var(--shadow-card); padding:40px 48px; min-height:500px; margin-top:var(--sp-3); display:none; }
@@ -174,6 +181,10 @@
           <button class="btn-sm btn-ghost" onclick="addItem()">＋ 添加行</button>
           <button class="btn-sm btn-ghost" onclick="openPicker()" title="从商品库选择，自动带规格/单价">📦 从商品库</button>
         </div>
+        <div class="ai-price-warn" id="aiPriceWarn" hidden>
+          <span class="warn-msg" role="status">⚠️ 单价为 AI 估算，发送前请人工核价</span>
+          <button type="button" class="btn-sm btn-ghost" onclick="markPriceVerified()">已核对</button>
+        </div>
         <table class="items-table" id="itemsTable" aria-label="报价明细">
           <thead><tr>
             <th scope="col" style="width:26%">产品名称</th>
@@ -242,12 +253,16 @@
 <script src="../js/gate.js?v=1"></script>
 <script src="../js/i18n.js?v=4"></script>
 <script src="../js/brand.js?v=3"></script>
-<script src="../js/excel.js?v=4"></script>
+<script src="../js/excel.js?v=5"></script>
 <script src="../js/paper.js?v=6"></script>
 <script>
 'use strict';
 
 var S = { quotes: [], current: null, editing: false };
+/* AI 估算单价标记：随报价保存，只有点「已核对」才清除 */
+var aiEstimated = false;
+var aiGeneratedAt = '';
+var aiVerifiedAt = '';
 
 function v(id) { return document.getElementById(id).value; }
 function $(id) { return document.getElementById(id); }
@@ -258,6 +273,27 @@ function genNo() {
   var d = today().replace(/-/g,'');
   var list = S.quotes.filter(function(q){ return q.no && q.no.startsWith('QT-' + d); });
   return 'QT-' + d + '-' + String(list.length + 1).padStart(3, '0');
+}
+
+/* ========== AI 核价提示 ========== */
+function renderAiPriceWarn() {
+  var w = $('aiPriceWarn');
+  if (w) w.hidden = !aiEstimated;
+}
+function markPriceVerified() {
+  if (!aiEstimated) return;
+  aiEstimated = false;
+  aiVerifiedAt = new Date().toISOString();
+  renderAiPriceWarn();
+  if (S.current) {
+    DataStore.update('quotes', S.current, { aiEstimated: false, aiVerifiedAt: aiVerifiedAt });
+    S.quotes = DataStore.list('quotes');
+  }
+  toast('已标记为人工核价');
+}
+function toast(msg) {
+  if (window.FT && FT.toast) FT.toast(msg);
+  else alert(msg);
 }
 
 /* ========== 初始化 ========== */
@@ -476,7 +512,10 @@ function currentQuoteData() {
     portFrom: v('q_portFrom'), portTo: v('q_portTo'),
     delivery: v('q_delivery'), note: v('q_note'),
     internalNote: v('q_internal'),
-    status: v('q_status')
+    status: v('q_status'),
+    aiEstimated: !!aiEstimated,
+    aiGeneratedAt: aiGeneratedAt || '',
+    aiVerifiedAt: aiVerifiedAt || ''
   };
 }
 function exportClientXls() {
@@ -533,6 +572,7 @@ function newQuote() {
   $('q_internal').value = '';
   $('q_status').value = 'draft';
   $('aiOut').style.display = 'none';
+  aiEstimated = false; aiGeneratedAt = ''; aiVerifiedAt = ''; renderAiPriceWarn();
   $('gateBox').innerHTML = '';
   $('itemsBody').innerHTML = '';
   addItem();
@@ -561,6 +601,10 @@ function loadQuote(id) {
   $('q_status').value = item.status || 'draft';
   $('aiOut').style.display = 'none';
   setItems(item.items);
+  aiEstimated = !!item.aiEstimated;
+  aiGeneratedAt = item.aiGeneratedAt || '';
+  aiVerifiedAt = item.aiVerifiedAt || '';
+  renderAiPriceWarn();
   $('paper').style.display = 'none';
   $('editor').style.display = 'block';
   renderList();
@@ -601,7 +645,11 @@ function saveQuote() {
     portFrom: v('q_portFrom'), portTo: v('q_portTo'),
     delivery: v('q_delivery'), note: v('q_note'),
     internalNote: v('q_internal'),
-    status: v('q_status')
+    status: v('q_status'),
+    /* AI 留痕：随报价保存，只进「Excel 数据版」 */
+    aiEstimated: !!aiEstimated,
+    aiGeneratedAt: aiGeneratedAt || '',
+    aiVerifiedAt: aiVerifiedAt || ''
   };
   if (S.current) {
     DataStore.update('quotes', S.current, data);
@@ -713,6 +761,10 @@ async function aiGenQuote() {
     var res = await AgnesAI.genQuote(aiLead, prof);
     if (res.items && res.items.length) {
       setItems(res.items);
+      aiEstimated = true;
+      aiGeneratedAt = new Date().toISOString();
+      aiVerifiedAt = '';
+      renderAiPriceWarn();
     }
     if (res.currency) $('q_currency').value = res.currency;
     if (res.payment) $('q_payment').value = res.payment;

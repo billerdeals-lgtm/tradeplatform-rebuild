@@ -48,6 +48,16 @@
   /* ---- 内容区 ---- */
   .content { flex:1; display:flex; flex-direction:column; min-width:0; }
   iframe { flex:1; border:0; background:var(--bg-page); }
+  /* ---- 备份提醒条 ---- */
+  .backup-bar { flex:0 0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    padding:9px 14px; background:#fff7e6; border-bottom:1px solid #e2c98f; color:var(--warn-text); font-size:13px; }
+  .backup-bar[hidden] { display:none; }
+  .backup-bar .bb-msg { flex:1 1 auto; min-width:12em; }
+  .backup-bar .bb-btn { flex:0 0 auto; font:inherit; font-size:12.5px; line-height:1.2; padding:6px 14px;
+    border-radius:999px; border:1px solid #9a6b16; background:#fff; color:var(--warn-text); cursor:pointer; }
+  .backup-bar .bb-btn:hover { background:#ffefd2; }
+  .backup-bar .bb-btn.primary { background:#8a5a00; border-color:#8a5a00; color:#fff; }
+  .backup-bar .bb-btn.primary:hover { background:#6f4900; }
   /* ---- 首页 ---- */
   #home { flex:1; overflow:auto; padding:var(--sp-8); }
   #home h2 { margin:0 0 4px; font-size:22px; }
@@ -79,6 +89,10 @@
     .content { height:100%; padding-top:52px; box-sizing:border-box; }
     iframe { width:100%; height:100%; }
     #home { padding:16px 12px; height:calc(100vh - 52px); height:calc(100dvh - 52px); }
+    /* 备份条出现时让内容区自己分配高度，避免 100dvh 计算溢出 */
+    .content.has-banner iframe, .content.has-banner #home { height:auto; min-height:0; }
+    .backup-bar { padding:8px 12px; font-size:12px; gap:8px; }
+    .backup-bar .bb-msg { flex:1 1 100%; }
     #home h2 { font-size:19px; }
     #home .sub { font-size:12px; margin-bottom:14px; }
     #home .grid { grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
@@ -139,6 +153,12 @@
 </nav>
 
 <div class="content" id="content" tabindex="-1">
+  <!-- 备份逾期提醒：有业务数据且从未备份 / 超过 7 天时出现 -->
+  <div class="backup-bar" id="backupBar" role="region" aria-label="备份提醒" hidden>
+    <span class="bb-msg" id="backupMsg" role="status">该备份了：还没有备份过</span>
+    <button type="button" class="bb-btn primary" onclick="backupAll()">立即备份</button>
+    <button type="button" class="bb-btn" onclick="snoozeBackup()">稍后</button>
+  </div>
   <!-- 首页简报 -->
   <div id="home">
     <h2>早上好 🧭</h2>
@@ -192,7 +212,7 @@
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261028h';
+var MODULE_V = '20261029a';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -254,6 +274,7 @@ function refresh(){
       + ' · 今日已用 '+aiUsed+' 次 · 点击打开 AI 设置';
   }
   paintLicenseDot();
+  refreshBackupBar();
 }
 function paintLicenseDot(){
   var dot=$('mDot'); if(!dot)return;
@@ -296,6 +317,52 @@ var COLL_LABEL = {
 function readRaw(lsKey){
   try { return JSON.parse(localStorage.getItem(lsKey)); } catch(e){ return null; }
 }
+/* ---------- 备份逾期提醒 ----------
+   本地存储唯一的真实死法是“忘了备份”。记录上次备份时间，
+   有业务数据且从未备份 / 超过 BACKUP_DAYS 天时在内容区顶部提示。 */
+var BACKUP_KEY = 'ftc_last_backup';
+var BACKUP_SNOOZE_KEY = 'ftc_backup_snooze';
+var BACKUP_DAYS = 7;
+function backupAgeDays(){
+  var raw = null;
+  try { raw = localStorage.getItem(BACKUP_KEY); } catch(e){ return null; }
+  if (!raw) return null;
+  var t = Date.parse(raw);
+  if (!isFinite(t)) return null;
+  return Math.floor((Date.now() - t) / 86400000);
+}
+function backupHasData(){
+  return ['leads','todos','quotes','docs','products','comps'].some(function(name){
+    var arr = readRaw(DataStore.KEYS[name]);
+    return Array.isArray(arr) && arr.length > 0;
+  });
+}
+function setBackupBar(show){
+  var bar = $('backupBar');
+  if (!bar) return;
+  bar.hidden = !show;
+  $('content').classList.toggle('has-banner', show);
+}
+function refreshBackupBar(){
+  var snoozed = false;
+  try { snoozed = sessionStorage.getItem(BACKUP_SNOOZE_KEY) === '1'; } catch(e){}
+  var days = backupAgeDays();
+  var show = !snoozed && backupHasData() && (days === null || days > BACKUP_DAYS);
+  setBackupBar(show);
+  if (show){
+    $('backupMsg').textContent = days === null
+      ? '该备份了：还没有备份过'
+      : '该备份了：上次备份是 ' + days + ' 天前';
+  }
+}
+function snoozeBackup(){
+  try { sessionStorage.setItem(BACKUP_SNOOZE_KEY, '1'); } catch(e){}
+  setBackupBar(false);
+}
+function markBackedUp(){
+  try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch(e){}
+  setBackupBar(false);
+}
 function openLicense(){
   if (typeof License !== 'undefined' && License.showLock) { License.showLock('manual'); return; }
   alert('授权模块没加载成功，请按 Ctrl+F5 强制刷新页面后重试。');
@@ -328,6 +395,7 @@ function backupAll(){
   a.click();
   var parts = Object.keys(counts).map(function(n){ return (COLL_LABEL[n]||n)+' '+counts[n]; });
   toast('完整备份已下载（v2）：'+parts.join('、'));
+  markBackedUp();
 }
 function restoreAll(input){
   var f = input.files && input.files[0];
