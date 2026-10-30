@@ -66,7 +66,9 @@ markup       = margin / (1 - margin);
 | P2 | `excel.js` 三个版本号 | 统一 `?v=6`；`standalone.js` 统一 `?v=2` |
 | P3 | 首页有数据仍下半屏空白 | 新增「今日工作台」：今天该跟进 / 临期待办 / 最近报价，无数据时隐藏 |
 | P3 | 429 无重试且抛原始 JSON | 429 退避 1s 重试 1 次；401/403/404/429/5xx 映射成人话 |
-| P3 | `backupHasData` 只查 6 类 | 覆盖 leads/todos/outreach/quotes/docs/reviews/comps/profile/products/searches |
+| P3 | `backupHasData` 只查 6 类 | 覆盖 leads/todos/outreach/quotes/docs/reviews/comps/profile/products/searches/calculations |
+| 实际 bug | 计算历史写进 `localStorage["undefined"]` | `KEYS` 补 `calculations`；启动时把旧键迁移/按 id 合并；备份恢复变为 12 个键 |
+| 小问题 | `pricing.js` 的 7.25 回退永远不触发 | 删掉回退；汇率缺失/为 0/非数字统一报「汇率必须大于 0」，避免两层规则矛盾 |
 
 ## 日期口径
 
@@ -74,6 +76,26 @@ markup       = margin / (1 - margin);
 `toISOString().slice(0,10)`。`offset` 为天数，可为负：`FT.today(-3)` 是三天前。
 首页（外壳）也加载 `assets/standalone.js`，只为拿这个函数；独立打开补丁只对
 `/modules/` 路径生效，不会给首页插入「← 工作台」。
+
+## 计算历史数据键
+
+`DataStore.KEYS` 之前没有 `calculations`，`DataStore.add('calculations', …)` 实际写进了
+字面量键 `localStorage["undefined"]`。修复：
+
+- `KEYS.calculations = 'ftc_calculations_v1'`；
+- `js/datastore.js` 启动时读取旧 `"undefined"` 键：新键不存在则整体搬入；已存在则按
+  `id` 合并去重后删除旧键；旧键不是数组时不处理；
+- 备份 / 恢复 / `exportAll` 按 `KEYS` 遍历，自动变成 12 类；`COLL_LABEL` 增加
+  「计算历史」，备份提醒也把计算历史算作业务数据。
+
+回归测试：`node tools/test-datastore.mjs`（12 项）。
+
+## 汇率回退
+
+`pricing.js` 原来在 `rate` 为空时回退 7.25，但调用方 `n('c_rate')` 已把空值转成 0，
+回退永远不触发，两层规则矛盾。现在删除回退：`rate` 缺失、为 0 或非数字统一返回
+「汇率必须大于 0」。报错比静默按 7.25 计算更安全。
+
 
 ## 测试
 

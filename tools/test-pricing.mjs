@@ -59,6 +59,7 @@ eq('毛利率 100% 被拒绝', priceQuote(Object.assign({}, base, { marginPct: 1
 eq('佣金 100% 被拒绝', priceQuote(Object.assign({}, base, { marginPct: 30, commPct: 100 })).ok, false);
 eq('成本为 0 被拒绝', priceQuote(Object.assign({}, base, { cost: 0, marginPct: 30 })).ok, false);
 eq('汇率为 0 被拒绝', priceQuote(Object.assign({}, base, { rate: 0 })).ok, false);
+eq('汇率缺失被拒绝', priceQuote({ cost: 100, marginPct: 30 }).ok, false);
 
 /* 报关/港杂属于 FOB 基准，海运/保险不属于 */
 const d = priceQuote(Object.assign({}, base, { marginPct: 0, customs: 10, portFee: 5 }));

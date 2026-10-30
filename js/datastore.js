@@ -37,8 +37,30 @@
     profile: 'ftc_profile_v1',  // 我的资料（公司/署名/卖点，AI 个性化数据源）
     products:'ftc_products_v1', // 商品库（一次建档，报价/单证复用）
     searches:'ftc_searches_v1', // 找客户搜索历史
+    calculations:'ftc_calculations_v1', // 利润计算器历史
     cfg:     'ftc_cfg_v1'       // 全局配置（AI 设置等）
   };
+
+  /* 迁移：早期计算器调用 DataStore.add('calculations') 时 KEYS 还没有这个键，
+     历史被写进了 localStorage 里字面量叫 "undefined" 的键。
+     新键不存在就整体搬过去；已存在则按 id 合并，避免丢记录。 */
+  try {
+    var legacyCalcs = localAdapter.read('undefined');
+    if (Array.isArray(legacyCalcs) && legacyCalcs.length) {
+      var currentCalcs = localAdapter.read(KEYS.calculations);
+      var merged = Array.isArray(currentCalcs) ? currentCalcs.slice() : [];
+      var seenIds = {};
+      merged.forEach(function (x) { if (x && x.id) seenIds[x.id] = true; });
+      legacyCalcs.forEach(function (x) {
+        if (!x) return;
+        if (x.id && seenIds[x.id]) return;
+        if (x.id) seenIds[x.id] = true;
+        merged.push(x);
+      });
+      localAdapter.write(KEYS.calculations, merged);
+      localAdapter.remove('undefined');
+    }
+  } catch (e) { /* 迁移失败不能阻塞应用启动 */ }
 
   /* ---------- AI 一等字段白名单 ----------
      这些字段由 AI 产出，但按普通业务字段持久化/排序/导出 */

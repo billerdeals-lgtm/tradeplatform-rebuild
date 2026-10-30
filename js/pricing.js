@@ -26,14 +26,14 @@
     var portFee = +o.portFee || 0;
     var marginPct = +o.marginPct || 0;
     var commPct = +o.commPct || 0;
-    var rate = (o.rate === undefined || o.rate === null || o.rate === '') ? 7.25 : +o.rate;
+    var rate = +o.rate;
     var qty = +o.qty || 1;
 
     var unitCost = cost + localShip + packing + inspect + other;
     var costExFreight = unitCost + customs + portFee;
     var freightCNY = ocean + insurance;
 
-    if (rate <= 0) return { ok: false, error: '汇率必须大于 0', unitCost: unitCost, costExFreight: costExFreight, freightCNY: freightCNY, qty: qty };
+    if (!isFinite(rate) || rate <= 0) return { ok: false, error: '汇率必须大于 0', unitCost: unitCost, costExFreight: costExFreight, freightCNY: freightCNY, qty: qty };
     if (marginPct < 0) return { ok: false, error: '毛利率不能为负数（当前 ' + marginPct + '%）', unitCost: unitCost, costExFreight: costExFreight, freightCNY: freightCNY, qty: qty };
     if (marginPct >= 100) return { ok: false, error: '毛利率必须小于 100%（当前 ' + marginPct + '%）', unitCost: unitCost, costExFreight: costExFreight, freightCNY: freightCNY, qty: qty };
     if (commPct < 0) return { ok: false, error: '佣金率不能为负数（当前 ' + commPct + '%）', unitCost: unitCost, costExFreight: costExFreight, freightCNY: freightCNY, qty: qty };
