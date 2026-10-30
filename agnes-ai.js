@@ -128,6 +128,26 @@
     return Math.max(0, AI_TRIAL_LIMIT - trialUsed());
   }
 
+  /* 额度耗尽的可读原因；空字符串表示还能调用。
+     用于在启动批量任务前预检，避免「AI 已失败却继续抓页面」。 */
+  function quotaError() {
+    var cfg = loadCfg();
+    if (todayCount() >= cfg.dailyLimit) {
+      return '今日 AI 调用已达上限 ' + cfg.dailyLimit + ' 次，明天再来（可在设置中调整）';
+    }
+    if (isPro()) return '';
+    if (aiTrialLeft() <= 0) {
+      return '试用 AI 次数已用完（共 ' + AI_TRIAL_LIMIT + ' 次）。激活后不限次数。';
+    }
+    return '';
+  }
+
+  /* 是否为「额度耗尽」类错误：批量任务遇到后应整体中止，而不是继续跑规则搜索 */
+  function isQuotaError(e) {
+    var m = String((e && e.message) || e || '');
+    return m.indexOf('试用 AI 次数已用完') >= 0 || m.indexOf('今日 AI 调用已达上限') >= 0;
+  }
+
   var DEFAULTS = {
     // Agnes AI 接口地址（OpenAI 兼容格式）
     base: 'https://apihub.agnes-ai.com/v1',
@@ -182,11 +202,11 @@
     if (!cfg.base) throw new Error('请先在设置面板填写接口地址（OpenAI 兼容格式，/v1 结尾）');
     if (!apiKey) throw new Error('请先在设置面板填写 API 密钥');
     if (todayCount() >= cfg.dailyLimit) {
-      throw new Error('今日 AI 调用已达上限 ' + cfg.dailyLimit + ' 次，明天再来（可在设置中调整）');
+      throw new Error(quotaError());
     }
     var pro = isPro();
     if (!pro && !opts.skipTrial && aiTrialLeft() <= 0) {
-      throw new Error('试用 AI 次数已用完（共 ' + AI_TRIAL_LIMIT + ' 次）。激活后不限次数。');
+      throw new Error(quotaError());
     }
     var timeout = opts.timeout || 60000;
 
@@ -515,6 +535,8 @@
     todayCount: todayCount,
     aiTrialLeft: aiTrialLeft,
     aiTrialLimit: AI_TRIAL_LIMIT,
+    quotaError: quotaError,
+    isQuotaError: isQuotaError,
     loadCfg: loadCfg
   };
 })(window);

@@ -140,7 +140,7 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js?v=2"></script><script src="../js/sources.js?v=4"></script><script src="../agnes-ai.js?v=8"></script><script src="../js/license.js?v=3"></script><script>
+<script src="../js/datastore.js?v=2"></script><script src="../js/sources.js?v=5"></script><script src="../agnes-ai.js?v=9"></script><script src="../js/license.js?v=3"></script><script>
 'use strict';
 var S={all:[],results:[],convIds:{},round:0,seq:0,_p:null};
 
@@ -152,6 +152,24 @@ function log(m,ok){var b=$('log');b.style.display='block';var d=document.createE
 function setP(p){$('prog').style.display=p>0?'block':'none';$('progBar').style.width=p+'%'}
 function regionText(){return document.getElementById('k_region').value}
 function hasC(r){return(r.email&&r.email.length>3)||(r.phone&&r.phone.length>5)}
+
+/* ---------- AI 额度 ---------- */
+/* 勾选了 AI 相关选项才需要额度；额度耗尽时整次挖掘不启动，也不扣试用次数。 */
+function aiQuotaNeeded(){
+  return !!(( $('src_ai')&&$('src_ai').checked)||($('optEnrich')&&$('optEnrich').checked));
+}
+function aiQuotaMsg(){
+  if(!aiQuotaNeeded())return '';
+  return (typeof AgnesAI!=='undefined'&&AgnesAI.quotaError)?AgnesAI.quotaError():'';
+}
+function stopForQuota(msg){
+  log('未开始挖掘：'+msg,false);
+  $('st').textContent='⛔ AI 额度已用完';
+  alert(msg+'\n\n本次未扣试用次数。\n如需只用规则引擎搜索，请取消勾选「AI 挖掘」与「AI 评分/补充」后重试；激活后 AI 不限次数。');
+}
+function ensureLive(){
+  if(typeof Sources!=='undefined'&&Sources.isCancelled&&Sources.isCancelled())throw Sources.cancelError();
+}
 
 /* ---------- 来源选择 ---------- */
 function renderSrcList(){
@@ -165,10 +183,12 @@ function selectedSources(){return Sources.META.filter(function(s){return $('src_
 /* ---------- 批处理 ---------- */
 async function inBatches(list,size,fn,label){
   for(var i=0;i<list.length;i+=size){
+    ensureLive();
     var batch=list.slice(i,i+size);
     if(label)$('st').textContent=label+' '+(i+1)+'-'+Math.min(i+size,list.length)+'/'+list.length+'…';
     await Promise.all(batch.map(function(x){return fn(x)}));
   }
+  ensureLive();
 }
 
 /* ---------- 合并去重 ---------- */
@@ -192,12 +212,22 @@ function dedupe(list){
 
 /* ---------- 主流程 ---------- */
 async function doSearch(){
+  var prod=v('k_prod').trim();
+  if(!prod){alert('请填写产品关键词');return}
+  if(!selectedSources().length){alert('请至少选择一个数据来源');return}
+  var qm=aiQuotaMsg();
+  if(qm){stopForQuota(qm);return}
   if(typeof License!=='undefined'&&!(await License.consume('find')))return;
   S.round++;S.seq=0;S.all=[];S.results=[];S.convIds={};$('rB').innerHTML='';$('fbar').style.display='none';await runPipeline(false)
 }
-async function doMore(){S.round++;document.getElementById('btnM').disabled=true;await runPipeline(true);document.getElementById('btnM').disabled=false}
+async function doMore(){
+  var qm=aiQuotaMsg();
+  if(qm){stopForQuota(qm);return}
+  S.round++;document.getElementById('btnM').disabled=true;await runPipeline(true);document.getElementById('btnM').disabled=false
+}
 
 async function runPipeline(append){
+  if(typeof Sources!=='undefined'&&Sources.resetCancel)Sources.resetCancel();
   var prod=v('k_prod').trim();
   if(!prod){alert('请填写产品关键词');return}
   var ids=selectedSources();
@@ -223,15 +253,25 @@ async function runPipeline(append){
       $('st').textContent='📡 抓取 '+nm+'…';
       try{
         var cs=await Sources.run(id,ctx);
+        if(Sources.isCancelled())return;
         cs.forEach(function(c){all.push(c)});
         log(nm+': '+cs.length+' 家',cs.length>0);
         if(id==='ai'&&Sources.lastAiStats){
           var ast=Sources.lastAiStats;
           log('AI 核验：模型建议 '+ast.suggested+' 家 / 官网通过 '+ast.verified+' 家 / 丢弃 '+ast.dropped+' 家；搜索词新增 '+ast.fromSearch+' 家',ast.verified>0||ast.fromSearch>0);
         }
-      }catch(e){log(nm+': 失败 '+e.message,false)}
+      }catch(e){
+        if(typeof AgnesAI!=='undefined'&&AgnesAI.isQuotaError&&AgnesAI.isQuotaError(e)){
+          Sources.cancel(e.message);
+          log(nm+': 已停止（AI 额度用完）',false);
+          return;
+        }
+        if(e&&e.cancelled)return;
+        log(nm+': 失败 '+e.message,false)
+      }
       done++;setP(5+Math.round(done/ids.length*20));
     }));
+    ensureLive();
 
     var merged=dedupe(all).filter(function(c){
       /* 兜底：AI 来源必须带核验标记，防止未核验公司漏进结果 */
@@ -272,8 +312,9 @@ async function runPipeline(append){
         if(!c.phone){if(ct.was.length)c.phone='+'+ct.was[0];else if(ct.phones.length)c.phone=ct.phones[0]}
         if(!c.desc&&info.text)c.desc=info.text.replace(/\s+/g,' ').slice(0,160);
         c._verified=true;
-      }catch(e){c._fetchFail=true}
+      }catch(e){if(e&&e.cancelled)throw e;c._fetchFail=true}
     },'🌐 抓取页面');
+    ensureLive();
     setP(52);
 
     /* 4. 规则复筛（正文强信号） */
@@ -296,7 +337,14 @@ async function runPipeline(append){
         var arr=await Sources.aiScoreBatch(prod,regionText(),toScore);
         arr.forEach(function(a){var i=parseInt(a.i,10)-1;if(i>=0&&i<toScore.length)aiMap[i]=a});
         log('AI 评分完成 '+Object.keys(aiMap).length+' 家',true);
-      }catch(e){log('AI 评分失败：'+e.message,false)}
+      }catch(e){
+        if(typeof AgnesAI!=='undefined'&&AgnesAI.isQuotaError&&AgnesAI.isQuotaError(e)){
+          Sources.cancel(e.message);
+          log('AI 评分已停止：'+e.message,false);
+          ensureLive();
+        }
+        log('AI 评分失败：'+e.message,false)
+      }
     }
     merged.forEach(function(c,i){
       var a=aiMap[i];
@@ -340,8 +388,14 @@ async function runPipeline(append){
     if(S.all.length>5)$('btnM').style.display='inline-flex';
     applyFilter();
   }catch(e){
-    $('st').textContent='❌ '+e.message;
-    log('失败: '+e.message,false);
+    if(e&&e.cancelled){
+      $('st').textContent='⏹ 已停止：'+e.message;
+      log('已停止：'+e.message,false);
+      log('未继续搜索、抓页与合并，本次不扣试用次数',true);
+    }else{
+      $('st').textContent='❌ '+e.message;
+      log('失败: '+e.message,false);
+    }
     if(!append&&S.all.length===0&&typeof License!=='undefined'){try{License.refund('find')}catch(_){}}
   }
   $('btnS').disabled=false;$('btnS').innerHTML='🔍 开始挖掘';
@@ -408,6 +462,8 @@ function leadById(id){for(var i=0;i<S.all.length;i++)if(S.all[i]._id===id)return
 
 async function digOne(id){
   var r=leadById(id);if(!r||!r.website)return;
+  /* 用户主动深挖是独立动作，不应继承上一轮被中止的状态 */
+  if(Sources.resetCancel)Sources.resetCancel();
   $('st').textContent='⛏ 抓取 '+Sources.host(r.website)+'…';
   try{
     var info=await Sources.pageInfo(r.website,15000);

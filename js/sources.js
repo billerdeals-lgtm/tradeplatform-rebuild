@@ -9,6 +9,21 @@
 (function (global) {
   'use strict';
 
+  /* ---------- 0. 取消信号 ---------- */
+  /* 试用 AI 额度耗尽等致命错误会调用 cancel()；之后新的抓页/搜索立即抛 ABORT，
+     避免界面已经显示「AI 失败」却继续跑多源搜索、抓页面和合并。 */
+  var _cancelReason = '';
+  function cancel(reason) { _cancelReason = String(reason || '已取消'); }
+  function resetCancel() { _cancelReason = ''; }
+  function isCancelled() { return !!_cancelReason; }
+  function cancelError() {
+    var e = new Error(_cancelReason || '已取消');
+    e.code = 'ABORT';
+    e.cancelled = true;
+    return e;
+  }
+  function throwIfCancelled() { if (_cancelReason) throw cancelError(); }
+
   /* ---------- 1. 代理层 ---------- */
   /* jina 免费额度有限（约 20 次/分钟），用闸门把并发压到 4，避免被限流成 0 结果 */
   var JINA_MAX = 4, jinaActive = 0, jinaQueue = [];
@@ -28,6 +43,7 @@
   }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   async function jinaOnce(url, timeout) {
+    throwIfCancelled();
     var r = await fetch('https://r.jina.ai/' + url, { signal: AbortSignal.timeout(timeout || 25000) });
     if (!r.ok) {
       var err = new Error('jina HTTP ' + r.status);
@@ -39,11 +55,14 @@
     return { text: t, html: false };
   }
   async function fetchJina(url, timeout) {
+    throwIfCancelled();
     await jinaSlot();
     try {
+      throwIfCancelled();
       try {
         return await jinaOnce(url, timeout);
       } catch (e) {
+        if (e && e.cancelled) throw e;
         /* 429/403/5xx 多为瞬时限流，退避后重试一次 */
         var retryable = !e.status || e.status === 429 || e.status === 403 || e.status >= 500;
         if (!retryable) throw e;
@@ -55,6 +74,7 @@
     }
   }
   async function fetchAllOrigins(url, timeout) {
+    throwIfCancelled();
     var r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
       { signal: AbortSignal.timeout(timeout || 25000) });
     if (!r.ok) throw new Error('allorigins HTTP ' + r.status);
@@ -64,9 +84,14 @@
   }
   /** 依次尝试多个代理，返回 {text, html} */
   async function fetchRaw(url, timeout) {
+    throwIfCancelled();
     var errs = [];
-    try { return await fetchJina(url, timeout); } catch (e) { errs.push('jina:' + e.message); }
-    try { return await fetchAllOrigins(url, timeout); } catch (e) { errs.push('allorigins:' + e.message); }
+    try { return await fetchJina(url, timeout); }
+    catch (e) { if (e && e.cancelled) throw e; errs.push('jina:' + e.message); }
+    throwIfCancelled();
+    try { return await fetchAllOrigins(url, timeout); }
+    catch (e) { if (e && e.cancelled) throw e; errs.push('allorigins:' + e.message); }
+    throwIfCancelled();
     throw new Error(errs.join(' | '));
   }
 
@@ -462,6 +487,7 @@
 
   /* ---------- 5.8 抓页 / 二次补全 ---------- */
   async function pageInfo(url, timeout) {
+    throwIfCancelled();
     var body = await fetchRaw(url, timeout || 15000);
     return {
       text: body.text || '',
@@ -482,6 +508,7 @@
 
   /** 按公司名二次搜索补全联系方式 */
   async function enrichContacts(name, domain) {
+    throwIfCancelled();
     if (!name) return { emails: [], phones: [], was: [], country: '' };
     var queries = ['"' + name + '" email contact'];
     if (domain) queries.push('site:' + domain + ' contact email');
@@ -499,6 +526,7 @@
 
   /* ---------- 5.9 AI 批量买家意向评分 ---------- */
   async function aiScoreBatch(prod, market, leads) {
+    throwIfCancelled();
     if (!leads || !leads.length) return [];
     if (typeof AgnesAI === 'undefined') throw new Error('AI 模块未加载');
     var rows = leads.map(function (l, i) {
@@ -539,6 +567,7 @@
   /** 并发执行，返回“每组一个数组”（保持分组，便于逐个解析） */
   function settleGroups(list) {
     return Promise.allSettled(list).then(function (rs) {
+      if (isCancelled()) return list.map(function () { return []; });
       return rs.map(function (r) {
         return (r.status === 'fulfilled' && Array.isArray(r.value)) ? r.value : [];
       });
@@ -546,6 +575,7 @@
   }
 
   async function srcDdg(ctx) {
+    throwIfCancelled();
     var qs = (ctx.queries || []).slice(0, 4);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
     var groups = await settleGroups(qs.map(function (o) { return searchLinks(o.q, false); }));
@@ -562,6 +592,7 @@
   }
 
   async function srcLinkedin(ctx) {
+    throwIfCancelled();
     var qs = (ctx.queries || []).slice(0, 2);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '"' }];
     var groups = await settleGroups(qs.map(function (o) {
@@ -583,6 +614,7 @@
   }
 
   async function srcBing(ctx) {
+    throwIfCancelled();
     var qs = (ctx.queries || []).slice(0, 2);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
     var groups = await settleGroups(qs.map(function (o) {
@@ -602,6 +634,7 @@
   }
 
   async function srcEuropages(ctx) {
+    throwIfCancelled();
     /* 官方分页：/companies/pg-2/<product>.html —— 每页约 20 家，取前 3 页 */
     var enc = encodeURIComponent(ctx.product);
     var pages = [
@@ -697,12 +730,14 @@
   }
 
   async function srcGo4World(ctx) {
+    throwIfCancelled();
     var url = 'https://www.go4worldbusiness.com/find?searchText=' + encodeURIComponent(ctx.product) + '&type=buyers';
     var body = await fetchRaw(url, 20000);
     return parseGo4World(body.text, ctx.product);
   }
 
   async function srcZauba(ctx) {
+    throwIfCancelled();
     var slug = String(ctx.product).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
     var listUrl = 'https://www.zauba.com/import-' + slug + '-hs-code.html';
     var body = await fetchRaw(listUrl, 20000);
@@ -712,12 +747,14 @@
       try {
         var b2 = await fetchRaw(m[1], 20000);
         return parseZauba(b2.text, ctx.product);
-      } catch (e) { /* 用列表页兜底 */ }
+      } catch (e) { if (e && e.cancelled) throw e; /* 用列表页兜底 */ }
     }
+    throwIfCancelled();
     return parseZauba(txt, ctx.product);
   }
 
   async function srcDirectory(ctx, cfg) {
+    throwIfCancelled();
     var body = await fetchRaw(cfg.url(ctx), 25000);
     var base = cfg.base;
     var baseHost = domainOf(base);
@@ -776,8 +813,10 @@
    * - 两条路径产出的候选都标记 _aiVerified，未标记的由 pipeline 兜底丢弃。
    */
   async function srcAi(ctx) {
+    throwIfCancelled();
     if (typeof AgnesAI === 'undefined') throw new Error('AI 模块未加载');
     var res = await AgnesAI.findBuyers(ctx.product, ctx.region || '全球', ctx.type, ['web', 'linkedin', 'facebook']);
+    throwIfCancelled();
     var cs = (res && res.companies) || [];
     var aq = (res && res.queries) || [];
     var stats = { suggested: cs.length, verified: 0, dropped: 0, fromSearch: 0, queries: 0 };
@@ -864,6 +903,7 @@
   };
 
   async function run(id, ctx) {
+    throwIfCancelled();
     if (id === 'ddg') return srcDdg(ctx);
     if (id === 'linkedin') return srcLinkedin(ctx);
     if (id === 'bing') return srcBing(ctx);
@@ -902,6 +942,10 @@
     enrichContacts: enrichContacts,
     aiScoreBatch: aiScoreBatch,
     parseGo4World: parseGo4World,
-    parseZauba: parseZauba
+    parseZauba: parseZauba,
+    cancel: cancel,
+    resetCancel: resetCancel,
+    isCancelled: isCancelled,
+    cancelError: cancelError
   };
 })(window);
