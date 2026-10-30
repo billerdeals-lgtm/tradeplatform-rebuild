@@ -127,6 +127,11 @@
     if (!String(q.leadName || '').trim() && !String(q.leadId || '').trim()) {
       warn('q_lead', '未关联客户/线索（建议补全）');
     }
+    /* AI 估价留痕：不阻断，但在「输出校验」里明确提示，
+       避免未人工核价的报价直接打印/导客户版而无人察觉。 */
+    if (q.aiEstimated) {
+      warn('itemsBody', '单价为 AI 估算，尚未人工核价（请核对后再发送客户）');
+    }
     return issues;
   }
 

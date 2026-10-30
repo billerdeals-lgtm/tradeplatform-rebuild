@@ -6,6 +6,7 @@
 <title>FT Compass · 外贸客户开发工作台</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
 <link rel="stylesheet" href="assets/tokens.css?v=3">
+<script src="assets/standalone.js?v=2"></script>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); display:flex; height:100vh; overflow:hidden; }
@@ -70,6 +71,27 @@
   .brief { margin-bottom:var(--sp-6); }
   .brief .ft-ai-output { font-size:14px; line-height:1.8; }
   .quick { display:flex; gap:var(--sp-3); flex-wrap:wrap; }
+  /* ---- 今日工作台：有数据时填满下半屏 ---- */
+  .dash { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--sp-3); margin-bottom:var(--sp-6); }
+  .dash[hidden] { display:none; }
+  .dash-card { padding:var(--sp-4); min-width:0; }
+  .dash-h { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
+  .dash-h b { font-size:13.5px; }
+  .dash-h .dash-more { font:inherit; font-size:11.5px; color:var(--brand-700); background:none; border:0; padding:0; cursor:pointer; }
+  .dash-h .dash-more:hover { text-decoration:underline; }
+  .dash-row { display:flex; align-items:center; gap:8px; width:100%; text-align:left; font:inherit; color:inherit;
+    background:none; border:0; border-top:1px dashed var(--border); padding:9px 0; cursor:pointer; }
+  .dash-row:first-child { border-top:0; }
+  .dash-row:hover .dr-t { color:var(--brand-700); }
+  .dash-row .dr-main { flex:1; min-width:0; }
+  .dash-row .dr-t { display:block; font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dash-row .dr-s { display:block; font-size:11.5px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
+  .dr-badge { flex:0 0 auto; font-size:10.5px; line-height:1.5; padding:1px 8px; border-radius:999px; white-space:nowrap; }
+  .dr-badge.bad { background:#fee2e2; color:#991b1b; }
+  .dr-badge.warn { background:#fef3c7; color:#92400e; }
+  .dr-badge.ok { background:#d1fae5; color:#065f46; }
+  .dr-badge.info { background:#e0f2fe; color:#075985; }
+  .dash-empty { font-size:12.5px; color:var(--text-3); padding:8px 0; line-height:1.6; }
   .dialog-wrap { padding:0; }
   /* ---- 移动端抽屉 ---- */
   .mbar { display:none; }
@@ -96,6 +118,8 @@
     #home h2 { font-size:19px; }
     #home .sub { font-size:12px; margin-bottom:14px; }
     #home .grid { grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+    #home .dash { grid-template-columns:1fr; gap:8px; margin-bottom:14px; }
+    .dash-card { padding:var(--sp-3); }
     .quick { gap:8px; }
     .quick button { flex:1 1 46%; }
     .stat b { font-size:22px; }
@@ -169,6 +193,30 @@
       <button type="button" class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok-text)">0</b><span>报价中</span></button>
       <button type="button" class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn-text)">0</b><span>待办</span></button>
     </div>
+    <!-- 今日工作台：有业务数据后显示，避免首页下半屏空白 -->
+    <div class="dash" id="dash" hidden>
+      <section class="ft-card dash-card" aria-labelledby="dashFollowH">
+        <div class="dash-h">
+          <b id="dashFollowH">📞 今天该跟进</b>
+          <button type="button" class="dash-more" onclick="go('modules/leads.html')">查看全部 →</button>
+        </div>
+        <div id="dashFollow"></div>
+      </section>
+      <section class="ft-card dash-card" aria-labelledby="dashTodoH">
+        <div class="dash-h">
+          <b id="dashTodoH">✅ 临期待办</b>
+          <button type="button" class="dash-more" onclick="go('modules/todos.html')">查看全部 →</button>
+        </div>
+        <div id="dashTodo"></div>
+      </section>
+      <section class="ft-card dash-card" aria-labelledby="dashQuoteH">
+        <div class="dash-h">
+          <b id="dashQuoteH">💰 最近报价</b>
+          <button type="button" class="dash-more" onclick="go('modules/quotes.html')">查看全部 →</button>
+        </div>
+        <div id="dashQuote"></div>
+      </section>
+    </div>
     <div class="ft-card homeempty" id="homeEmpty" style="display:none">
       <b>还没有客户数据</b>
       <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin:6px 0 12px">先去找客户，或手工录入第一条线索。数据只保存你自己的浏览器里。</div>
@@ -212,7 +260,7 @@
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261029c';
+var MODULE_V = '20261030a';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -253,6 +301,83 @@ function $(id){ return document.getElementById(id); }
 document.querySelectorAll('.navitem').forEach(function(n){
   n.addEventListener('click', function(){ go(n.dataset.view); });
 });
+/* ---------- 今日工作台 ----------
+   有业务数据后，首页下半屏给出三个可执行列表：
+   该跟进的线索 / 临期待办 / 最近报价。没有数据时整块隐藏，保留空态引导。 */
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];
+  });
+}
+/* 相对今天的天数：正数=过去几天，负数=还有几天（按本地日历，不走 UTC） */
+function dayDiff(dateStr){
+  var p = String(dateStr || '').slice(0,10).split('-');
+  if (p.length < 3) return null;
+  var d = new Date(+p[0], +p[1]-1, +p[2]);
+  if (isNaN(d.getTime())) return null;
+  var now = new Date();
+  var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((t0 - d) / 86400000);
+}
+function dashRow(title, sub, badge, cls){
+  return '<button type="button" class="dash-row" onclick="go(\'modules/leads.html\')">'
+    + '<span class="dr-main"><span class="dr-t">' + escHtml(title) + '</span>'
+    + '<span class="dr-s">' + escHtml(sub || '—') + '</span></span>'
+    + '<span class="dr-badge ' + cls + '">' + escHtml(badge) + '</span></button>';
+}
+function renderDash(leads, todos, quotes){
+  var box = $('dash');
+  if (!box) return;
+  leads = leads || []; todos = todos || []; quotes = quotes || [];
+  var hasAny = leads.length || todos.length || quotes.length;
+  box.hidden = !hasAny;
+  if (!hasAny) return;
+
+  /* 1) 今天该跟进：超过 3 天没联系、且未成交的线索，最久没联系的排前面 */
+  var follow = leads.filter(function(l){
+    return l.stage !== '成交' && l.last && dayDiff(l.last) > 3;
+  }).sort(function(a,b){ return dayDiff(b.last) - dayDiff(a.last); });
+  $('dashFollow').innerHTML = follow.slice(0,4).map(function(l){
+    var d = dayDiff(l.last);
+    var sub = [l.country, l.product || l.note].filter(Boolean).join(' · ');
+    return dashRow(l.name || '未命名线索', sub, d + ' 天未联系', d >= 14 ? 'bad' : 'warn');
+  }).join('') || '<div class="dash-empty">没有超过 3 天未联系的线索。</div>';
+
+  /* 2) 临期待办：未完成、且 3 天内到期（含已逾期） */
+  var dueTodos = todos.filter(function(t){ return !t.done && t.due; })
+    .map(function(t){ var d = dayDiff(t.due); return d === null ? null : { t: t, left: -d }; })
+    .filter(function(x){ return x && x.left <= 3; })
+    .sort(function(a,b){ return a.left - b.left; });
+  $('dashTodo').innerHTML = dueTodos.slice(0,4).map(function(x){
+    var t = x.t;
+    var badge, cls;
+    if (x.left < 0) { badge = '逾期 ' + (-x.left) + ' 天'; cls = 'bad'; }
+    else if (x.left === 0) { badge = '今天到期'; cls = 'warn'; }
+    else { badge = x.left + ' 天后'; cls = 'info'; }
+    var sub = [t.due, t.leadName].filter(Boolean).join(' · ');
+    return '<button type="button" class="dash-row" onclick="go(\'modules/todos.html\')">'
+      + '<span class="dr-main"><span class="dr-t">' + escHtml(t.title || '未命名待办') + '</span>'
+      + '<span class="dr-s">' + escHtml(sub) + '</span></span>'
+      + '<span class="dr-badge ' + cls + '">' + escHtml(badge) + '</span></button>';
+  }).join('') || '<div class="dash-empty">3 天内没有到期待办。</div>';
+
+  /* 3) 最近报价：按日期倒序，最多 4 张 */
+  var STATUS = { draft:'草稿', sent:'已发送', accepted:'已接受', rejected:'已拒绝', expired:'已过期' };
+  var STATUS_CLS = { draft:'info', sent:'warn', accepted:'ok', rejected:'bad', expired:'bad' };
+  var qs = quotes.slice().sort(function(a,b){
+    return String(b.date || b.updatedAt || b.createdAt || '').localeCompare(String(a.date || a.updatedAt || a.createdAt || ''));
+  });
+  $('dashQuote').innerHTML = qs.slice(0,4).map(function(q){
+    var money = (q.currency || 'USD') + ' ' + Number(q.total || 0).toLocaleString();
+    var sub = [q.leadName, money].filter(Boolean).join(' · ');
+    var st = q.status || 'draft';
+    return '<button type="button" class="dash-row" onclick="go(\'modules/quotes.html\')">'
+      + '<span class="dr-main"><span class="dr-t">' + escHtml(q.no || '未编号报价') + '</span>'
+      + '<span class="dr-s">' + escHtml(sub) + '</span></span>'
+      + '<span class="dr-badge ' + (STATUS_CLS[st] || 'info') + '">' + escHtml(STATUS[st] || st) + '</span></button>';
+  }).join('') || '<div class="dash-empty">还没有报价，去新建一张？</div>';
+}
+
 function refresh(){
   var leads = DataStore.list('leads'), todos = DataStore.list('todos'), quotes = DataStore.list('quotes');
   var today = new Date(); var ts = today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
@@ -261,10 +386,11 @@ function refresh(){
     if (!t.done) open++;
   });
   $('hLeads').textContent=leads.length;
-  var he=$('homeEmpty'); if(he) he.style.display = leads.length ? 'none' : 'block';
+  var he=$('homeEmpty'); if(he) he.style.display = (leads.length || todos.length || quotes.length) ? 'none' : 'block';
   $('hScored').textContent=leads.filter(function(l){return l.score!=null;}).length;
   $('hQuotes').textContent=quotes.filter(function(q){return q.status==='sent'||q.status==='draft';}).length;
   $('hTodos').textContent=open;
+  renderDash(leads, todos, quotes);
   var aiLeft=null; try{ aiLeft=AgnesAI.aiTrialLeft(); }catch(e){}
   var aiUsed=0; try{ aiUsed=AgnesAI.todayCount(); }catch(e){}
   var aiChip=$('aiCnt');
@@ -332,9 +458,13 @@ function backupAgeDays(){
   return Math.floor((Date.now() - t) / 86400000);
 }
 function backupHasData(){
-  return ['leads','todos','quotes','docs','products','comps'].some(function(name){
+  /* 覆盖全部业务数据类：只维护复盘 / 触达 / 客户资料 / 搜索历史的用户也要收到提醒。
+     profile 也是数组（单条记录），统一按数组长度判断。 */
+  return ['leads','todos','outreach','quotes','docs','reviews','comps','profile','products','searches'].some(function(name){
     var arr = readRaw(DataStore.KEYS[name]);
-    return Array.isArray(arr) && arr.length > 0;
+    if (Array.isArray(arr)) return arr.length > 0;
+    if (arr && typeof arr === 'object') return Object.keys(arr).length > 0;
+    return arr != null && arr !== '';
   });
 }
 function setBackupBar(show){
@@ -391,7 +521,7 @@ function backupAll(){
   };
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type:'application/json'}));
-  a.download = 'ftcompass_backup_' + new Date().toISOString().slice(0,10) + '.json';
+  a.download = 'ftcompass_backup_' + FT.today() + '.json';
   a.click();
   var parts = Object.keys(counts).map(function(n){ return (COLL_LABEL[n]||n)+' '+counts[n]; });
   toast('完整备份已下载（v2）：'+parts.join('、'));

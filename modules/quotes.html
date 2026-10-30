@@ -53,6 +53,8 @@
   .items-table th { background:var(--bg-inset); font-size:12px; color:var(--text-2); }
   .items-table input { width:100%; box-sizing:border-box; padding:5px 6px; border:1px solid var(--border-strong); border-radius:4px; font-size:13px; }
   .items-table .num { text-align:right; }
+  /* 数量列：4 位数（1000）不能被截断，输入框至少 64px */
+  .items-table .it-qty { min-width:64px; text-align:right; }
   .items-table .total-row td { font-weight:600; background:var(--bg-inset); }
   .btn-sm { font-size:12px; padding:4px 10px; border-radius:var(--r-sm); cursor:pointer; border:0; }
   .btn-primary { background:var(--brand-700); color:#fff; }
@@ -108,7 +110,7 @@
   .status-bar { display:flex; gap:var(--sp-3); align-items:center; margin-top:var(--sp-3); flex-wrap:wrap; }
   .status-bar select { padding:6px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:13px; }
 </style>
-<script src="../assets/standalone.js"></script>
+<script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
 <link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
@@ -187,10 +189,10 @@
         </div>
         <table class="items-table" id="itemsTable" aria-label="报价明细">
           <thead><tr>
-            <th scope="col" style="width:26%">产品名称</th>
+            <th scope="col" style="width:24%">产品名称</th>
             <th scope="col" style="width:11%">SKU</th>
-            <th scope="col" style="width:17%">规格</th>
-            <th scope="col" style="width:9%">数量</th>
+            <th scope="col" style="width:16%">规格</th>
+            <th scope="col" style="width:12%">数量</th>
             <th scope="col" style="width:7%">单位</th>
             <th scope="col" style="width:13%">单价</th>
             <th scope="col" style="width:12%">小计</th>
@@ -253,7 +255,7 @@
 <script src="../js/gate.js?v=1"></script>
 <script src="../js/i18n.js?v=4"></script>
 <script src="../js/brand.js?v=3"></script>
-<script src="../js/excel.js?v=5"></script>
+<script src="../js/excel.js?v=6"></script>
 <script src="../js/paper.js?v=6"></script>
 <script>
 'use strict';
@@ -268,7 +270,7 @@ function v(id) { return document.getElementById(id).value; }
 function $(id) { return document.getElementById(id); }
 function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function uid() { return 'qo_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5); }
-function today() { return new Date().toISOString().slice(0,10); }
+function today() { return FT.today(); }
 function genNo() {
   var d = today().replace(/-/g,'');
   var list = S.quotes.filter(function(q){ return q.no && q.no.startsWith('QT-' + d); });
@@ -621,11 +623,10 @@ function onLeadPick() {
     var portMap = { 'UAE':'Jebel Ali, Dubai', 'Saudi Arabia':'Jeddah', 'Philippines':'Manila', 'Indonesia':'Tanjung Priok, Jakarta', 'Thailand':'Laem Chabang', 'Malaysia':'Port Klang', 'Nigeria':'Lagos', 'South Africa':'Cape Town', 'Egypt':'Alexandria' };
     $('q_portTo').value = portMap[lead.country] || '';
   }
-  if (!v('q_product') && lead.product) {
-    // 自动填入产品名到第一行
-    var firstRow = $('itemsBody').querySelector('tr');
-    if (firstRow) firstRow.querySelector('.it-name').value = lead.product;
-  }
+  // 自动填入产品名到第一行（DOM 里没有 #q_product，必须查明细行的 .it-name）
+  var firstRow = $('itemsBody').querySelector('tr');
+  var nameEl = firstRow && firstRow.querySelector('.it-name');
+  if (nameEl && !nameEl.value && lead.product) nameEl.value = lead.product;
 }
 
 /* ========== 保存 ========== */

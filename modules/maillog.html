@@ -38,7 +38,7 @@
   dialog input, dialog textarea, dialog select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
   dialog textarea { min-height:80px; resize:vertical; }
 </style>
-<script src="../assets/standalone.js"></script>
+<script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
 <link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
@@ -145,7 +145,7 @@ function exportCsv() {
   var csv = '\ufeff' + rows.map(function(r){ return r.map(function(c){ return '"' + String(c).replace(/"/g,'""') + '"'; }).join(','); }).join('\n');
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
-  a.download = '触达记录_' + new Date().toISOString().slice(0,10) + '.csv'; a.click();
+  a.download = '触达记录_' + FT.today() + '.csv'; a.click();
 }
 /* 补记录弹窗的客户下拉：按 AI 评分排 */
 (function() {

@@ -106,7 +106,7 @@
   .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
   .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
 </style>
-<script src="../assets/standalone.js"></script>
+<script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
 <link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
@@ -207,7 +207,7 @@
 <script src="../js/docs_i18n.js?v=1"></script>
 <script src="../js/docs_i18n_more.js?v=1"></script>
 <script src="../js/brand.js?v=3"></script>
-<script src="../js/excel.js?v=4"></script>
+<script src="../js/excel.js?v=6"></script>
 <script src="../js/paper.js?v=6"></script>
 <script>
 'use strict';
@@ -263,7 +263,7 @@ function renderChain(){
   $('chainBar').innerHTML = html;
 }
 
-function todayStr(){ var d=new Date(); return d.toISOString().slice(0,10); }
+function todayStr(){ return FT.today(); }
 
 function genNo(docId){
   var pfx = DOC_NO_PREFIX[docId] || 'DOC';
@@ -411,23 +411,13 @@ function renderPaper(){
   }
   // 签章区：电子签名 + 公司公章 叠在 Seller 签名线上
   var stamp = Brand.signHTML();
-  // 链式派生血缘
-  var lineage = '';
-  if (pub.derivedFrom && pub.derivedFrom.fromTitle){
-    var df = pub.derivedFrom;
-    lineage = '<div class="derived-line">⛓ Derived from '
-      + esc(String(df.fromTitle).split(' / ')[0])
-      + (df.fromNo ? ' No. ' + esc(df.fromNo) : '')
-      + (df.at ? ' · ' + esc(String(df.at).slice(0,10)) : '')
-      + '</div>';
-  }
+  // 派生血缘（pub.derivedFrom）只做内部追溯，不印在客户纸面 / 打印稿上
   var title = I18N.docTitle(d);
   var titleParts = String(title).split(' / ');
   $('paper').innerHTML =
     brandHdr
     + '<h2>'+esc(titleParts[1]||title)+'</h2>'
     + (titleParts[1] ? '<div style="text-align:center;font-size:13px;color:var(--text-2);margin-bottom:10px">'+esc(titleParts[0])+'</div>' : '')
-    + lineage
     + '<div class="no">'+esc(I18N.t('f.no'))+' '+fill('no')+'<br>'+esc(I18N.t('f.date'))+': '+fill('date')+'</div>'
     + '<div class="party"><div><b>'+esc(I18N.t('p.seller'))+'</b><br>'+sellerBlock+'</div>'
     + '<div style="text-align:right"><b>'+esc(I18N.t('p.buyer'))+'</b><br>'+fill('buyer')+'<br>'+fill('buyerAddr')+'</div></div>'

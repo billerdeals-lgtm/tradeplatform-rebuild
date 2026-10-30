@@ -61,7 +61,7 @@
   .hist-item .hi-margin.bad { background:#fee2e2; color:#991b1b; }
   @media(max-width:700px) { .grid2 { grid-template-columns:1fr; } }
 </style>
-<script src="../assets/standalone.js"></script>
+<script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
 <link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
@@ -72,7 +72,7 @@
 </header>
 <main>
   <div class="hint">
-    💡 报价前先算清楚：输入采购成本、运费、目标利润率，自动算出 FOB/CIF 报价和预估利润。支持多币种切换，历史计算可追溯。
+    💡 报价前先算清楚：输入采购成本、FOB 成本与毛利（占售价），自动算出 FOB / CIF 报价和预估利润。FOB 不含海运费与保险费，CIF 只加一次；佣金已计入 FOB，不会重复加价。
   </div>
 
   <div class="grid2">
@@ -111,8 +111,11 @@
       <div class="section">
         <h3>💰 定价策略</h3>
         <div class="frow">
-          <div class="field"><label for="c_margin">目标利润率 (%)</label><input id="c_margin" type="number" step="1" value="30" oninput="markCalc()"></div>
-          <div class="field"><label for="c_comm">佣金率 (%)</label><input id="c_comm" type="number" step="0.1" value="0" oninput="markCalc()"></div>
+          <div class="field"><label for="c_margin">毛利率（占售价 %）</label><input id="c_margin" type="number" step="1" value="30" oninput="markCalc()"></div>
+          <div class="field"><label for="c_comm">佣金率（占售价 %）</label><input id="c_comm" type="number" step="0.1" value="0" oninput="markCalc()"></div>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-3);line-height:1.6;margin:-4px 0 var(--sp-3)">
+          按售价口径：毛利率 30% = 成本加成 42.9%。佣金计入 FOB，不再二次加价；FOB 不含海运费/保险费。
         </div>
         <div class="frow">
           <div class="field"><label for="c_sellCur">报价币种</label>
@@ -145,10 +148,10 @@
       <div class="result-box" id="resultBox" aria-live="polite">
         <h3>📊 计算结果</h3>
         <div class="result-row"><span class="label">单位成本（人民币）</span><span class="value" id="r_costCNY">¥0.00</span></div>
-        <div class="result-row"><span class="label">单位总成本（含运费）</span><span class="value" id="r_totalCost">¥0.00</span></div>
+        <div class="result-row"><span class="label">出口成本（FOB 基准，不含运保）</span><span class="value" id="r_totalCost">¥0.00</span></div>
         <div class="result-row"><span class="label">FOB 报价（外币）</span><span class="value" id="r_fob">$0.00</span></div>
         <div class="result-row"><span class="label">CIF 报价（外币）</span><span class="value" id="r_cif">$0.00</span></div>
-        <div class="result-row"><span class="label">含佣报价（外币）</span><span class="value" id="r_commPrice">$0.00</span></div>
+        <div class="result-row"><span class="label">佣金（每件，外币）</span><span class="value" id="r_commPrice">—</span></div>
         <div class="result-row total"><span class="label">预估单件利润</span><span class="value" id="r_profit">$0.00</span></div>
         <div class="result-row"><span class="label">预估总利润</span><span class="value" id="r_totalProfit" style="font-size:16px">$0.00</span></div>
         <div class="result-row"><span class="label">实际利润率</span><span class="value" id="r_margin">0%</span></div>
@@ -184,6 +187,7 @@
 </main>
 
 <script src="../js/datastore.js"></script>
+<script src="../js/pricing.js?v=1"></script>
 <script src="../agnes-ai.js?v=8"></script>
 <script>
 'use strict';
@@ -197,6 +201,7 @@ var SYM = { USD:'$', EUR:'€', GBP:'£', AED:'AED', SAR:'SAR', CNY:'¥' };
 
 /* calcRan：用户改动过任一输入后才显示预警，避免空表单首屏就报「利润率极低」 */
 var calcRan = false;
+var lastCalc = null;
 function markCalc() { calcRan = true; calc(); }
 
 function calc() {
@@ -224,48 +229,60 @@ function calc() {
   var commPct = n('c_comm');
   var sellCur = v('c_sellCur');
   var rate = n('c_rate');
-  if (rate <= 0) rate = 7.25;
   var qty = n('c_qty') || 1;
   var target = n('c_target');
   var sym = SYM[sellCur] || '$';
 
-  // 成本
-  var unitCost = costCNY + localShip + packing + inspect + other;
-  var totalCost = unitCost + ocean + insurance + customs + portFee;
+  // 定价公式集中在 js/pricing.js（单一真源，带回归测试）
+  var r = FT.priceQuote({
+    cost: costCNY, localShip: localShip, packing: packing, inspect: inspect, other: other,
+    ocean: ocean, insurance: insurance, customs: customs, portFee: portFee,
+    marginPct: marginPct, commPct: commPct, rate: rate, qty: qty
+  });
 
-  // FOB = (总成本 / (1 - 佣金率)) × (1 + 利润率) / 汇率
-  var fobCNY = totalCost / (1 - commPct / 100) * (1 + marginPct / 100);
-  var fob = fobCNY / rate;
+  if (!r.ok) {
+    ['r_costCNY','r_totalCost','r_fob','r_cif','r_commPrice','r_profit','r_totalProfit','r_margin'].forEach(function (id) {
+      var el = $(id); if (el) el.textContent = '—';
+    });
+    $('warnArea').innerHTML = '<div class="warn-box"><div class="title">⚠️ 输入有误</div><div class="msg">' + r.error + '</div></div>';
+    $('breakdown').innerHTML = '';
+    lastCalc = null;
+    convert();
+    return;
+  }
 
-  // CIF = FOB + 海运费 + 保险费（折算到外币）
-  var cif = fob + (ocean + insurance) / rate;
+  var unitCost = r.unitCost;
+  var costExFreight = r.costExFreight;
+  var freightCNY = r.freightCNY;
+  var fob = r.fob;
+  var cif = r.cif;
+  var commission = r.commission;
+  var netCNY = r.netCNY;
+  var profit = r.profit;
+  var actualMargin = r.actualMargin;
+  var totalProfit = r.totalProfit;
+  var markup = r.markup;
 
-  // 含佣价
-  var commPrice = commPct > 0 ? fob / (1 - commPct / 100) : fob;
-
-  // 利润
-  var profitCNY = fobCNY - totalCost;
-  var profit = profitCNY / rate;
-  var actualMargin = fob > 0 ? (profit / fob * 100) : 0;
-
-  // 总利润
-  var totalProfit = profit * qty;
+  lastCalc = {
+    unitCost: unitCost, costExFreight: costExFreight, ocean: ocean, insurance: insurance,
+    marginPct: marginPct, commPct: commPct, qty: qty, sellCur: sellCur, rate: rate
+  };
 
   // 显示
   $('r_costCNY').textContent = '¥' + unitCost.toFixed(2);
-  $('r_totalCost').textContent = '¥' + totalCost.toFixed(2);
+  $('r_totalCost').textContent = '¥' + costExFreight.toFixed(2);
   $('r_fob').textContent = sym + fob.toFixed(2);
   $('r_cif').textContent = sym + cif.toFixed(2);
-  $('r_commPrice').textContent = sym + commPrice.toFixed(2);
+  $('r_commPrice').textContent = commPct > 0 ? sym + commission.toFixed(2) : '—';
   $('r_profit').textContent = sym + profit.toFixed(2);
   $('r_totalProfit').textContent = sym + totalProfit.toFixed(2);
   $('r_margin').textContent = actualMargin.toFixed(1) + '%';
 
   // 预警
   var warn = '';
-  if (actualMargin < 5) warn += '<div class="warn-box"><div class="title">⚠️ 利润率极低</div><div class="msg">当前利润率仅 ' + actualMargin.toFixed(1) + '%，远低于外贸常规 15-30%。建议提高报价或降低采购成本。</div></div>';
-  else if (actualMargin < 15) warn += '<div class="warn-box"><div class="title">⚠️ 利润偏低</div><div class="msg">利润率 ' + actualMargin.toFixed(1) + '%，属于偏低水平。考虑是否有优化空间（采购议价/物流降本）。</div></div>';
-  else if (actualMargin >= 30) warn += '<div class="good-box"><div class="title">✅ 利润率优秀</div><div class="msg">利润率 ' + actualMargin.toFixed(1) + '%，非常健康。注意确认该价格在目标市场是否有竞争力。</div></div>';
+  if (actualMargin < 5) warn += '<div class="warn-box"><div class="title">⚠️ 利润率极低</div><div class="msg">当前毛利率仅 ' + actualMargin.toFixed(1) + '%，远低于外贸常规 15-30%。建议提高报价或降低采购成本。</div></div>';
+  else if (actualMargin < 15) warn += '<div class="warn-box"><div class="title">⚠️ 利润偏低</div><div class="msg">毛利率 ' + actualMargin.toFixed(1) + '%，属于偏低水平。考虑是否有优化空间（采购议价/物流降本）。</div></div>';
+  else if (actualMargin >= 30) warn += '<div class="good-box"><div class="title">✅ 利润率优秀</div><div class="msg">毛利率 ' + actualMargin.toFixed(1) + '%，非常健康。注意确认该价格在目标市场是否有竞争力。</div></div>';
 
   if (target > 0) {
     var diff = fob - target;
@@ -274,8 +291,7 @@ function calc() {
   }
   $('warnArea').innerHTML = warn;
 
-  // 成本拆解
-  var rate2 = rate;
+  // 成本拆解（把公式原样印出来，方便核对口径）
   $('breakdown').innerHTML = '<b>成本构成（人民币）：</b><br>'
     + '采购成本：¥' + costCNY.toFixed(2) + '<br>'
     + '国内运费：¥' + localShip.toFixed(2) + '<br>'
@@ -284,14 +300,18 @@ function calc() {
     + '其他：¥' + other.toFixed(2) + '<br>'
     + '——<br>'
     + '产品成本小计：¥' + unitCost.toFixed(2) + '<br>'
-    + '海运费：¥' + ocean.toFixed(2) + (ocean > 0 ? ' (' + sym + (ocean / rate2).toFixed(2) + ')' : '') + '<br>'
-    + '保险费：¥' + insurance.toFixed(2) + '<br>'
     + '报关费：¥' + customs.toFixed(2) + '<br>'
     + '港杂费：¥' + portFee.toFixed(2) + '<br>'
+    + '<b>出口成本（FOB 基准，不含运保）：¥' + costExFreight.toFixed(2) + '</b><br>'
+    + '海运费：¥' + ocean.toFixed(2) + (ocean > 0 ? ' (' + sym + (ocean / rate).toFixed(2) + ')' : '') + ' 只加到 CIF<br>'
+    + '保险费：¥' + insurance.toFixed(2) + ' 只加到 CIF<br>'
+    + 'CIF 加价（海运 + 保险）：' + sym + (freightCNY / rate).toFixed(2) + '<br>'
     + '——<br>'
-    + '<b>总成本：¥' + totalCost.toFixed(2) + '</b><br>'
-    + '÷ (1 - 佣金 ' + commPct + '%) × (1 + 利润 ' + marginPct + '%) ÷ 汇率 ' + rate2 + '<br>'
-    + '<b>FOB 报价：' + sym + fob.toFixed(2) + '</b>';
+    + 'FOB = ¥' + costExFreight.toFixed(2) + ' ÷ (1 − 佣金 ' + commPct + '%) ÷ (1 − 毛利率 ' + marginPct + '%) ÷ 汇率 ' + rate + '<br>'
+    + 'CIF = FOB + (' + sym + (ocean / rate).toFixed(2) + ' + ' + sym + (insurance / rate).toFixed(2) + ')<br>'
+    + '成本加成（markup）：' + markup.toFixed(1) + '%（毛利率 ' + marginPct + '% 对应）<br>'
+    + '扣佣后卖家实收：¥' + netCNY.toFixed(2) + ' / 件<br>'
+    + '<b>FOB 报价：' + sym + fob.toFixed(2) + '</b>' + (commPct > 0 ? '（含佣 ' + sym + commission.toFixed(2) + '）' : '');
 
   convert();
 }
@@ -318,18 +338,22 @@ function resetForm() {
 }
 
 function saveCalc() {
-  var sellCur = v('c_sellCur');
+  if (!lastCalc) { FT.toast('请先填写成本并计算，再保存'); return; }
   var data = {
     product: '计算记录',
-    costCNY: n('c_cost') + n('c_localShip') + n('c_packing') + n('c_inspect') + n('c_other'),
-    totalCost: n('c_cost') + n('c_localShip') + n('c_packing') + n('c_inspect') + n('c_other') + n('c_ocean') + n('c_insurance') + n('c_customs') + n('c_portFee'),
-    margin: n('c_margin'),
-    qty: n('c_qty'),
-    currency: sellCur,
+    costCNY: lastCalc.unitCost,
+    totalCost: lastCalc.costExFreight,
+    ocean: lastCalc.ocean,
+    insurance: lastCalc.insurance,
+    margin: lastCalc.marginPct,
+    comm: lastCalc.commPct,
+    qty: lastCalc.qty,
+    currency: lastCalc.sellCur,
     result: $('r_fob').textContent
   };
   DataStore.add('calculations', data);
   loadHist();
+  FT.toast('已保存本次计算');
 }
 
 function loadHist() {
@@ -352,10 +376,10 @@ async function aiPriceAdvice() {
   var sellCur = v('c_sellCur');
   var sym = SYM[sellCur] || '$';
   var p = '分析以下外贸报价的利润空间和定价策略：\n'
-    + '总成本：¥' + ($('r_totalCost').textContent) + '\n'
+    + '出口成本（FOB 基准，不含海运/保险）：' + ($('r_totalCost').textContent) + '\n'
     + 'FOB报价：' + sym + $('r_fob').textContent.replace(/[^0-9.]/g,'') + '\n'
     + 'CIF报价：' + sym + $('r_cif').textContent.replace(/[^0-9.]/g,'') + '\n'
-    + '利润率：' + $('r_margin').textContent + '\n'
+    + '毛利率（占售价）：' + $('r_margin').textContent + '\n'
     + '佣金率：' + v('c_comm') + '%\n'
     + '报价数量：' + v('c_qty') + '\n\n'
     + '请给出：\n'

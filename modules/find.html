@@ -83,7 +83,7 @@
   .dx { background:var(--bg-inset); color:var(--text-2); }
   .srcnote { font-size:11.5px; color:var(--text-3); padding:0 var(--sp-4) var(--sp-4); line-height:1.55; }
 </style>
-<script src="../assets/standalone.js"></script>
+<script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
 <link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
@@ -433,13 +433,13 @@ function convSave(){
   var email=$('c_email').value.trim(),phone=$('c_wa').value.trim();
   var lead=leadById(S._p);
   if(!email&&!phone&&!(lead&&lead._inquiry)){alert('邮箱或电话至少填一个');return}
-  DataStore.add('leads',{name:name,country:$('c_country').value.trim(),person:$('c_person').value.trim(),market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:phone,email:email,product:v('k_prod').trim(),website:$('c_web').value.trim(),amount:0,last:new Date().toISOString().slice(0,10),note:$('c_note').value.trim(),source:'multi_source'});
+  DataStore.add('leads',{name:name,country:$('c_country').value.trim(),person:$('c_person').value.trim(),market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:phone,email:email,product:v('k_prod').trim(),website:$('c_web').value.trim(),amount:0,last:FT.today(),note:$('c_note').value.trim(),source:'multi_source'});
   S.convIds[S._p]=name;dlg.close();render();
 }
 function bulkImp(){
   var n=0;S.results.forEach(function(r){
     if(!hasC(r)||S.convIds[r._id])return;
-    DataStore.add('leads',{name:r.name||'未知',country:r.country||'',person:'',market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:r.phone||'',email:r.email||'',website:r.website||'',product:v('k_prod').trim(),amount:0,last:new Date().toISOString().slice(0,10),note:'来源：'+((r._sources||[r.source||'']).join('/'))+(r.why?' | '+r.why:''),source:'multi_source'});
+    DataStore.add('leads',{name:r.name||'未知',country:r.country||'',person:'',market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:r.phone||'',email:r.email||'',website:r.website||'',product:v('k_prod').trim(),amount:0,last:FT.today(),note:'来源：'+((r._sources||[r.source||'']).join('/'))+(r.why?' | '+r.why:''),source:'multi_source'});
     S.convIds[r._id]='bulk';n++;
   });
   $('bS').textContent='已导入 '+n+' 条 ✓';render();

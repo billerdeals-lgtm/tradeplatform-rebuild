@@ -62,7 +62,7 @@
   .mrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .cfgbox input, .cfgbox label { font: 14px/1.6 system-ui; }
 </style>
-<script src="../assets/standalone.js"></script>
+<script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
 <link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
@@ -84,7 +84,7 @@
   <div class="stats">
     <div class="stat"><b id="stTotal">0</b>线索总数</div>
     <div class="stat"><b id="stHot">0</b>高分线索(≥70)</div>
-    <div class="stat"><b id="stDue">0</b>3天内待跟进</div>
+    <div class="stat"><b id="stDue">0</b>超3天未跟进</div>
     <div class="stat"><b id="stAmt">$0</b>线索预估总额</div>
   </div>
 
@@ -201,7 +201,7 @@ function loadDemo() {
 }
 function save() { DataStore.saveAll('leads', S.leads); }
 function uid() { return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
-function iso(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
+function iso(off) { return FT.today(off); }
 
 /* 俄语演示线索：一键插入，供单证中心「从线索带入」后导出俄语单据 */
 function addDemoRu() {
@@ -262,7 +262,7 @@ function render() {
 
   document.getElementById('stTotal').textContent = S.leads.length;
   document.getElementById('stHot').textContent = S.leads.filter(function (l) { return (l.score || 0) >= 70; }).length;
-  document.getElementById('stDue').textContent = S.leads.filter(function (l) { return l.last && l.last <= iso(3); }).length;
+  document.getElementById('stDue').textContent = S.leads.filter(function (l) { return l.last && l.stage !== '成交' && l.last < iso(-3); }).length;
   document.getElementById('stAmt').textContent = '$' + S.leads.reduce(function (s, l) { return s + (+l.amount || 0); }, 0).toLocaleString();
 
   var h = '';

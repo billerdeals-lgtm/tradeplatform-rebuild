@@ -119,7 +119,7 @@
   .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
-<script src="../assets/standalone.js"></script>
+<script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
 <link rel="stylesheet" href="../assets/responsive.css?v=9">
 </head>
@@ -232,7 +232,7 @@ function clearSearch() {
   $('searchC').focus();
 }
 
-function iso(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
+function iso(off) { return FT.today(off); }
 
 /* 空态卡里的「载入示例」：只在没有任何线索时写入，避免重复播种 */
 function loadDemoLeads() {
@@ -458,7 +458,7 @@ function addTodo() {
   if (!title) return;
   DataStore.add('todos', {
     title: title, leadId: S.lead.id, leadName: S.lead.name,
-    due: new Date(Date.now() + 86400000).toISOString().slice(0,10),
+    due: FT.today(1),
     done: false
   });
   renderDetail();

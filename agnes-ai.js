@@ -188,9 +188,7 @@
     if (!pro && !opts.skipTrial && aiTrialLeft() <= 0) {
       throw new Error('试用 AI 次数已用完（共 ' + AI_TRIAL_LIMIT + ' 次）。激活后不限次数。');
     }
-    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timeout = opts.timeout || 60000;
-    var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeout);
 
     var body = {
       model: cfg.model,
@@ -203,40 +201,74 @@
     // json 模式：要求模型只输出 JSON（评分等结构化场景用）
     if (opts.json) body.response_format = { type: 'json_object' };
 
-    try {
-      var resp = await fetch(cfg.base + '/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + apiKey
-        },
-        body: JSON.stringify(body),
-        signal: ctrl ? ctrl.signal : undefined
-      });
-      if (!resp.ok) {
-        var t = '';
-        try { t = (await resp.text()).slice(0, 200); } catch (e) {}
-        throw new Error('Agnes 接口 ' + resp.status + '：' + t + '（401=密钥不对/不完整；404=模型名不对）');
-      }
-      var data = await resp.json();
-      bumpCount();
-      if (!pro && !opts.skipTrial) bumpTrial();
-      // 兼容多种返回形态：OpenAI 标准 content / 旧式 text / 推理模型 reasoning_content
-      var ch = data.choices && data.choices[0] ? data.choices[0] : null;
-      var msg = ch ? (ch.message || {}) : {};
-      var txt = msg.content || msg.text || msg.reasoning_content || ch && ch.text || '';
-      if (!txt) {
-        // 正文为空时把原始返回暴露出来，方便排查（截断 400 字符）
-        throw new Error('Agnes 返回为空。原始返回：' + JSON.stringify(data).slice(0, 400)
-          + '（若 finish_reason=length 说明 max_tokens 不够，可加大 opts.maxTokens）');
-      }
-      return txt.trim();
-    } catch (e) {
-      if (e.name === 'AbortError') throw new Error('AI 请求超时（' + timeout / 1000 + 's），可重试或在设置调大超时');
-      throw e;
-    } finally {
-      clearTimeout(timer);
+    /* 把状态码翻译成人话；不要把原始 JSON 直接甩给用户 */
+    function httpMessage(status, raw) {
+      if (status === 429) return 'AI 接口繁忙（429 限流），已自动重试一次仍未成功，请稍后再试。';
+      if (status === 401 || status === 403) return 'AI 密钥无效或无权限（' + status + '），请在设置里检查 API Key。';
+      if (status === 404) return 'AI 接口地址或模型名不对（404），请在设置里检查 Base URL 与模型名。';
+      if (status >= 500) return 'AI 服务暂时不可用（' + status + '），请稍后重试。';
+      return 'AI 请求失败（' + status + '）：' + String(raw || '').slice(0, 120);
     }
+    function friendly(e) {
+      if (!e) return new Error('AI 请求失败，请稍后重试');
+      if (e.name === 'AbortError') return new Error('AI 请求超时（' + Math.round(timeout / 1000) + 's），可重试或在设置调大超时');
+      return e;
+    }
+    function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+    /* 每次尝试独立计时/中止，重试时不会复用已经触发的 timer */
+    async function sendOnce() {
+      var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, timeout);
+      try {
+        var resp = await fetch(cfg.base + '/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + apiKey
+          },
+          body: JSON.stringify(body),
+          signal: ctrl ? ctrl.signal : undefined
+        });
+        if (!resp.ok) {
+          var t = '';
+          try { t = (await resp.text()).slice(0, 200); } catch (e) {}
+          var err = new Error(httpMessage(resp.status, t));
+          err.status = resp.status;
+          throw err;
+        }
+        return await resp.json();
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
+    var data;
+    try {
+      data = await sendOnce();
+    } catch (e) {
+      if (e && e.status === 429) {
+        // 免费端点限流是常态：退避 1 秒后自动重试一次
+        await sleep(1000);
+        try { data = await sendOnce(); }
+        catch (e2) { throw friendly(e2); }
+      } else {
+        throw friendly(e);
+      }
+    }
+
+    bumpCount();
+    if (!pro && !opts.skipTrial) bumpTrial();
+    // 兼容多种返回形态：OpenAI 标准 content / 旧式 text / 推理模型 reasoning_content
+    var ch = data.choices && data.choices[0] ? data.choices[0] : null;
+    var msg = ch ? (ch.message || {}) : {};
+    var txt = msg.content || msg.text || msg.reasoning_content || ch && ch.text || '';
+    if (!txt) {
+      // 正文为空时把原始返回暴露出来，方便排查（截断 400 字符）
+      throw new Error('Agnes 返回为空。原始返回：' + JSON.stringify(data).slice(0, 400)
+        + '（若 finish_reason=length 说明 max_tokens 不够，可加大 opts.maxTokens）');
+    }
+    return txt.trim();
   }
 
   /** 便捷封装：单轮 user 消息 */

@@ -73,7 +73,7 @@
   <div class="stats">
     <div class="stat"><b id="stTotal">0</b>线索总数</div>
     <div class="stat"><b id="stHot">0</b>高分线索(≥70)</div>
-    <div class="stat"><b id="stDue">0</b>3天内待跟进</div>
+    <div class="stat"><b id="stDue">0</b>超3天未跟进</div>
     <div class="stat"><b id="stAmt">$0</b>线索预估总额</div>
   </div>
 
@@ -173,7 +173,7 @@ function load() {
 }
 function save() { localStorage.setItem(LS, JSON.stringify(S.leads)); }
 function uid() { return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
-function iso(off) { var d = new Date(); d.setDate(d.getDate() + off); return d.toISOString().slice(0, 10); }
+function iso(off) { var d = new Date(); d.setDate(d.getDate() + off); var m = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0'); return d.getFullYear() + '-' + m + '-' + dd; }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 function show(id) { document.getElementById(id).classList.add('show'); }
 function hide(id) { document.getElementById(id).classList.remove('show'); }
@@ -190,7 +190,7 @@ function render() {
 
   document.getElementById('stTotal').textContent = S.leads.length;
   document.getElementById('stHot').textContent = S.leads.filter(function (l) { return (l._score || 0) >= 70; }).length;
-  document.getElementById('stDue').textContent = S.leads.filter(function (l) { return l.last && l.last <= iso(3); }).length;
+  document.getElementById('stDue').textContent = S.leads.filter(function (l) { return l.last && l.stage !== '成交' && l.last < iso(-3); }).length;
   document.getElementById('stAmt').textContent = '$' + S.leads.reduce(function (s, l) { return s + (+l.amount || 0); }, 0).toLocaleString();
 
   var h = list.length ? '' : '<div class="lead" style="text-align:center;color:#8a937f">没有线索，点右上「＋ 添加线索」开始</div>';
