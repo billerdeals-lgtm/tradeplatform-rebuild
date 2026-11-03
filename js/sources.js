@@ -42,9 +42,37 @@
     if (next) next();
   }
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+
+  /* AbortSignal.timeout 在旧版 Safari / Android WebView 不存在；
+     直接调用会让所有抓取同步抛错，表现为「一条都挖不到」。 */
+  function timeoutSignal(ms) {
+    if (typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function') {
+      return { signal: AbortSignal.timeout(ms), done: function () {} };
+    }
+    if (typeof AbortController === 'undefined') return { signal: undefined, done: function () {} };
+    var ctrl = new AbortController();
+    var timer = setTimeout(function () { try { ctrl.abort(); } catch (e) {} }, ms);
+    return { signal: ctrl.signal, done: function () { clearTimeout(timer); } };
+  }
+  async function fetchWithTimeout(url, ms) {
+    var t = timeoutSignal(ms);
+    try {
+      return await fetch(url, { signal: t.signal });
+    } catch (e) {
+      if (e && e.name === 'AbortError' && !isCancelled()) {
+        var err = new Error('请求超时（' + Math.round(ms / 1000) + ' 秒）');
+        err.timeout = true;
+        throw err;
+      }
+      throw e;
+    } finally {
+      t.done();
+    }
+  }
+
   async function jinaOnce(url, timeout) {
     throwIfCancelled();
-    var r = await fetch('https://r.jina.ai/' + url, { signal: AbortSignal.timeout(timeout || 25000) });
+    var r = await fetchWithTimeout('https://r.jina.ai/' + url, timeout || 25000);
     if (!r.ok) {
       var err = new Error('jina HTTP ' + r.status);
       err.status = r.status;
@@ -75,8 +103,8 @@
   }
   async function fetchAllOrigins(url, timeout) {
     throwIfCancelled();
-    var r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
-      { signal: AbortSignal.timeout(timeout || 25000) });
+    var r = await fetchWithTimeout('https://api.allorigins.win/raw?url=' + encodeURIComponent(url),
+      timeout || 25000);
     if (!r.ok) throw new Error('allorigins HTTP ' + r.status);
     var t = await r.text();
     if (!t || t.length < 120) throw new Error('allorigins 内容过短');

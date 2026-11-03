@@ -18,7 +18,19 @@
       } catch (e) { return null; }
     },
     write: function (key, value) {
-      localStorage.setItem(key, JSON.stringify(value));
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+      } catch (e) {
+        /* localStorage 约 5MB；写满时不能只抛英文 QuotaExceededError，
+           否则用户看到的是「保存没反应」或数据静默丢失。 */
+        if (e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)) {
+          var err = new Error('本地存储空间已满（浏览器上限约 5MB）。请先「完整备份」，再删除不用的商品图片、单证或历史记录后重试。');
+          err.name = 'QuotaExceededError';
+          err.code = 'QUOTA';
+          throw err;
+        }
+        throw e;
+      }
     },
     remove: function (key) {
       localStorage.removeItem(key);

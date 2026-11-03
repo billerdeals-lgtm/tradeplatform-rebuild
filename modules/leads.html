@@ -5,8 +5,9 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23fff' stroke-width='3.5'/%3E%3Cpath d='M32 15 L38 32 L32 49 L26 32 Z' fill='%23ffc53d'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%230b6e4f'/%3E%3C/svg%3E">
 <title>FT Compass · 外贸线索工作台</title>
 <link rel="stylesheet" href="../assets/tokens.css?v=3">
-<script src="../agnes-ai.js?v=9"></script>
-<script src="../js/datastore.js?v=2"></script>
+<script src="../agnes-ai.js?v=10"></script>
+<script src="../js/datastore.js?v=3"></script>
+<script src="../js/csv.js?v=3"></script>
 <style>
   /* FT Compass 视觉体系（tokens.css 为准）：翡翠绿 / 琥珀 AI 规范 / 米白纸面 */
   * { box-sizing: border-box; margin: 0; }
@@ -61,6 +62,18 @@
   .mout { max-height: 260px; overflow: auto; display: none; margin-top: 10px; }
   .mrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
   .cfgbox input, .cfgbox label { font: 14px/1.6 system-ui; }
+
+  /* 分页：导入上千条客户后不要一次渲染全部卡片 */
+  .pager { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 8px 0 18px; flex-wrap: wrap; }
+  .pager .info { color: var(--text-2); font-size: 13px; }
+  /* CSV 导入预览 */
+  .imap { width: 100%; border-collapse: collapse; font-size: 12.5px; margin: 10px 0 4px; }
+  .imap th, .imap td { border: 1px solid var(--border); padding: 5px 7px; text-align: left; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .imap th { background: #f5f7fa; font-weight: 600; color: var(--text-2); }
+  .inote { font-size: 12.5px; color: var(--text-2); line-height: 1.7; }
+  .iwarn { font-size: 12.5px; color: #b45309; line-height: 1.7; }
+  .iradio { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 0; font-size: 13px; }
+  .iradio label { display: inline-flex; align-items: center; gap: 5px; margin: 0; }
 </style>
 <script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
@@ -89,16 +102,19 @@
   </div>
 
   <div class="toolbar">
-    <input id="q" aria-label="搜索线索" placeholder="搜索客户名 / 产品 / 备注…" oninput="render()">
-    <select id="fStage" aria-label="按阶段筛选" onchange="render()">
+    <input id="q" aria-label="搜索线索" placeholder="搜索客户名 / 产品 / 备注…" oninput="resetPage();render()">
+    <select id="fStage" aria-label="按阶段筛选" onchange="resetPage();render()">
       <option value="">全部阶段</option><option>待开发</option><option>已联系</option>
       <option>试样</option><option>报价</option><option>成交</option>
     </select>
     <button class="btn" onclick="openEdit()">＋ 添加线索</button>
+    <button class="btn ghost" onclick="pickCsv()">⬆ 导入 CSV</button>
     <button class="btn ghost" onclick="exportCsv()">导出 CSV</button>
   </div>
+  <input type="file" id="csvFile" accept=".csv,.txt,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="readCsv(this)">
 
   <div id="list"></div>
+  <nav class="pager" id="pager" aria-label="线索分页" hidden></nav>
 </main>
 
 <!-- 新增/编辑线索 -->
@@ -159,6 +175,26 @@
   </div>
 </dialog>
 
+<!-- CSV 导入预览 -->
+<dialog class="mask" id="mImport" role="dialog" aria-modal="true" aria-labelledby="impTitle">
+  <div class="modal" style="width:760px">
+    <h3 id="impTitle">导入客户 CSV</h3>
+    <div id="impSummary" class="inote">正在读取…</div>
+    <div id="impTable"></div>
+    <div id="impWarn" class="iwarn"></div>
+    <div class="iradio" id="impMode">
+      <label><input type="radio" name="dupMode" value="skip" checked> 跳过重复客户（推荐）</label>
+      <label><input type="radio" name="dupMode" value="all"> 全部导入（允许重名）</label>
+    </div>
+    <div class="mrow" style="margin-top:14px">
+      <button class="btn" id="btnImport" onclick="doImport()">✅ 开始导入</button>
+      <button class="btn ghost" onclick="hide('mImport')">取消</button>
+      <button class="btn ghost" onclick="downloadTemplate()">下载模板</button>
+    </div>
+    <div class="inote" style="margin-top:10px">支持 Excel .xlsx、Excel「另存为 CSV UTF-8」、WPS/Google 导出的 CSV；自动识别逗号/分号/Tab 分隔与 GBK 编码。旧版 .xls 请先在 Excel 中另存为 .xlsx 或 CSV。</div>
+  </div>
+</dialog>
+
 <!-- AI 设置（复用 AgnesAI 面板） -->
 <dialog class="mask" id="mCfg" role="dialog" aria-modal="true" aria-labelledby="cfgTitle">
   <div class="modal cfgbox">
@@ -176,7 +212,8 @@
  * ======================================================= */
 
 var STAGES = ['待开发', '已联系', '试样', '报价', '成交'];
-var S = { leads: [], editId: null, touchId: null, touchMode: 'mail', lastOut: '' };
+var PAGE_SIZE = 100;
+var S = { leads: [], editId: null, touchId: null, touchMode: 'mail', lastOut: '', page: 1, importData: null };
 
 function load() {
   S.leads = DataStore.list('leads');
@@ -199,7 +236,17 @@ function loadDemo() {
   S.leads = DataStore.list('leads');
   render();
 }
-function save() { DataStore.saveAll('leads', S.leads); }
+function save() {
+  try {
+    DataStore.saveAll('leads', S.leads);
+    return true;
+  } catch (e) {
+    alert('保存失败：' + e.message);
+    S.leads = DataStore.list('leads');
+    render();
+    return false;
+  }
+}
 function uid() { return 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5); }
 function iso(off) { return FT.today(off); }
 
@@ -230,6 +277,13 @@ function addDemoRu() {
   alert('已添加俄语演示线索。\n\n下一步：单证中心 → 从线索带入 → 选择 ООО «Балтийский Торг»\n系统会自动切到俄语并填好数量/单价/付款/港口，直接打印或导出即可。');
 }
 function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+/* 内联 onclick 里的 id 参数：转义引号/反斜杠，避免备份文件里的恶意 id 逃出字符串 */
+function jsArg(s) {
+  return String(s == null ? '' : s)
+    .replace(/\\/g, '\\\\').replace(/'/g, "\\'")
+    .replace(/[\r\n]/g, ' ')
+    .replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+}
 function show(id) {
   var d = document.getElementById(id);
   if (!d) return;
@@ -251,14 +305,38 @@ function hide(id) {
 }
 
 /* ---------- 渲染 ---------- */
+function resetPage(){ S.page = 1; }
+function pageInfo(total){
+  var pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (S.page > pages) S.page = pages;
+  if (S.page < 1) S.page = 1;
+  return { pages: pages, from: (S.page - 1) * PAGE_SIZE, to: (S.page - 1) * PAGE_SIZE + PAGE_SIZE };
+}
+function renderPager(total, pages){
+  var p = document.getElementById('pager');
+  if (!p) return;
+  if (total <= PAGE_SIZE) { p.hidden = true; p.innerHTML = ''; return; }
+  p.hidden = false;
+  p.innerHTML = '<button class="btn sm ghost" onclick="goPage(' + (S.page - 1) + ')"' + (S.page <= 1 ? ' disabled' : '') + '>← 上一页</button>'
+    + '<span class="info">第 ' + S.page + ' / ' + pages + ' 页 · 共 ' + total + ' 条</span>'
+    + '<button class="btn sm ghost" onclick="goPage(' + (S.page + 1) + ')"' + (S.page >= pages ? ' disabled' : '') + '>下一页 →</button>';
+}
+function goPage(n){
+  S.page = n;
+  render();
+  var el = document.getElementById('list');
+  if (el && el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+}
 function render() {
   var q = (document.getElementById('q').value || '').toLowerCase();
   var fs = document.getElementById('fStage').value;
-  var list = S.leads.filter(function (l) {
+  var matched = S.leads.filter(function (l) {
     if (fs && l.stage !== fs) return false;
     if (!q) return true;
-    return (l.name + l.product + l.note + l.country).toLowerCase().indexOf(q) >= 0;
+    return [l.name, l.product, l.note, l.country].join(' ').toLowerCase().indexOf(q) >= 0;
   }).slice().sort(function (a, b) { return (b.score || 0) - (a.score || 0); }); // AI 高分在前
+  var pg = pageInfo(matched.length);
+  var list = matched.slice(pg.from, pg.to);
 
   document.getElementById('stTotal').textContent = S.leads.length;
   document.getElementById('stHot').textContent = S.leads.filter(function (l) { return (l.score || 0) >= 70; }).length;
@@ -266,13 +344,14 @@ function render() {
   document.getElementById('stAmt').textContent = '$' + S.leads.reduce(function (s, l) { return s + (+l.amount || 0); }, 0).toLocaleString();
 
   var h = '';
-  if (!list.length) {
+  if (!matched.length) {
     if (!S.leads.length) {
       h = '<div class="lead" style="text-align:center;padding:22px 16px">'
         + '<div style="font-weight:600;margin-bottom:6px">还没有线索</div>'
-        + '<div style="color:var(--text-2);font-size:13px;line-height:1.7;margin-bottom:12px">从「找客户」抓一批，或直接录入第一条。想先熟悉流程也可以用示例数据。</div>'
+        + '<div style="color:var(--text-2);font-size:13px;line-height:1.7;margin-bottom:12px">从「找客户」抓一批、导入客户 CSV，或直接录入第一条。想先熟悉流程也可以用示例数据。</div>'
         + '<div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">'
         + '<button class="btn" onclick="openEdit()">＋ 添加线索</button>'
+        + '<button class="btn ghost" onclick="pickCsv()">⬆ 导入 CSV</button>'
         + '<button class="btn ghost" onclick="loadDemo()">载入 2 条示例</button>'
         + '<button class="btn ghost" onclick="addDemoRu()">载入俄语单证演示</button>'
         + '</div></div>';
@@ -287,10 +366,10 @@ function render() {
       + '<span class="name">' + esc(l.name) + '</span>'
       + '<span class="tag s' + si + '">' + esc(l.stage) + '</span>' + scoreTag
       + '<span style="flex:1"></span>'
-      + '<button class="btn sm amber" onclick="aiScore(\'' + l.id + '\',this)">⚡ AI 评分</button>'
-      + '<button class="btn sm" onclick="openTouch(\'' + l.id + '\')">✉ AI 触达</button>'
-      + '<button class="btn sm ghost" onclick="openEdit(\'' + l.id + '\')">编辑</button>'
-      + '<button class="btn sm ghost" onclick="delLead(\'' + l.id + '\')">删除</button>'
+      + '<button class="btn sm amber" onclick="aiScore(\'' + jsArg(l.id) + '\',this)">⚡ AI 评分</button>'
+      + '<button class="btn sm" onclick="openTouch(\'' + jsArg(l.id) + '\')">✉ AI 触达</button>'
+      + '<button class="btn sm ghost" onclick="openEdit(\'' + jsArg(l.id) + '\')">编辑</button>'
+      + '<button class="btn sm ghost" onclick="delLead(\'' + jsArg(l.id) + '\')">删除</button>'
       + '</div><div class="meta">'
       + esc(l.country || '—') + ' · ' + esc(l.market || '') + ' · 产品: ' + esc(l.product || '—')
       + ' · 预估 $' + (+l.amount || 0)
@@ -300,9 +379,10 @@ function render() {
       + '</div>'
       + (l.scoreReason ? '<div class="aiout" style="display:block"><b>AI ' + l.score + ' 分</b> — ' + esc(l.scoreReason)
         + (l.nextAction ? '\n下一步: ' + esc(l.nextAction) : '') + (l.nextChannel ? '\n建议渠道: ' + esc(l.nextChannel) : '') + '</div>' : '')
-      + '<div class="aiout" id="ai_' + l.id + '"></div></div>';
+      + '<div class="aiout" id="ai_' + esc(l.id) + '"></div></div>';
   });
   document.getElementById('list').innerHTML = h;
+  renderPager(matched.length, pg.pages);
 }
 
 /* ---------- 新增/编辑/删除 ---------- */
@@ -334,12 +414,15 @@ function saveEdit() {
     obj.id = uid(); obj.last = iso(0); obj.score = null;
     S.leads.push(obj);
   }
-  save(); hide('mEdit'); render();
+  if (!save()) return;
+  hide('mEdit'); render();
 }
 function delLead(id) {
   if (!confirm('删除这条线索？（不可恢复）')) return;
+  var before = S.leads;
   S.leads = S.leads.filter(function (x) { return x.id !== id; });
-  save(); render();
+  if (!save()) { S.leads = before; return; }
+  render();
 }
 function v(id) { return document.getElementById(id).value.trim(); }
 
@@ -440,6 +523,136 @@ function openCfg() {
   show('mCfg');
 }
 
+/* ---------- CSV 导入 ---------- */
+var IMPORT_MAX = 5000;
+var FIELD_LABEL = { name:'客户名', country:'国家', market:'市场', stage:'阶段', wa:'WhatsApp', email:'邮箱',
+  product:'产品', amount:'预估金额', last:'最后联系', note:'备注', nextAction:'下一步', score:'AI评分' };
+
+function pickCsv() {
+  var f = document.getElementById('csvFile');
+  if (!f) return;
+  f.value = '';
+  f.click();
+}
+function readCsv(input) {
+  var f = input.files && input.files[0];
+  input.value = '';
+  if (!f) return;
+  if (f.size > 20 * 1024 * 1024) { alert('文件超过 20MB，请拆分后再导入'); return; }
+  var isXlsx = /\.xlsx$/i.test(f.name || '');
+  if (/\.xls$/i.test(f.name || '')) {
+    alert('旧版 .xls 是二进制格式，无法直接读取。请在 Excel/WPS 中「另存为」.xlsx 或 CSV 后再导入。');
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function () {
+    if (isXlsx) {
+      FTCsv.readXlsx(reader.result, IMPORT_MAX + 1).then(function (rows) {
+        prepareImportRows(rows, 'XLSX（Excel 工作簿）', f.name);
+      }).catch(function (e) {
+        alert('读取 Excel 失败：' + e.message);
+      });
+      return;
+    }
+    try {
+      var dec = FTCsv.decode(reader.result);
+      prepareImport(dec.text, dec.encoding, f.name);
+    } catch (e) { alert('读取失败：' + e.message); }
+  };
+  reader.onerror = function () { alert('读取文件失败，请确认文件未被其他程序占用'); };
+  reader.readAsArrayBuffer(f);
+}
+function prepareImport(text, encoding, filename) {
+  var rows = FTCsv.parse(text);
+  prepareImportRows(rows, encoding, filename);
+}
+function prepareImportRows(rows, encoding, filename) {
+  if (!rows || rows.length < 2) { alert('至少需要一行表头和一行数据'); return; }
+  if (rows.length > IMPORT_MAX + 1) { alert('单次最多导入 ' + IMPORT_MAX + ' 条，请拆分文件'); return; }
+  var headerInfo = FTCsv.findHeaderRow(rows, 10);
+  var headerRow = headerInfo.index;
+  var header = rows[headerRow];
+  var mapping = headerInfo.mapping;
+  var res = FTCsv.toLeads(rows.slice(headerRow + 1), mapping, { headerRow: headerRow });
+  var existing = {};
+  S.leads.forEach(function (l) { var k = FTCsv.dedupeKey(l); if (k) existing[k] = true; });
+  var dupExisting = 0;
+  res.records.forEach(function (r) { var k = FTCsv.dedupeKey(r); if (k && existing[k]) dupExisting++; });
+
+  S.importData = {
+    records: res.records, invalid: res.invalid, dupFile: res.duplicateInFile,
+    dupExisting: dupExisting, errors: res.errors, encoding: encoding,
+    filename: filename, mapping: mapping
+  };
+
+  var cols = Object.keys(mapping).map(function (k) { return FIELD_LABEL[k] || k; }).join('、');
+  document.getElementById('impSummary').innerHTML =
+    '<b>' + esc(filename) + '</b> · ' + esc(encoding) + '<br>'
+    + '识别到 ' + Object.keys(mapping).length + ' 列：' + esc(cols || '无') + '<br>'
+    + '数据 ' + (rows.length - headerRow - 1) + ' 行 · 有效 <b>' + res.records.length + '</b> 条'
+    + (headerRow > 0 ? ' · 表头在第 ' + (headerRow + 1) + ' 行' : '')
+    + (res.duplicateInFile ? ' · 文件内重复 ' + res.duplicateInFile + ' 条' : '')
+    + (res.invalid ? ' · 缺少客户名 ' + res.invalid + ' 条' : '')
+    + (dupExisting ? ' · 与现有客户重复 <b>' + dupExisting + '</b> 条' : '');
+  document.getElementById('impTable').innerHTML = previewTable(res.records.slice(0, 5));
+  document.getElementById('impWarn').innerHTML = res.errors.length
+    ? res.errors.map(function (e) { return '第 ' + e.row + ' 行：' + esc(e.msg); }).join('<br>') : '';
+  document.getElementById('btnImport').disabled = !res.records.length || mapping.name == null;
+  show('mImport');
+}
+function previewTable(records) {
+  if (!records.length) return '<div class="iwarn">没有可预览的数据</div>';
+  var head = '<tr><th>客户名</th><th>国家</th><th>阶段</th><th>邮箱</th><th>WhatsApp</th><th>预估USD</th></tr>';
+  var body = records.map(function (r) {
+    return '<tr><td>' + esc(r.name) + '</td><td>' + esc(r.country) + '</td><td>' + esc(r.stage) + '</td>'
+      + '<td>' + esc(r.email) + '</td><td>' + esc(r.wa) + '</td><td>' + esc(r.amount) + '</td></tr>';
+  }).join('');
+  return '<table class="imap"><thead>' + head + '</thead><tbody>' + body + '</tbody></table>';
+}
+function doImport() {
+  var d = S.importData;
+  if (!d || !d.records.length) return;
+  var picked = document.querySelector('input[name="dupMode"]:checked');
+  var mode = picked ? picked.value : 'skip';
+  var base = DataStore.list('leads');
+  var existing = {};
+  base.forEach(function (l) { var k = FTCsv.dedupeKey(l); if (k) existing[k] = true; });
+  var add = [], skipDup = 0;
+  d.records.forEach(function (r) {
+    var k = FTCsv.dedupeKey(r);
+    if (mode === 'skip' && k && existing[k]) { skipDup++; return; }
+    if (k) existing[k] = true;
+    var rec = Object.assign({}, r);
+    rec.id = uid();
+    rec.createdAt = new Date().toISOString();
+    if (rec.score != null) rec.aiImported = true;
+    add.push(rec);
+  });
+  if (!add.length) { alert('没有可导入的新记录（全部与现有客户重复）'); return; }
+  var btn = document.getElementById('btnImport');
+  btn.disabled = true;
+  try {
+    DataStore.saveAll('leads', base.concat(add));
+  } catch (e) {
+    btn.disabled = false;
+    alert('导入失败：' + e.message);
+    return;
+  }
+  S.leads = DataStore.list('leads');
+  S.page = 1;
+  hide('mImport');
+  render();
+  toast('导入完成：新增 ' + add.length + ' 条' + (skipDup ? '，跳过重复 ' + skipDup + ' 条' : ''));
+}
+function downloadTemplate() {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([FTCsv.template()], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'FTCompass_客户导入模板.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
 /* ---------- CSV 导出 ---------- */
 function exportCsv() {
   if (!S.leads.length) { alert('没有数据'); return; }
@@ -447,12 +660,12 @@ function exportCsv() {
   S.leads.forEach(function (l) {
     rows.push([l.name, l.country, l.market, l.stage, l.wa, l.email, l.product, l.amount, l.last, l.score == null ? '' : l.score, l.nextAction || '', l.note]);
   });
-  var csv = '\ufeff' + rows.map(function (r) {
-    return r.map(function (c) { return '"' + String(c == null ? '' : c).replace(/"/g, '""') + '"'; }).join(',');
-  }).join('\r\n');
   var a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
-  a.download = 'ftcompass_leads_' + iso(0) + '.csv'; a.click();
+  a.href = URL.createObjectURL(new Blob([FTCsv.build(rows)], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'ftcompass_leads_' + iso(0) + '.csv';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
 load(); render();

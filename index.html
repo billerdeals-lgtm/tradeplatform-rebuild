@@ -230,6 +230,9 @@
         <div style="flex:1"><b>AI 今日简报</b><div style="font-size:12px;color:var(--text-2)">汇总待办与线索评分，生成今天的工作重点</div></div>
         <button class="ft-btn-ai" id="btnBrief" onclick="aiBrief()">🧭 生成简报</button>
       </div>
+      <!-- 结果单独占一个容器：不能覆盖包含按钮的卡片，否则按钮消失且后续访问空引用 -->
+      <div class="ft-ai-output ft-card" id="briefBody" aria-live="polite"
+        style="padding:var(--sp-4);margin-top:var(--sp-3);display:none"></div>
     </div>
     <div class="quick">
       <button class="ft-btn-primary" onclick="go('modules/leads.html')">＋ 录入线索</button>
@@ -252,15 +255,15 @@
   <div style="padding:var(--sp-4)" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=9"></script>
-<script src="js/datastore.js?v=2"></script>
+<script src="agnes-ai.js?v=10"></script>
+<script src="js/datastore.js?v=3"></script>
 <script src="js/license.js?v=3"></script>
 <script src="assets/a11y.js?v=2"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261030c';
+var MODULE_V = '20261103b';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -411,13 +414,16 @@ function paintLicenseDot(){
   else { dot.style.background='#f6c453'; dot.title='试用 · 剩 '+s.daysLeft+' 天 / '+s.usesLeft+' 次'; }
 }
 async function aiBrief(){
+  var btn = $('btnBrief'), body = $('briefBody');
+  if (!btn || !body) return;
   var todos = DataStore.list('todos').filter(function(t){ return !t.done; });
   var leads = DataStore.list('leads');
   if (!todos.length && !leads.length){ toast('先去录入线索吧'); return; }
-  $('btnBrief').textContent='⏳ 生成中…'; $('btnBrief').disabled=true;
+  btn.textContent='⏳ 生成中…'; btn.disabled=true;
   try {
     var res = await AgnesAI.genDailyPlan(todos, leads);
-    var html = '<b>🧭 今天最重要的一件事：</b>'+(res.focus||'—')+'<br><br>';
+    /* AI 文本一律转义后写入：简报内容来自模型与用户数据，不能直接当 HTML */
+    var html = '<b>🧭 今天最重要的一件事：</b>'+escHtml(res.focus||'—')+'<br><br>';
     if (res.plan && res.plan.length){
       var todosAll = DataStore.list('todos'); var leadsAll = leads;
       html += res.plan.map(function(p){
@@ -425,12 +431,17 @@ async function aiBrief(){
         var t = todosAll.find(function(x){return x.id===p.id;});
         if (t) label = '待办：'+t.title;
         else { var l = leadsAll.find(function(x){return x.id===p.id;}); if (l) label='线索：'+l.name+'（'+(l.stage||'')+'）'; }
-        return '<div>#'+p.rank+' '+label+'<span style="color:var(--text-2)"> — '+p.why+'</span></div>';
+        return '<div>#'+escHtml(p.rank)+' '+escHtml(label||'未匹配条目')+'<span style="color:var(--text-2)"> — '+escHtml(p.why||'')+'</span></div>';
       }).join('');
     }
-    $('briefWrap').innerHTML = '<div class="ft-ai-output ft-card" style="padding:var(--sp-4)">'+html+'</div>';
-  } catch(e){ toast('简报失败：'+e.message.slice(0,80)); }
-  $('btnBrief').textContent='🧭 生成简报'; $('btnBrief').disabled=false;
+    body.innerHTML = html;
+    body.style.display = 'block';
+  } catch(e){
+    toast('简报失败：'+String(e && e.message || e).slice(0,80));
+  } finally {
+    /* 成功或失败都必须恢复按钮：按钮始终在 DOM 中，这里只是复位状态 */
+    btn.textContent='🧭 生成简报'; btn.disabled=false;
+  }
 }
 /* 统一走 assets/a11y.js 的右下角提示条，避免同一句提示出现在多个位置 */
 function toast(msg){ if (window.FT && FT.toast) FT.toast(msg); }
@@ -523,22 +534,27 @@ function backupAll(){
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type:'application/json'}));
   a.download = 'ftcompass_backup_' + FT.today() + '.json';
+  document.body.appendChild(a);
   a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
   var parts = Object.keys(counts).map(function(n){ return (COLL_LABEL[n]||n)+' '+counts[n]; });
   toast('完整备份已下载（v2）：'+parts.join('、'));
   markBackedUp();
 }
 function restoreAll(input){
   var f = input.files && input.files[0];
+  if (input) input.value = '';
   if (!f) return;
+  if (f.size > 20 * 1024 * 1024){ toast('备份文件超过 20MB，已拒绝恢复'); return; }
   var reader = new FileReader();
+  reader.onerror = function(){ toast('读取备份文件失败，请确认文件未被其他程序占用'); };
   reader.onload = function(){
     var data;
-    try { data = JSON.parse(reader.result); } catch(e){ toast('文件不是合法 JSON'); return; }
+    try { data = JSON.parse(String(reader.result || '')); } catch(e){ toast('文件不是合法 JSON'); return; }
     if (!data || typeof data !== 'object' || Array.isArray(data)){ toast('不是合法的备份结构'); return; }
     if (data._meta && data._meta.app && data._meta.app !== 'FT Compass'){ toast('不是 FT Compass 的备份文件'); return; }
     var keys = DataStore.KEYS;
-    var toRestore = [];
+    var toRestore = [], skipped = 0;
     Object.keys(keys).forEach(function(name){
       if (!Object.prototype.hasOwnProperty.call(data, name)) return;
       var val = data[name];
@@ -546,19 +562,52 @@ function restoreAll(input){
         if (val && typeof val === 'object' && !Array.isArray(val)) toRestore.push({name:name, val:val, n:1});
         return;
       }
-      if (Array.isArray(val)) toRestore.push({name:name, val:val, n:val.length});
+      if (!Array.isArray(val)) return;
+      /* 集合里只接受对象记录：防止备份被手工改成字符串/数字后污染渲染逻辑 */
+      var clean = val.filter(function(x){ return x && typeof x === 'object' && !Array.isArray(x); })
+        .map(function(x){
+          /* id 会进入内联 onclick；备份文件不可信，危险 id 直接换成新 id */
+          if (x.id == null) return x;
+          var sid = String(x.id);
+          if (/^[A-Za-z0-9_.:-]{1,120}$/.test(sid)) {
+            if (typeof x.id === 'string') return x;
+            var copy = Object.assign({}, x); copy.id = sid; return copy;
+          }
+          var safe = Object.assign({}, x);
+          safe.id = 'r_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+          return safe;
+        });
+      skipped += val.length - clean.length;
+      toRestore.push({name:name, val:clean, n:clean.length});
     });
     if (!toRestore.length){ toast('备份里没有可恢复的数据'); return; }
     var total = toRestore.reduce(function(s,x){ return s + x.n; }, 0);
     var summary = toRestore.map(function(x){ return (COLL_LABEL[x.name]||x.name)+' '+x.n; }).join('、');
     var ver = (data._meta && (data._meta.schema || ('v'+data._meta.version))) || 'legacy';
-    if (!confirm('将覆盖当前数据并写入 '+toRestore.length+' 类 / 共 '+total+' 条（'+ver+'）：\n\n'+summary+'\n\n建议先点备份留底。继续？')) return;
-    toRestore.forEach(function(x){ DataStore.saveAll(x.name, x.val); });
+    if (!confirm('将覆盖当前数据并写入 '+toRestore.length+' 类 / 共 '+total+' 条（'+ver+'）：\n\n'+summary
+      + (skipped ? '\n\n已忽略 '+skipped+' 条格式不正确的记录' : '')
+      + '\n\n建议先点备份留底。继续？')) return;
+
+    /* 先快照旧值：写一半失败（例如存储空间不足）时回滚，避免留下半套数据 */
+    var snapshot = {};
+    toRestore.forEach(function(x){ snapshot[x.name] = localStorage.getItem(keys[x.name]); });
+    var written = [];
+    try {
+      toRestore.forEach(function(x){ DataStore.saveAll(x.name, x.val); written.push(x.name); });
+    } catch (e) {
+      written.forEach(function(name){
+        try {
+          if (snapshot[name] === null) localStorage.removeItem(keys[name]);
+          else localStorage.setItem(keys[name], snapshot[name]);
+        } catch (e2) { /* 回滚尽力而为 */ }
+      });
+      toast('恢复失败，已回滚到恢复前状态：' + e.message);
+      return;
+    }
     toast('恢复完成：'+toRestore.length+' 类 / '+total+' 条，正在刷新…');
     setTimeout(function(){ location.reload(); }, 1200);
   };
   reader.readAsText(f);
-  input.value='';
 }
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
 refresh();

@@ -75,8 +75,8 @@
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
-<script src="../agnes-ai.js?v=9"></script>
-<script src="../js/datastore.js?v=2"></script>
+<script src="../agnes-ai.js?v=10"></script>
+<script src="../js/datastore.js?v=3"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -135,26 +135,42 @@ async function aiReview(){
       触达次数: st.touch, 待办总数: st.todoTotal, 已完成: st.todoDone, 完成率: st.todoRate+'%', 逾期: st.todoOver
     };
     var txt = await AgnesAI.genReviewInsight(payload);
-    var html = txt.replace(/\n/g,'<br>');
+    /* AI 输出按纯文本处理：先转义再换行，避免模型回复里的 HTML 被执行 */
+    var html = esc(txt).replace(/\n/g,'<br>');
     $('reviewWrap').innerHTML = '<div class="ft-card ft-ai-output ai-review" style="padding:var(--sp-4)">'+html+'</div>';
-    DataStore.add('reviews', { period: todayStr(), stats: payload, summary: txt });
+    try {
+      DataStore.add('reviews', { period: todayStr(), stats: payload, summary: txt });
+    } catch (e) {
+      toast('复盘已生成，但保存到历史失败：' + e.message);
+    }
     renderHist();
-  } catch(e){ toast('复盘失败：'+e.message.slice(0,80)); }
-  btn.disabled=false; btn.textContent='✨ 生成本期复盘';
+  } catch(e){ toast('复盘失败：'+String(e && e.message || e).slice(0,80)); }
+  finally { btn.disabled=false; btn.textContent='✨ 生成本期复盘'; }
 }
 
 /* ---------- 历史复盘 ---------- */
 function renderHist(){
   var rs = DataStore.list('reviews').slice().reverse();
   $('hist').innerHTML = rs.length ? rs.map(function(r){
-    var oneLine = (r.summary||'').split('\n').filter(Boolean)[0] || '';
-    return '<div class="ft-card hist"><div class="when">'+esc(r.period)
-      + ' · 线索 '+r.stats.leads+' · 触达 '+r.stats.touch+' · 完成率 '+r.stats.todoRate+'</div>'
+    r = r || {};
+    var st = (r.stats && typeof r.stats === 'object') ? r.stats : {};
+    var oneLine = String(r.summary||'').split('\n').filter(Boolean)[0] || '';
+    var period = r.period || '（未记录日期）';
+    var rid = String(r.id || '');
+    var canDelete = /^[A-Za-z0-9_.:-]{1,120}$/.test(rid);
+    function num(v){ return v == null || v === '' ? '—' : esc(v); }
+    return '<div class="ft-card hist"><div class="when">'+esc(period)
+      + ' · 线索 '+num(st.leads)+' · 触达 '+num(st.touch)+' · 完成率 '+(st.todoRate == null ? '—' : esc(st.todoRate)+'%')+'</div>'
       + '<div class="sum">'+esc(oneLine.slice(0,80))+(oneLine.length>80?'…':'')+'</div>'
       + '<div style="margin-top:6px"><button class="iconbtn" onclick="this.closest(\'.hist\').querySelector(\'.full\').style.display=this.closest(\'.hist\').querySelector(\'.full\').style.display===\'none\'?\'block\':\'none\'">展开全文</button>'
-      + '<button class="iconbtn" onclick="DataStore.remove(\'reviews\',\''+r.id+'\');renderHist()" aria-label="删除">🗑</button></div>'
-      + '<div class="ft-ai-output full" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.8;white-space:pre-wrap">'+esc(r.summary)+'</div></div>';
+      + (canDelete ? '<button class="iconbtn" onclick="delReview(\''+rid+'\')" aria-label="删除">🗑</button>' : '')
+      + '</div><div class="ft-ai-output full" style="display:none;margin-top:8px;padding:10px 12px;border-radius:8px;font-size:13px;line-height:1.8;white-space:pre-wrap">'+esc(r.summary||'')+'</div></div>';
   }).join('') : '<div class="empty">还没有复盘记录，点上方「生成本期复盘」开始</div>';
+}
+function delReview(id){
+  if (!id) { toast('这条旧记录缺少 id，无法删除'); return; }
+  try { DataStore.remove('reviews', id); renderHist(); }
+  catch (e) { toast('删除失败：' + e.message); }
 }
 
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
