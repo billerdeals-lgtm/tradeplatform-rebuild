@@ -222,6 +222,7 @@
       <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin:6px 0 12px">先去找客户，或手工录入第一条线索。数据只保存你自己的浏览器里。</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="ft-btn-primary" onclick="go('modules/find.html')">🔍 去找客户</button>
+        <button class="ft-btn-primary" onclick="go('modules/leads.html?import=1')">⬆ 导入客户 CSV</button>
         <button class="ft-btn-primary" onclick="go('modules/leads.html')">＋ 录入线索</button>
       </div>
     </div>
@@ -263,7 +264,7 @@
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261103b';
+var MODULE_V = '20261103c';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;

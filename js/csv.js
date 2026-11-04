@@ -23,7 +23,11 @@
   /* 表头别名：顺序有意义，先匹配到的字段先占位 */
   var ALIASES = {
     name: ['name', 'company', 'companyname', 'customername', 'customer', 'buyer', 'client',
-      '客户', '客户名', '客户名称', '公司', '公司名', '公司名称', '企业', '企业名称', '买家', '买方'],
+      'nameofcompany', 'accountname', 'organization', 'organisation', 'firm',
+      '客户', '客户名', '客户名称', '公司', '公司名', '公司名称', '企业', '企业名称', '买家', '买方',
+      /* 外部表格（阿里国际站/展会名录/海关数据）常见的公司名列叫法 */
+      '公司英文名', '公司中文名', '英文名', '中文名', '客户公司', '公司全称', '企业名', '企业全称',
+      '单位名称', '商户名称', '客户公司名', '公司简称', 'buyercompany', 'companyenglishname'],
     country: ['country', 'nation', '国家', '国家地区', '所在国家', '地区'],
     market: ['market', 'region', '市场', '区域', '目标市场'],
     stage: ['stage', 'status', '阶段', '状态', '进度', '客户阶段'],

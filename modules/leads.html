@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="../assets/tokens.css?v=3">
 <script src="../agnes-ai.js?v=10"></script>
 <script src="../js/datastore.js?v=3"></script>
-<script src="../js/csv.js?v=3"></script>
+<script src="../js/csv.js?v=4"></script>
 <style>
   /* FT Compass 视觉体系（tokens.css 为准）：翡翠绿 / 琥珀 AI 规范 / 米白纸面 */
   * { box-sizing: border-box; margin: 0; }
@@ -108,7 +108,7 @@
       <option>试样</option><option>报价</option><option>成交</option>
     </select>
     <button class="btn" onclick="openEdit()">＋ 添加线索</button>
-    <button class="btn ghost" onclick="pickCsv()">⬆ 导入 CSV</button>
+    <button class="btn ghost" id="btnPickCsv" onclick="pickCsv()">⬆ 导入 CSV</button>
     <button class="btn ghost" onclick="exportCsv()">导出 CSV</button>
   </div>
   <input type="file" id="csvFile" accept=".csv,.txt,.xlsx,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none" onchange="readCsv(this)">
@@ -180,6 +180,11 @@
   <div class="modal" style="width:760px">
     <h3 id="impTitle">导入客户 CSV</h3>
     <div id="impSummary" class="inote">正在读取…</div>
+    <div id="impMapRow" style="display:none;margin-top:10px">
+      <label for="impNameCol">客户名列（必选）</label>
+      <select id="impNameCol" onchange="remapImport()"></select>
+      <div class="inote" id="impMapHint" style="margin-top:6px"></div>
+    </div>
     <div id="impTable"></div>
     <div id="impWarn" class="iwarn"></div>
     <div class="iradio" id="impMode">
@@ -213,7 +218,7 @@
 
 var STAGES = ['待开发', '已联系', '试样', '报价', '成交'];
 var PAGE_SIZE = 100;
-var S = { leads: [], editId: null, touchId: null, touchMode: 'mail', lastOut: '', page: 1, importData: null };
+var S = { leads: [], editId: null, touchId: null, touchMode: 'mail', lastOut: '', page: 1, importData: null, importRaw: null };
 
 function load() {
   S.leads = DataStore.list('leads');
@@ -571,34 +576,75 @@ function prepareImportRows(rows, encoding, filename) {
   if (rows.length > IMPORT_MAX + 1) { alert('单次最多导入 ' + IMPORT_MAX + ' 条，请拆分文件'); return; }
   var headerInfo = FTCsv.findHeaderRow(rows, 10);
   var headerRow = headerInfo.index;
-  var header = rows[headerRow];
-  var mapping = headerInfo.mapping;
-  var res = FTCsv.toLeads(rows.slice(headerRow + 1), mapping, { headerRow: headerRow });
+  var header = rows[headerRow] || [];
+  S.importRaw = {
+    rows: rows, headerRow: headerRow, header: header,
+    auto: headerInfo.mapping || {}, encoding: encoding, filename: filename
+  };
+  /* 客户名列做成下拉：外部表格的列名千奇百怪（公司英文名/企业全称/Account…），
+     自动识别不到时必须让用户自己指一列，否则会变成一个点不动的死按钮。 */
+  var sel = document.getElementById('impNameCol');
+  sel.innerHTML = '<option value="">（请选择客户名列）</option>'
+    + header.map(function (h, i) {
+      var label = String(h == null ? '' : h).trim();
+      return '<option value="' + i + '">' + (i + 1) + '. ' + esc(label.slice(0, 40) || '（空列）') + '</option>';
+    }).join('');
+  if (S.importRaw.auto.name != null) sel.value = String(S.importRaw.auto.name);
+  document.getElementById('impMapRow').style.display = '';
+  applyImportMapping();
+  show('mImport');
+}
+function remapImport() { applyImportMapping(); }
+
+/* 用当前选择的客户名列重新生成预览与导入数据 */
+function applyImportMapping() {
+  var raw = S.importRaw;
+  if (!raw) return;
+  var sel = document.getElementById('impNameCol');
+  var pick = sel && sel.value !== '' ? parseInt(sel.value, 10) : -1;
+  var manual = isFinite(pick) && pick >= 0;
+
+  var mapping = {};
+  Object.keys(raw.auto || {}).forEach(function (k) { mapping[k] = raw.auto[k]; });
+  if (manual) {
+    /* 手工指定的列就是客户名，避免同一列又被当成国家/邮箱等字段 */
+    Object.keys(mapping).forEach(function (k) { if (mapping[k] === pick) delete mapping[k]; });
+    mapping.name = pick;
+  }
+
+  var res = FTCsv.toLeads(raw.rows.slice(raw.headerRow + 1), mapping, { headerRow: raw.headerRow });
   var existing = {};
-  S.leads.forEach(function (l) { var k = FTCsv.dedupeKey(l); if (k) existing[k] = true; });
+  (S.leads || []).forEach(function (l) { var k = FTCsv.dedupeKey(l); if (k) existing[k] = true; });
   var dupExisting = 0;
   res.records.forEach(function (r) { var k = FTCsv.dedupeKey(r); if (k && existing[k]) dupExisting++; });
 
   S.importData = {
     records: res.records, invalid: res.invalid, dupFile: res.duplicateInFile,
-    dupExisting: dupExisting, errors: res.errors, encoding: encoding,
-    filename: filename, mapping: mapping
+    dupExisting: dupExisting, errors: res.errors, encoding: raw.encoding,
+    filename: raw.filename, mapping: mapping
   };
 
   var cols = Object.keys(mapping).map(function (k) { return FIELD_LABEL[k] || k; }).join('、');
   document.getElementById('impSummary').innerHTML =
-    '<b>' + esc(filename) + '</b> · ' + esc(encoding) + '<br>'
+    '<b>' + esc(raw.filename) + '</b> · ' + esc(raw.encoding) + '<br>'
     + '识别到 ' + Object.keys(mapping).length + ' 列：' + esc(cols || '无') + '<br>'
-    + '数据 ' + (rows.length - headerRow - 1) + ' 行 · 有效 <b>' + res.records.length + '</b> 条'
-    + (headerRow > 0 ? ' · 表头在第 ' + (headerRow + 1) + ' 行' : '')
+    + '数据 ' + (raw.rows.length - raw.headerRow - 1) + ' 行 · 有效 <b>' + res.records.length + '</b> 条'
+    + (raw.headerRow > 0 ? ' · 表头在第 ' + (raw.headerRow + 1) + ' 行' : '')
     + (res.duplicateInFile ? ' · 文件内重复 ' + res.duplicateInFile + ' 条' : '')
     + (res.invalid ? ' · 缺少客户名 ' + res.invalid + ' 条' : '')
     + (dupExisting ? ' · 与现有客户重复 <b>' + dupExisting + '</b> 条' : '');
+
+  var hint = '';
+  if (mapping.name == null) hint = '⚠ 没有识别到客户名列，请在上方下拉里指定一列，否则无法导入。';
+  else if (manual && raw.auto.name == null) hint = '原表的列名没有自动对上，已按你选择的第 ' + (pick + 1) + ' 列作为客户名。';
+  document.getElementById('impMapHint').textContent = hint;
+
   document.getElementById('impTable').innerHTML = previewTable(res.records.slice(0, 5));
   document.getElementById('impWarn').innerHTML = res.errors.length
     ? res.errors.map(function (e) { return '第 ' + e.row + ' 行：' + esc(e.msg); }).join('<br>') : '';
-  document.getElementById('btnImport').disabled = !res.records.length || mapping.name == null;
-  show('mImport');
+  var btn = document.getElementById('btnImport');
+  btn.disabled = !res.records.length;
+  btn.textContent = res.records.length ? '✅ 开始导入 ' + res.records.length + ' 条' : '✅ 开始导入';
 }
 function previewTable(records) {
   if (!records.length) return '<div class="iwarn">没有可预览的数据</div>';
@@ -641,8 +687,15 @@ function doImport() {
   S.leads = DataStore.list('leads');
   S.page = 1;
   hide('mImport');
+  /* 导入后必须把搜索/阶段筛选复位：否则新客户会被当前的筛选条件挡住，
+     看上去就像“导入没成功”。 */
+  var qEl = document.getElementById('q'); if (qEl) qEl.value = '';
+  var fEl = document.getElementById('fStage'); if (fEl) fEl.value = '';
   render();
-  toast('导入完成：新增 ' + add.length + ' 条' + (skipDup ? '，跳过重复 ' + skipDup + ' 条' : ''));
+  var listEl = document.getElementById('list');
+  if (listEl && listEl.scrollIntoView) listEl.scrollIntoView({ block: 'start' });
+  toast('导入完成：新增 ' + add.length + ' 条，已在下方列表第 1 页'
+    + (skipDup ? '（跳过重复 ' + skipDup + ' 条）' : ''));
 }
 function downloadTemplate() {
   var a = document.createElement('a');
@@ -669,6 +722,24 @@ function exportCsv() {
 }
 
 load(); render();
+/* 首页空态的「导入客户 CSV」带 ?import=1 进来：
+   先尝试直接打开文件选择；浏览器若因为缺少用户手势拦截，就高亮按钮把人引过去。 */
+try {
+  if (/[?&]import=1\b/.test(location.search)) {
+    var pb = document.getElementById('btnPickCsv');
+    if (pb) {
+      setTimeout(function () {
+        try { pickCsv(); } catch (e) {}
+        try {
+          pb.scrollIntoView({ block: 'center' });
+          pb.focus();
+          pb.style.outline = '3px solid #ffc53d';
+          setTimeout(function () { pb.style.outline = ''; }, 3000);
+        } catch (e) {}
+      }, 300);
+    }
+  }
+} catch (e) {}
 </script>
 </body>
 </html>

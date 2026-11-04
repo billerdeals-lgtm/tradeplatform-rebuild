@@ -101,6 +101,30 @@ check('FTCsv 已导出', !!C);
   const r = C.toLeads(rows.slice(h.index + 1), h.mapping, { headerRow: h.index });
   check('表头行-数据正确', r.records.length === 1 && r.records[0].name === 'Acme');
 }
+{
+  /* 外部表格（阿里/展会名录/海关数据）常见列名 */
+  const cases = [
+    ['公司英文名', '联系人', '电话', '邮箱', '国家'],
+    ['企业全称', '联系人', '手机', '邮箱', '国家'],
+    ['Account Name', 'Country', 'Email'],
+    ['Organization', 'Nation', 'E-mail']
+  ];
+  cases.forEach(function (h) {
+    const m = C.detectMapping(h);
+    check('外部列名-客户名可识别: ' + h[0], m.name === 0, JSON.stringify(m));
+  });
+  const r = C.toLeads([['ACME IMPORTS LTD', 'Bob', '+1 555 0100', 'bob@acme.com', 'USA']],
+    C.detectMapping(cases[0]));
+  check('外部列名-导入记录正确', r.records.length === 1 && r.records[0].name === 'ACME IMPORTS LTD'
+    && r.records[0].email === 'bob@acme.com' && r.records[0].country === 'USA', JSON.stringify(r.records));
+}
+{
+  /* 完全对不上的表头：必须返回明确错误，让 UI 提示用户手选列 */
+  const m = C.detectMapping(['字段一', '字段二', '字段三']);
+  check('未知表头-识别不到客户名', m.name == null, JSON.stringify(m));
+  const r = C.toLeads([['x', 'y', 'z']], m);
+  check('未知表头-返回可读错误', r.records.length === 0 && /客户名|公司名/.test(r.errors[0].msg), JSON.stringify(r.errors));
+}
 
 /* ---------- 4. 行清洗 ---------- */
 {
