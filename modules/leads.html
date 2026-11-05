@@ -431,10 +431,10 @@ function delLead(id) {
   render();
 }
 /* 删除线索时保留业务记录，只解除关联：
-   待办/报价/竞品/触达里的客户名不丢，也不会再出现点不动的悬空 leadId。 */
+   待办/报价/竞品/触达/单证里的客户名不丢，也不会再出现点不动的悬空 leadId。 */
 function unlinkLeadRefs(id) {
   var failed = [];
-  ['todos', 'quotes', 'comps', 'outreach'].forEach(function (name) {
+  ['todos', 'quotes', 'comps', 'outreach', 'docs'].forEach(function (name) {
     try {
       var arr = DataStore.list(name);
       var hit = false;

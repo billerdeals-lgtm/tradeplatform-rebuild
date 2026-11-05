@@ -218,6 +218,8 @@
 var current = DOCS_DEF[2]; // 默认 PI
 var values = {};           // 字段值（共享+专有）
 var editingSavedId = null;
+var currentLeadId = '';   // 当前单证来源线索（保存时落库，客户 360 用它精确匹配）
+var currentLeadName = ''; // 线索删除后仍保留客户名，单证夹里可读
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -242,9 +244,42 @@ function renderList(){
   $('doclist').innerHTML = html;
 }
 function pick(id){
-  current = DOCS_DEF.find(function(d){ return d.id===id; });
-  editingSavedId = null; $('aiOut').style.display='none'; gateRan=false;
+  var same = current && current.id === id;
+  current = DOCS_DEF.find(function(d){ return d.id===id; }) || current;
+  if (!same){
+    /* 切换单证类型时：同一客户已存过这个类型，就直接打开那张，
+       否则用当前共享字段新建一张。避免「切走再切回来保存」生成重复单证。 */
+    var saved = findSavedForCurrentCustomer(id);
+    if (saved){
+      editingSavedId = saved.id;
+      values = saved.values || {};
+      currentLeadId = saved.leadId || currentLeadId;
+      currentLeadName = saved.leadName || (saved.values && saved.values.buyer) || currentLeadName;
+    } else {
+      editingSavedId = null;
+    }
+  }
+  $('aiOut').style.display='none'; gateRan=false;
   renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
+}
+/* 同一客户（优先 leadId，其次买方名）已经存过的同类单证 */
+function findSavedForCurrentCustomer(docId){
+  var wantLead = currentLeadId || '';
+  var wantBuyer = String(values.buyer || '').trim().toLowerCase();
+  var hits = DataStore.list('docs').filter(function(d){
+    if (d.docId !== docId) return false;
+    if (wantLead){
+      if (d.leadId === wantLead) return true;
+      if (d.leadId) return false;
+    }
+    var b = String((d.values && d.values.buyer) || '').trim().toLowerCase();
+    return !!wantBuyer && b === wantBuyer;
+  });
+  if (!hits.length) return null;
+  hits.sort(function(a, b){
+    return String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || ''));
+  });
+  return hits[0];
 }
 
 /* ---------- 单据链：面包屑 + 链式派生 ---------- */
@@ -315,7 +350,10 @@ function deriveNext(){
 
   // 5) 若当前源单已保存，确保血缘可回溯（保存源单最新值）
   if (editingSavedId){
-    DataStore.update('docs', editingSavedId, { docId: current.id, docTitle: current.title, values: values });
+    DataStore.update('docs', editingSavedId, {
+      docId: current.id, docTitle: current.title, values: values,
+      leadId: currentLeadId || '', leadName: currentLeadName || values.buyer || ''
+    });
   }
 
   // 6) 切换到目标单
@@ -340,6 +378,8 @@ function deriveFromSaved(id){
   // 载入源单
   editingSavedId = id;
   values = d.values || {};
+  currentLeadId = d.leadId || '';
+  currentLeadName = d.leadName || (d.values && d.values.buyer) || '';
   current = DOCS_DEF.find(function(x){ return x.id === d.docId; }) || current;
   gateRan = false;
   renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
@@ -604,25 +644,33 @@ function printPaper(){
 /* ---------- 保存 / 单证夹 ---------- */
 function saveDoc(){
   var rec = editingSavedId ? DataStore.get('docs', editingSavedId) : null;
+  var payload = {
+    docId: current.id, docTitle: current.title, values: values,
+    leadId: currentLeadId || '',
+    leadName: currentLeadName || values.buyer || ''
+  };
   if (rec){
-    DataStore.update('docs', editingSavedId, { docId:current.id, docTitle:current.title, values:values });
+    DataStore.update('docs', editingSavedId, payload);
   } else {
-    var added = DataStore.add('docs', { docId:current.id, docTitle:current.title, values:values });
+    var added = DataStore.add('docs', payload);
     editingSavedId = added.id;
   }
   toast('已保存到单证夹');
 }
-function clearForm(){ values={}; editingSavedId=null; gateRan=false; $('aiOut').style.display='none'; $('gateBox').innerHTML=''; renderList(); renderChain(); renderForm(); renderPaper(); }
+function clearForm(){ values={}; editingSavedId=null; currentLeadId=''; currentLeadName=''; gateRan=false; $('aiOut').style.display='none'; $('gateBox').innerHTML=''; renderList(); renderChain(); renderForm(); renderPaper(); }
 function renderSaved(){
   var docs = DataStore.list('docs');
   $('savedList').innerHTML = docs.length ? docs.map(function(d){
     var chIdx = DOC_CHAIN.indexOf(d.docId);
     var canDerive = chIdx >= 0 && chIdx < DOC_CHAIN.length - 1;
+    var dv = d.values || {};
+    var who = dv.buyer || d.leadName || '—';
+    var leadMark = d.leadId ? '👤 ' : '';
     return '<div class="ft-card" style="padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px">'
       + '<div style="flex:1"><b style="font-size:13px">'+esc(d.docTitle)+'</b>'
-      + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(d.values.no||'—')+' · '+esc(d.values.buyer||'—')+' · '+esc((d.updatedAt||d.createdAt||'').slice(0,10))
+      + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(dv.no||'—')+' · '+leadMark+esc(who)+' · '+esc((d.updatedAt||d.createdAt||'').slice(0,10))
       + (d.aiCheck?' · <span style="color:'+(d.aiCheck.ok?'var(--ok-text)':'var(--danger-text)')+'">AI 校验'+(d.aiCheck.ok?'通过':'有问题')+'</span>':'')
-      + ((d.values||{}).derivedFrom?' · <span style="color:var(--brand-700)">⛓ 派生</span>':'')+'</div></div>'
+      + (dv.derivedFrom?' · <span style="color:var(--brand-700)">⛓ 派生</span>':'')+'</div></div>'
       + (canDerive?'<button class="iconbtn" onclick="deriveFromSaved(\''+d.id+'\')" title="从此单派生下一环">⛓ 派生</button>':'')
       + '<button class="iconbtn" onclick="loadSaved(\''+d.id+'\')">打开</button>'
       + '<button class="iconbtn" onclick="delSaved(\''+d.id+'\')" aria-label="删除">🗑</button></div>';
@@ -641,6 +689,8 @@ function delSaved(id){
 function loadSaved(id){
   var d = DataStore.get('docs', id); if(!d) return;
   editingSavedId = id; values = d.values||{};
+  currentLeadId = d.leadId || '';
+  currentLeadName = d.leadName || (d.values && d.values.buyer) || '';
   current = DOCS_DEF.find(function(x){ return x.id===d.docId; }) || current;
   gateRan = false;
   dlgSaved.close(); renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
@@ -661,9 +711,20 @@ function importLead(){
 function doImport(){
   var l = DataStore.get('leads', $('impLead').value);
   if (!l){ dlgImport.close(); return; }
-  values.buyer = values.buyer || l.name;
+  /* leadId 与买方名必须指向同一个人：换客户时先确认，避免单证串到别的线索 */
+  var buyerChanged = !!(values.buyer && l.name && values.buyer !== l.name);
+  if (buyerChanged){
+    if (!confirm('当前买方是「'+values.buyer+'」，要替换为「'+l.name+'」吗？')) return;
+  }
+  /* 换客户后另存新单，否则会把上一位客户的已存单证覆盖掉 */
+  if (editingSavedId && (buyerChanged || (currentLeadId && currentLeadId !== l.id))){
+    editingSavedId = null;
+  }
+  values.buyer = l.name || values.buyer;
   values.buyerAddr = values.buyerAddr || (l.addr || l.country || '');
   values.product = values.product || l.product || '';
+  currentLeadId = l.id;
+  currentLeadName = l.name || '';
 
   /* 俄语演示线索：补齐一套可直接导出的示例数据，并把单据语言切到俄语 */
   var demoRu = l.demo === 'ru';

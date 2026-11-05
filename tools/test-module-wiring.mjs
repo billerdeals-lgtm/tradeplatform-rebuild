@@ -51,10 +51,18 @@ ok('单证夹不再内联 DataStore.remove', !/onclick="DataStore\.remove\('docs
 
 /* 6. 删除线索只解除关联，不删业务记录 */
 ok('删除线索调用 unlinkLeadRefs', /unlinkLeadRefs\(id\);/.test(leads));
-ok('解除关联覆盖 todos/quotes/comps/outreach', /\['todos', 'quotes', 'comps', 'outreach'\]/.test(leads));
+ok('解除关联覆盖 todos/quotes/comps/outreach/docs', /\['todos', 'quotes', 'comps', 'outreach', 'docs'\]/.test(leads));
 ok('解除关联只清 leadId', /x\.leadId = ''/.test(leads));
 
-/* 7. 旧报价的已删线索不被静默清空 */
+/* 7. 单证闭环：切换同类型不再重复新建，leadId 随单保存 */
+ok('单证切换先查找同客户已存单', /var saved = findSavedForCurrentCustomer\(id\)/.test(docs));
+ok('单证保存写入 leadId', /leadId: currentLeadId \|\| ''/.test(docs));
+ok('从线索带入记录 leadId', /currentLeadId = l\.id/.test(docs));
+ok('打开已存单恢复 leadId', /currentLeadId = d\.leadId/.test(docs));
+ok('单证夹显示客户关联标记', /leadMark = d\.leadId/.test(docs));
+ok('换客户导入不覆盖原单', /换客户后另存新单/.test(docs) && /editingSavedId = null;/.test(docs.slice(docs.indexOf('function doImport'), docs.indexOf('/* ---------- 初始化'))));
+
+/* 8. 旧报价的已删线索不被静默清空 */
 ok('打开旧报价补「线索已删除」选项', /线索已删除/.test(quotes) && /appendChild\(orphanOpt\)/.test(quotes));
 ok('保存报价保留原 leadName', /prev && prev\.leadId === lid/.test(quotes));
 
