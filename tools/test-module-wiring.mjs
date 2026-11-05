@@ -86,5 +86,13 @@ ok('客户 360 触达只统计已发送', /sentOutreach = outreach\.filter/.test
 ok('客户 360 草稿与已发送分开展示', /sent\?'已发送':'草稿'/.test(c360));
 ok('DataStore 提供统一已发送判定', /outreachSent: function/.test(datastore));
 
+/* 10. 数据安全：损坏不静默、写入锁定、备份保留原文 */
+ok('DataStore 区分空数据与损坏', /safe\.__corrupt = true/.test(datastore));
+ok('损坏集合锁定 saveAll', /saveAll: function[\s\S]{0,120}isCorrupt\(name\)[\s\S]{0,80}throw corruptLockError/.test(datastore));
+ok('DataStore 提供原文读取与恢复', /readRaw: function/.test(datastore) && /recover: function/.test(datastore));
+ok('备份保留损坏原文', /data\._corrupt\[name\]/.test(read('index.html')));
+ok('恢复前自动备份当前数据', /backupAll\(true, '恢复备份'\)/.test(read('index.html')));
+ok('备份逾期检测读取原始数据', /DataStore\.readRaw\(name\)/.test(read('index.html')));
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

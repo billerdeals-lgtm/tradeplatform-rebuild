@@ -66,5 +66,45 @@ ok('旧 AI 记录视为草稿', ds.outreachSent({ type: 'ai_rewrite' }) === fals
 ok('旧人工记录视为已发送', ds.outreachSent({ type: 'mail' }) === true);
 ok('空记录不算已发送', ds.outreachSent(null) === false);
 
+/* 7. 损坏数据：不静默当空集合、保留原文、锁定写入 */
+const e = makeStore({ ftc_leads_v1: '{bad json' });
+const badList = e.DataStore.list('leads');
+ok('损坏集合返回带标记的空数组', Array.isArray(badList) && badList.length === 0 && badList.__corrupt === true);
+ok('损坏原文自动留底', !!e.map.get('ftc_leads_v1__corrupt'));
+ok('损坏集合锁定 saveAll', (() => {
+  try { e.DataStore.saveAll('leads', []); return false; }
+  catch (err) { return err.code === 'CORRUPT_LOCK'; }
+})());
+ok('损坏集合锁定 add', (() => {
+  try { e.DataStore.add('leads', { name: 'x' }); return false; }
+  catch (err) { return err.code === 'CORRUPT_LOCK'; }
+})());
+ok('备份包含损坏原文', !!e.DataStore.exportAll()._corrupt.leads.raw);
+ok('recover 后恢复写入', (() => {
+  const raw = e.DataStore.recover('leads');
+  e.DataStore.saveAll('leads', [{ id: 'l1' }]);
+  return raw === '{bad json' && e.DataStore.list('leads').length === 1 && e.DataStore.corruptions().length === 0;
+})());
+
+/* 8. 合法 JSON 但不是数组，也按损坏处理 */
+const f = makeStore({ ftc_quotes_v1: '{"a":1}' });
+ok('非数组集合视为损坏', f.DataStore.list('quotes').__corrupt === true);
+ok('非数组集合不覆盖原值', f.map.get('ftc_quotes_v1') === '{"a":1}');
+
+/* 9. 没先 list 直接 saveAll，也不能覆盖损坏原文 */
+const g = makeStore({ ftc_docs_v1: 'not json' });
+ok('直接 saveAll 也被锁定', (() => {
+  try { g.DataStore.saveAll('docs', []); return false; }
+  catch (err) { return err.code === 'CORRUPT_LOCK' && g.map.get('ftc_docs_v1') === 'not json'; }
+})());
+
+/* 10. 配置损坏时也不能被默认值悄悄覆盖 */
+const h = makeStore({ ftc_cfg_v1: '[1,2]' });
+ok('cfg 非对象视为损坏', h.DataStore.getCfg() && h.DataStore.isCorrupt('cfg'));
+ok('cfg 损坏锁定 setCfg', (() => {
+  try { h.DataStore.setCfg({ key: 'x' }); return false; }
+  catch (err) { return err.code === 'CORRUPT_LOCK'; }
+})());
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

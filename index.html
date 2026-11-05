@@ -257,14 +257,14 @@
 </dialog>
 
 <script src="agnes-ai.js?v=10"></script>
-<script src="js/datastore.js?v=4"></script>
+<script src="js/datastore.js?v=5"></script>
 <script src="js/license.js?v=3"></script>
 <script src="assets/a11y.js?v=2"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261103g';
+var MODULE_V = '20261103h';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -453,9 +453,6 @@ var COLL_LABEL = {
   reviews:'复盘', comps:'竞品', profile:'资料', products:'商品', searches:'搜索历史',
   calculations:'计算历史', cfg:'配置'
 };
-function readRaw(lsKey){
-  try { return JSON.parse(localStorage.getItem(lsKey)); } catch(e){ return null; }
-}
 /* ---------- 备份逾期提醒 ----------
    本地存储唯一的真实死法是“忘了备份”。记录上次备份时间，
    有业务数据且从未备份 / 超过 BACKUP_DAYS 天时在内容区顶部提示。 */
@@ -472,9 +469,12 @@ function backupAgeDays(){
 }
 function backupHasData(){
   /* 覆盖全部业务数据类：只维护复盘 / 触达 / 客户资料 / 搜索历史的用户也要收到提醒。
-     profile 也是数组（单条记录），统一按数组长度判断。 */
+     profile 也是数组（单条记录），统一按数组长度判断。
+     损坏的集合也算「有数据」：不能让提醒条误以为本地是空的。 */
   return ['leads','todos','outreach','quotes','docs','reviews','comps','profile','products','searches','calculations'].some(function(name){
-    var arr = readRaw(DataStore.KEYS[name]);
+    var r = DataStore.readRaw(name);
+    if (!r.ok) return !!(r.raw && r.raw !== 'null');
+    var arr = r.value;
     if (Array.isArray(arr)) return arr.length > 0;
     if (arr && typeof arr === 'object') return Object.keys(arr).length > 0;
     return arr != null && arr !== '';
@@ -487,6 +487,7 @@ function setBackupBar(show){
   $('content').classList.toggle('has-banner', show);
 }
 function refreshBackupBar(){
+  DataStore.getCfg(); /* 顺带体检 cfg：损坏时同样弹隔离提示条 */
   var snoozed = false;
   try { snoozed = sessionStorage.getItem(BACKUP_SNOOZE_KEY) === '1'; } catch(e){}
   var days = backupAgeDays();
@@ -510,11 +511,22 @@ function openLicense(){
   if (typeof License !== 'undefined' && License.showLock) { License.showLock('manual'); return; }
   alert('授权模块没加载成功，请按 Ctrl+F5 强制刷新页面后重试。');
 }
-function backupAll(){
+function backupAll(auto, reason){
   var keys = DataStore.KEYS;
-  var data = {}, counts = {};
+  var data = {}, counts = {}, corrupts = 0;
+  var badAt = {};
+  DataStore.corruptions().forEach(function(c){ badAt[c.name] = c.at; });
   Object.keys(keys).forEach(function(name){
-    var raw = readRaw(keys[name]);
+    var r = DataStore.readRaw(name);
+    if (!r.ok){
+      /* 损坏集合绝不能写成空数组，否则备份/恢复会把原始内容永久抹掉。
+         原文放进 _corrupt，恢复时明确跳过并提示。 */
+      data._corrupt = data._corrupt || {};
+      data._corrupt[name] = { at: badAt[name] || new Date().toISOString(), raw: r.raw };
+      counts[name] = 0; corrupts++;
+      return;
+    }
+    var raw = r.value;
     if (raw === null || raw === undefined){
       data[name] = (name === 'cfg') ? {} : [];
       counts[name] = 0;
@@ -530,7 +542,8 @@ function backupAll(){
     version: 2,
     exportedAt: new Date().toISOString(),
     keys: Object.keys(keys),
-    counts: counts
+    counts: counts,
+    corrupt: corrupts
   };
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 1)], {type:'application/json'}));
@@ -538,15 +551,23 @@ function backupAll(){
   document.body.appendChild(a);
   a.click();
   setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
-  var parts = Object.keys(counts).map(function(n){ return (COLL_LABEL[n]||n)+' '+counts[n]; });
-  toast('完整备份已下载（v2）：'+parts.join('、'));
+  if (auto){
+    toast('已自动备份当前数据（' + (reason || '操作') + '前）');
+  } else {
+    var parts = Object.keys(counts).map(function(n){ return (COLL_LABEL[n]||n)+' '+counts[n]; });
+    toast('完整备份已下载（v2）：'+parts.join('、') + (corrupts ? '；另有 '+corrupts+' 类损坏数据已原样保存' : ''));
+  }
   markBackedUp();
+  return { corrupts: corrupts };
 }
 function restoreAll(input){
   var f = input.files && input.files[0];
   if (input) input.value = '';
   if (!f) return;
   if (f.size > 20 * 1024 * 1024){ toast('备份文件超过 20MB，已拒绝恢复'); return; }
+  /* 选择文件时仍在用户手势内，先自动备份当前数据：
+     恢复错文件 / 文件不完整时还能找回；移动端也更容易允许这次下载。 */
+  if (backupHasData()) backupAll(true, '恢复备份');
   var reader = new FileReader();
   reader.onerror = function(){ toast('读取备份文件失败，请确认文件未被其他程序占用'); };
   reader.onload = function(){
@@ -587,11 +608,14 @@ function restoreAll(input){
     var ver = (data._meta && (data._meta.schema || ('v'+data._meta.version))) || 'legacy';
     if (!confirm('将覆盖当前数据并写入 '+toRestore.length+' 类 / 共 '+total+' 条（'+ver+'）：\n\n'+summary
       + (skipped ? '\n\n已忽略 '+skipped+' 条格式不正确的记录' : '')
-      + '\n\n建议先点备份留底。继续？')) return;
+      + (data._corrupt ? '\n\n备份内含 '+Object.keys(data._corrupt).length+' 类损坏数据快照，恢复时会跳过。' : '')
+      + '\n\n恢复前会自动下载一份当前完整备份。继续？')) return;
 
     /* 先快照旧值：写一半失败（例如存储空间不足）时回滚，避免留下半套数据 */
     var snapshot = {};
     toRestore.forEach(function(x){ snapshot[x.name] = localStorage.getItem(keys[x.name]); });
+    /* 恢复本身也是修复损坏集合的机会：解除写入锁，原文已在自动备份和 __corrupt 键里 */
+    toRestore.forEach(function(x){ if (DataStore.isCorrupt(x.name)) DataStore.recover(x.name); });
     var written = [];
     try {
       toRestore.forEach(function(x){ DataStore.saveAll(x.name, x.val); written.push(x.name); });
@@ -606,7 +630,7 @@ function restoreAll(input){
       return;
     }
     toast('恢复完成：'+toRestore.length+' 类 / '+total+' 条，正在刷新…');
-    setTimeout(function(){ location.reload(); }, 1200);
+    setTimeout(function(){ location.reload(); }, 1800);
   };
   reader.readAsText(f);
 }
