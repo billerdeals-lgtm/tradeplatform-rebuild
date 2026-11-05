@@ -187,7 +187,7 @@ function render(){
       +     '<button class="iconbtn" onclick="event.stopPropagation();openEdit(\''+t.id+'\')">✎ 编辑</button>'
       +     '<button class="iconbtn" onclick="event.stopPropagation();delTodo(\''+t.id+'\')">🗑 删除</button>'
       +     (lead?'<button class="ft-btn-ai" style="padding:4px 12px;font-size:12px" onclick="event.stopPropagation();aiFollow(\''+t.id+'\')">✨ AI 生成跟进话术</button>':'')
-      +     (lead&&lead.whatsapp?'<button class="iconbtn" onclick="event.stopPropagation();sendWa(\''+t.leadId+'\')">💬 WhatsApp</button>':'')
+      +     (lead&&(lead.wa||lead.whatsapp)?'<button class="iconbtn" onclick="event.stopPropagation();sendWa(\''+t.leadId+'\')">💬 WhatsApp</button>':'')
       +   '</div>'
       + '</div></div>';
   });
@@ -256,17 +256,21 @@ async function aiFollow(todoId){
   try {
     var txt = await AgnesAI.genOutreach(lead, t.title.indexOf('回复')>=0?'跟进回复':'跟进邮件', null);
     $('aiBody').textContent = txt;
+    var wa = String((lead.wa || lead.whatsapp) || '').replace(/[^0-9]/g, '');
     $('aiActions').innerHTML =
       '<button class="iconbtn" onclick="copyText()">📋 复制</button>'
-      +(lead.whatsapp?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+String(lead.whatsapp).replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(txt.split('【中文要点】')[0])+'">💬 WhatsApp 发送</a>':'')
+      +(wa?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+wa+'?text='+encodeURIComponent(txt.split('【中文要点】')[0])+'">💬 WhatsApp 发送</a>':'')
       +(lead.email?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(txt.split('【中文要点】')[0])+'">✉ Gmail</a>':'');
     // 落点：把话术记进触达历史（outreach 模块数据源）
     DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'ai_followup', todoId:todoId, content:txt });
   } catch(e){ $('aiBody').textContent = '生成失败：'+e.message; $('aiActions').innerHTML=''; }
 }
 function copyText(){ navigator.clipboard.writeText($('aiBody').textContent).then(function(){toast('已复制');}); }
-function sendWa(leadId){ var l=DataStore.get('leads',leadId); if(l&&l.whatsapp)
-  window.open('https://wa.me/'+String(l.whatsapp).replace(/[^0-9]/g,''),'_blank'); }
+function sendWa(leadId){
+  var l=DataStore.get('leads',leadId);
+  var wa=l&&(l.wa||l.whatsapp);
+  if(wa) window.open('https://wa.me/'+String(wa).replace(/[^0-9]/g,''),'_blank');
+}
 
 /* ---------- 线索评分 → 待办导入（跨模块联动） ---------- */
 function importFromLeads(){

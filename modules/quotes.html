@@ -261,6 +261,8 @@
 'use strict';
 
 var S = { quotes: [], current: null, editing: false };
+/* 币种符号单一来源：列表按「条目自己的币种」显示，不能用编辑器当前选择 */
+var CUR_SYM = { USD:'$', EUR:'€', CNY:'¥', GBP:'£', AED:'AED', SAR:'SAR' };
 /* AI 估算单价标记：随报价保存，只有点「已核对」才清除 */
 var aiEstimated = false;
 var aiGeneratedAt = '';
@@ -309,6 +311,14 @@ function init() {
     $('q_date').value = today();
     $('q_no').value = genNo();
   }
+  /* 客户 360 的「报价」按钮带 ?lead=id 进来：直接选中客户并预填目的港/产品 */
+  try {
+    var leadId = new URLSearchParams(location.search).get('lead');
+    if (leadId && DataStore.get('leads', leadId)) {
+      $('q_lead').value = leadId;
+      onLeadPick();
+    }
+  } catch (e) {}
 }
 
 function loadLeads() {
@@ -344,14 +354,14 @@ function calcRow(el) {
   var qty = parseFloat(tr.querySelector('.it-qty').value) || 0;
   var price = parseFloat(tr.querySelector('.it-price').value) || 0;
   var cur = v('q_currency');
-  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[cur] || '$';
+  var sym = CUR_SYM[cur] || '$';
   tr.querySelector('.it-amt').textContent = sym + (qty * price).toFixed(2);
   calcTotal();
 }
 function calcTotal() {
   var total = 0;
   var cur = v('q_currency');
-  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[cur] || '$';
+  var sym = CUR_SYM[cur] || '$';
   $('itemsBody').querySelectorAll('tr').forEach(function(tr) {
     var qty = parseFloat(tr.querySelector('.it-qty').value) || 0;
     var price = parseFloat(tr.querySelector('.it-price').value) || 0;
@@ -543,15 +553,17 @@ function renderList() {
 
   var box = $('qlist');
   if (!list.length) { box.innerHTML = '<div class="empty-left">暂无报价记录<br>点击上方按钮新建</div>'; return; }
-  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[v('q_currency') || 'USD'] || '$';
   box.innerHTML = list.map(function(item) {
     var stLabel = {draft:'草稿',sent:'已发送',accepted:'已接受',rejected:'已拒绝',expired:'已过期'}[item.status] || item.status;
     var on = S.current === item.id;
+    var cur = item.currency || 'USD';
+    var sym = CUR_SYM[cur] || cur;
+    var money = (sym === cur ? sym + ' ' : sym) + (item.total || 0).toFixed(2);
     return '<div class="qitem' + (on ? ' on' : '') + '" role="button" tabindex="0"' + (on ? ' aria-current="true"' : '') + ' onclick="loadQuote(\'' + item.id + '\')">'
       + '<div class="qi-top"><span class="qi-no">' + esc(item.no || '未编号') + '</span>'
       + '<span class="qi-status st-' + esc(item.status) + '">' + stLabel + '</span></div>'
       + '<div class="qi-client">' + esc(item.leadName || '未关联线索') + ' · ' + esc(item.product || '') + '</div>'
-      + '<div class="qi-amt">' + sym + (item.total || 0).toFixed(2) + ' ' + esc(item.currency || 'USD')
+      + '<div class="qi-amt">' + money
       + '<span class="qi-date" style="margin-left:8px">' + esc(item.date || '') + '</span></div>'
       + '</div>';
   }).join('');
@@ -701,7 +713,7 @@ function renderPaper() {
   var items = getItems();
   var total = items.reduce(function(s, it){ return s + it.amount; }, 0);
   var cur = v('q_currency');
-  var sym = {USD:'$',EUR:'€',CNY:'¥',GBP:'£',AED:'AED',SAR:'SAR'}[cur] || '$';
+  var sym = CUR_SYM[cur] || '$';
   var lead = v('q_lead') ? DataStore.get('leads', v('q_lead')) : null;
   var rows = items.map(function(it, i) {
     return '<tr><td>' + (i+1) + '</td><td>' + esc(it.name) + (it.spec ? '<br><small>' + esc(it.spec) + '</small>' : '') + '</td>'

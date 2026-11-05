@@ -161,8 +161,9 @@ async function doRewrite(){
     ], {temperature:0.75, maxTokens:800});
     $('aiBody').textContent = txt; $('aiBody').style.display='block';
     var sendBody = txt.split('【中文要点】')[0];
+    var wa = String((lead && (lead.wa || lead.whatsapp)) || '').replace(/[^0-9]/g, '');
     var acts = '<button class="iconbtn" onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>alert(\'已复制\'))" data-t="'+esc(sendBody)+'">📋 复制</button>';
-    if (lead && lead.whatsapp) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+String(lead.whatsapp).replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(sendBody)+'">💬 WhatsApp</a>';
+    if (wa) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+wa+'?text='+encodeURIComponent(sendBody)+'">💬 WhatsApp</a>';
     if (lead && lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(sendBody)+'">✉ Gmail</a>';
     $('aiActions').innerHTML = acts;
     bumpUse(rewriting.n);

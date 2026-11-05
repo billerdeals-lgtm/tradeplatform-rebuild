@@ -176,8 +176,9 @@ async function doGreet(){
     var txt = await AgnesAI.genHolidayGreet(lead, currentHoliday.name + (currentHoliday.en?' ('+currentHoliday.en+')':''));
     $('gOut').style.display='block'; $('gOut').textContent = txt;
     var send = txt.split('【中文翻译】')[0].split('中文翻译')[0];
+    var wa = String((lead.wa || lead.whatsapp) || '').replace(/[^0-9]/g, '');
     var acts = '<button class="iconbtn" onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>alert(\'已复制\'))" data-t="'+esc(send)+'">📋 复制</button>';
-    if (lead.whatsapp) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+String(lead.whatsapp).replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(send)+'">💬 WhatsApp 发送</a>';
+    if (wa) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+wa+'?text='+encodeURIComponent(send)+'">💬 WhatsApp 发送</a>';
     if (lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(send)+'">✉ Gmail</a>';
     $('gActions').innerHTML = acts;
     // 落库：防重复打扰 + 复盘触达量统计

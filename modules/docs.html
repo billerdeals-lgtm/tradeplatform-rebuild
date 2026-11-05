@@ -625,8 +625,18 @@ function renderSaved(){
       + ((d.values||{}).derivedFrom?' · <span style="color:var(--brand-700)">⛓ 派生</span>':'')+'</div></div>'
       + (canDerive?'<button class="iconbtn" onclick="deriveFromSaved(\''+d.id+'\')" title="从此单派生下一环">⛓ 派生</button>':'')
       + '<button class="iconbtn" onclick="loadSaved(\''+d.id+'\')">打开</button>'
-      + '<button class="iconbtn" onclick="DataStore.remove(\'docs\',\''+d.id+'\');renderSaved()" aria-label="删除">🗑</button></div>';
+      + '<button class="iconbtn" onclick="delSaved(\''+d.id+'\')" aria-label="删除">🗑</button></div>';
   }).join('') : '<div style="color:var(--text-3);text-align:center;padding:20px">单证夹是空的</div>';
+}
+function delSaved(id){
+  var d = DataStore.get('docs', id);
+  if (!d) return;
+  var no = d.values && d.values.no ? ' No.' + d.values.no : '';
+  if (!confirm('删除这张单证？\n\n' + (d.docTitle || '单证') + no + '\n删除后不可恢复。')) return;
+  DataStore.remove('docs', id);
+  if (editingSavedId === id){ clearForm(); }
+  renderSaved();
+  toast('已删除');
 }
 function loadSaved(id){
   var d = DataStore.get('docs', id); if(!d) return;

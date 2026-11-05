@@ -266,7 +266,14 @@ function renderDetail() {
   // 收集关联数据
   var quotes = DataStore.list('quotes').filter(function(q){ return q.leadId === l.id; });
   var todos = DataStore.list('todos').filter(function(t){ return t.leadId === l.id; });
-  var docs = DataStore.list('docs').filter(function(d){ return (d.buyer||'').includes(l.name) || (d.leadId === l.id); });
+  /* 单证的客户名存在 d.values.buyer 里（不是顶层 d.buyer）；
+     历史数据没有 leadId，因此按买方名匹配做兼容。 */
+  var leadNameLower = String(l.name || '').toLowerCase();
+  var docs = DataStore.list('docs').filter(function(d){
+    if (d.leadId === l.id) return true;
+    var buyer = String((d.values && d.values.buyer) || '').toLowerCase();
+    return !!leadNameLower && !!buyer && buyer.indexOf(leadNameLower) >= 0;
+  });
   var outreach = DataStore.list('outreach').filter(function(o){ return o.leadId === l.id; });
   var comps = DataStore.list('comps').filter(function(c){ return c.leadId === l.id; });
 
@@ -287,7 +294,7 @@ function renderDetail() {
     + '<div class="quick-actions">'
     +   (l.wa ? '<a class="qa-btn whatsapp" href="https://wa.me/' + esc(l.wa.replace(/\D/g,'')) + '" target="_blank">💬 WhatsApp</a>' : '')
     +   (l.email ? '<a class="qa-btn email" href="mailto:' + esc(l.email) + '">✉ 邮件</a>' : '')
-    +   '<button class="qa-btn quote" onclick="FT.go(\'modules/quotes.html\')">💰 报价</button>'
+    +   '<button class="qa-btn quote" onclick="FT.go(\'modules/quotes.html?lead=' + encodeURIComponent(l.id) + '\')">💰 报价</button>'
     +   '<button class="qa-btn todo" onclick="addTodo()">✅ 加待办</button>'
     + '</div>'
     + '</div>';
@@ -356,9 +363,10 @@ function renderDetail() {
   html += '<div class="tab-content" id="tc-docs" role="tabpanel" aria-labelledby="tab-docs">';
   if (docs.length) {
     docs.forEach(function(d){
+      var dv = d.values || {};
       html += '<div class="linked-item"><span class="li-icon">📄</span><div class="li-info">'
-        + '<div class="li-title">' + esc(d.title||d.type||'单证') + '</div>'
-        + '<div class="li-sub">' + esc(d.date||'') + ' · ' + esc(d.no||'') + '</div>'
+        + '<div class="li-title">' + esc(d.docTitle || d.title || '单证') + '</div>'
+        + '<div class="li-sub">' + esc(dv.date || d.date || '') + ' · No.' + esc(dv.no || d.no || '—') + '</div>'
         + '</div></div>';
     });
   } else { html += '<div class="empty-tab">暂无单证记录</div>'; }
