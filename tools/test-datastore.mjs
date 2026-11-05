@@ -58,5 +58,13 @@ ok('非数组旧键不被误删', d.map.has('undefined'));
 /* 5. 备份集合包含计算历史 */
 ok('exportAll 含 calculations', Array.isArray(d.DataStore.exportAll().calculations));
 
+/* 6. 触达状态：新记录看 status，旧记录按类型兼容 */
+const ds = d.DataStore;
+ok('status=sent 视为已发送', ds.outreachSent({ type: 'ai_followup', status: 'sent' }) === true);
+ok('status=draft 视为草稿', ds.outreachSent({ type: 'mail', status: 'draft' }) === false);
+ok('旧 AI 记录视为草稿', ds.outreachSent({ type: 'ai_rewrite' }) === false);
+ok('旧人工记录视为已发送', ds.outreachSent({ type: 'mail' }) === true);
+ok('空记录不算已发送', ds.outreachSent(null) === false);
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

@@ -151,6 +151,16 @@
       return !!this.update(name, id, clean);
     },
 
+    /** 触达记录是否已真正发送：
+        新记录看 status；旧记录没有 status，按类型兼容（AI 生成类视为草稿，
+        人工补录的邮件/WhatsApp/电话视为已发送），避免升级后统计突然归零。 */
+    outreachSent: function (o) {
+      if (!o) return false;
+      if (o.status === 'sent') return true;
+      if (o.status === 'draft') return false;
+      return ['ai_rewrite', 'ai_followup', 'ai_objection', 'objection', 'holiday'].indexOf(o.type) < 0;
+    },
+
     /** 全量导出（含 AI 字段）→ 供 CSV/JSON 导出 */
     exportAll: function () {
       var out = {}, self = this;

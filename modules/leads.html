@@ -6,7 +6,7 @@
 <title>FT Compass · 外贸线索工作台</title>
 <link rel="stylesheet" href="../assets/tokens.css?v=3">
 <script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=3"></script>
+<script src="../js/datastore.js?v=4"></script>
 <script src="../js/csv.js?v=4"></script>
 <style>
   /* FT Compass 视觉体系（tokens.css 为准）：翡翠绿 / 琥珀 AI 规范 / 米白纸面 */
@@ -130,6 +130,7 @@
       <div><label for="e_email">邮箱</label><input id="e_email" placeholder="buyer@company.com"></div>
       <div><label for="e_product">关注产品</label><input id="e_product" placeholder="prayer pillow"></div>
       <div><label for="e_amount">预估金额 (USD)</label><input id="e_amount" type="number" value="0"></div>
+      <div><label for="e_last">最后联系</label><input id="e_last" type="date"></div>
     </div>
     <label for="e_note">备注</label><textarea id="e_note" placeholder="展会名片 / 等 PI / 嫌贵…"></textarea>
     <div class="mrow">
@@ -218,7 +219,7 @@
 
 var STAGES = ['待开发', '已联系', '试样', '报价', '成交'];
 var PAGE_SIZE = 100;
-var S = { leads: [], editId: null, touchId: null, touchMode: 'mail', lastOut: '', page: 1, importData: null, importRaw: null };
+var S = { leads: [], editId: null, touchId: null, touchMode: 'mail', lastOut: '', lastDraftId: null, page: 1, importData: null, importRaw: null };
 
 function load() {
   S.leads = DataStore.list('leads');
@@ -401,6 +402,7 @@ function openEdit(id) {
   document.getElementById('e_market').value = l.market || '中东';
   document.getElementById('e_stage').value = l.stage || '待开发';
   document.getElementById('e_amount').value = l.amount || 0;
+  document.getElementById('e_last').value = (l.last || '').slice(0, 10);
   show('mEdit');
 }
 function saveEdit() {
@@ -410,13 +412,14 @@ function saveEdit() {
     name: name,
     country: v('e_country'), market: v('e_market'), stage: v('e_stage'),
     wa: v('e_wa'), email: v('e_email'), product: v('e_product'),
-    amount: +v('e_amount') || 0, note: v('e_note')
+    amount: +v('e_amount') || 0, note: v('e_note'),
+    last: v('e_last') || (S.editId ? '' : iso(0))
   };
   if (S.editId) {
     var l = S.leads.find(function (x) { return x.id === S.editId; });
     Object.assign(l, obj); // 编辑不清除已有 AI 评分
   } else {
-    obj.id = uid(); obj.last = iso(0); obj.score = null;
+    obj.id = uid(); if (!obj.last) obj.last = iso(0); obj.score = null;
     S.leads.push(obj);
   }
   if (!save()) return;
@@ -470,7 +473,7 @@ async function aiScore(id, btn) {
 
 /* ---------- AI：触达（开发信 / 回复草稿） ---------- */
 function openTouch(id) {
-  S.touchId = id; S.touchMode = 'mail';
+  S.touchId = id; S.touchMode = 'mail'; S.lastOut = ''; S.lastDraftId = null;
   var l = S.leads.find(function (x) { return x.id === id; });
   document.getElementById('touchTitle').textContent = 'AI 触达：' + l.name + '（' + (l.country || '') + '）';
   document.getElementById('t_out').style.display = 'none';
@@ -480,6 +483,10 @@ function openTouch(id) {
 }
 function touchTab(mode) {
   S.touchMode = mode;
+  S.lastOut = ''; S.lastDraftId = null;
+  document.getElementById('t_out').style.display = 'none';
+  document.getElementById('t_out').textContent = '';
+  document.getElementById('t_sendRow').style.display = 'none';
   document.getElementById('paneMail').style.display = mode === 'mail' ? '' : 'none';
   document.getElementById('paneReply').style.display = mode === 'reply' ? '' : 'none';
   document.getElementById('paneObjection').style.display = mode === 'objection' ? '' : 'none';
@@ -506,37 +513,76 @@ async function genTouch() {
     }
     out.textContent = S.lastOut;
     document.getElementById('t_sendRow').style.display = 'flex';
-    // 落库：触达历史（发送记录模块的数据源）
-    DataStore.add('outreach', { leadId: l.id, leadName: l.name, type: S.touchMode === 'objection' ? 'ai_objection' : S.touchMode, content: S.lastOut });
+    // 落库：先生成「草稿」，真正点发送后才变成「已发送」（发送记录模块按此区分）
+    var draft = { leadId: l.id, leadName: l.name, type: S.touchMode === 'objection' ? 'ai_objection' : S.touchMode, status: 'draft', content: S.lastOut };
+    var prev = S.lastDraftId ? DataStore.get('outreach', S.lastDraftId) : null;
+    if (prev && prev.status !== 'sent') {
+      DataStore.update('outreach', S.lastDraftId, draft);
+    } else {
+      var rec = DataStore.add('outreach', draft);
+      S.lastDraftId = rec.id;
+    }
   } catch (e) { out.textContent = '❌ ' + e.message; }
   btn.disabled = false;
 }
 /* 四通道发送：WhatsApp / Gmail / Outlook / 复制（正文取 AI 输出全文） */
+function outBody() {
+  return String(S.lastOut || '')
+    .replace(/【中文要点】[\s\S]*$/, '')
+    .replace(/【中文翻译】[\s\S]*$/, '')
+    .trim();
+}
 function subjBody() {
-  var body = S.lastOut.replace(/【中文要点】[\s\S]*$/, ''); // 发送时剥掉中文备注段
+  var body = outBody();
   return { su: 'Re: ' + (S.leads.find(function (x) { return x.id === S.touchId; }).product || 'cooperation'), bd: body };
 }
-function sendWa() {
+/* 发送成功后：回写最后联系 + 把草稿标记为已发送 */
+function markSent(channel, body) {
   var l = S.leads.find(function (x) { return x.id === S.touchId; });
-  if (!l.wa) { alert('该线索没有 WhatsApp 号，编辑线索补上'); return; }
-  window.open('https://wa.me/' + l.wa.replace(/[^\d]/g, '') + '?text=' + encodeURIComponent(S.lastOut), '_blank');
+  if (!l) return;
+  l.last = iso(0);
+  var saved = save();
+  var sentAt = new Date().toISOString();
+  var patch = { status: 'sent', channel: channel, content: body || S.lastOut, sentAt: sentAt };
+  try {
+    if (S.lastDraftId && DataStore.get('outreach', S.lastDraftId)) {
+      DataStore.update('outreach', S.lastDraftId, patch);
+    } else {
+      DataStore.add('outreach', {
+        leadId: l.id, leadName: l.name, type: channel === 'wa' ? 'wa' : 'mail',
+        status: 'sent', channel: channel, content: patch.content, sentAt: sentAt
+      });
+    }
+    var label = channel === 'wa' ? 'WhatsApp' : channel === 'gmail' ? 'Gmail' : 'Outlook';
+    toast('已记录：' + label + ' 已发送 · 最后联系更新为 ' + l.last);
+  } catch (e) {
+    toast('已打开发送窗口，但触达记录写入失败：' + e.message);
+  }
+  if (saved) render();
 }
-function sendGmail() {
+function sendVia(channel) {
   var l = S.leads.find(function (x) { return x.id === S.touchId; });
-  if (!l.email) { alert('该线索没有邮箱，编辑线索补上'); return; }
-  var sb = subjBody();
-  window.open('https://mail.google.com/mail/?view=cm&to=' + encodeURIComponent(l.email)
-    + '&su=' + encodeURIComponent(sb.su) + '&body=' + encodeURIComponent(sb.bd), '_blank');
+  if (!l || !S.lastOut) { alert('请先生成内容'); return; }
+  var body = outBody(), url = '';
+  if (channel === 'wa') {
+    if (!l.wa) { alert('该线索没有 WhatsApp 号，编辑线索补上'); return; }
+    url = 'https://wa.me/' + l.wa.replace(/[^\d]/g, '') + '?text=' + encodeURIComponent(body);
+  } else {
+    if (!l.email) { alert('该线索没有邮箱，编辑线索补上'); return; }
+    var sb = subjBody();
+    url = channel === 'gmail'
+      ? 'https://mail.google.com/mail/?view=cm&to=' + encodeURIComponent(l.email) + '&su=' + encodeURIComponent(sb.su) + '&body=' + encodeURIComponent(sb.bd)
+      : 'https://outlook.live.com/mail/0/compose?to=' + encodeURIComponent(l.email) + '&subject=' + encodeURIComponent(sb.su) + '&body=' + encodeURIComponent(sb.bd);
+  }
+  var w = window.open(url, '_blank');
+  if (!w) { alert('浏览器拦截了新窗口，请允许弹窗后重试'); return; }
+  markSent(channel, body);
 }
-function sendOutlook() {
-  var l = S.leads.find(function (x) { return x.id === S.touchId; });
-  if (!l.email) { alert('该线索没有邮箱，编辑线索补上'); return; }
-  var sb = subjBody();
-  window.open('https://outlook.live.com/mail/0/compose?to=' + encodeURIComponent(l.email)
-    + '&subject=' + encodeURIComponent(sb.su) + '&body=' + encodeURIComponent(sb.bd), '_blank');
-}
+function sendWa() { sendVia('wa'); }
+function sendGmail() { sendVia('gmail'); }
+function sendOutlook() { sendVia('outlook'); }
 function copyOut() {
-  navigator.clipboard.writeText(S.lastOut).then(function () { alert('已复制全文'); });
+  navigator.clipboard.writeText(S.lastOut).then(function () { toast('已复制全文（复制不算发送，不会更新最后联系）'); });
 }
 
 /* ---------- AI 设置 ---------- */

@@ -30,6 +30,8 @@
   .tag-ai_rewrite, .tag-ai_followup, .tag-ai_objection { background:var(--accent-100); color:#8a5a00; }
   .tag-holiday { background:#fce7f3; color:#be185d; }
   .tag-manual { background:var(--bg-inset); color:var(--text-2); }
+  .tag-sent { background:var(--ok-bg); color:var(--ok-text); }
+  .tag-draft { background:var(--accent-100); color:#8a5a00; }
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
   dialog { border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-pop); padding:var(--sp-5); max-width:460px; width:92%; }
   dialog::backdrop { background:rgba(31,41,51,.4); }
@@ -49,9 +51,9 @@
 </header>
 <main>
   <div class="stats">
-    <div class="ft-card stat"><b id="stAll">0</b><span>累计触达</span></div>
-    <div class="ft-card stat"><b id="stWeek">0</b><span>本周</span></div>
-    <div class="ft-card stat"><b id="stLeads">0</b><span>触达客户数</span></div>
+    <div class="ft-card stat"><b id="stAll">0</b><span>已发送</span></div>
+    <div class="ft-card stat"><b id="stWeek">0</b><span>本周已发送</span></div>
+    <div class="ft-card stat"><b id="stLeads">0</b><span>已联系客户</span></div>
     <div class="ft-card stat"><b id="stAi">0</b><span>AI 参与生成</span></div>
   </div>
 
@@ -66,6 +68,11 @@
       <option value="ai_objection">AI 异议应对</option>
       <option value="holiday">节日问候</option>
       <option value="manual">手动补录</option>
+    </select>
+    <select id="fStatus" aria-label="按状态筛选" onchange="render()">
+      <option value="">全部状态</option>
+      <option value="sent">已发送</option>
+      <option value="draft">草稿</option>
     </select>
     <button class="ft-btn-primary" onclick="dlgAdd.showModal()">＋ 补记录</button>
     <button onclick="exportCsv()">导出 CSV</button>
@@ -89,30 +96,40 @@
   </div>
 </dialog>
 
-<script src="../js/datastore.js?v=3"></script>
+<script src="../js/datastore.js?v=4"></script>
 <script src="../js/csv.js?v=4"></script>
 <script>
 /* 发送记录 = outreach 统一视图（线索/待办/话术/节假日各模块生成时已落库） */
 var TYPE_NAME = { mail:'邮件', wa:'WhatsApp', ai_rewrite:'AI 改写', ai_followup:'AI 跟进', ai_objection:'AI 异议应对', objection:'AI 异议应对', holiday:'节日问候', manual:'手动', call:'电话' };
 function esc(s) { return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function fmtDate(iso) { return (iso||'').slice(0,16).replace('T',' '); }
+function isSent(o) { return DataStore.outreachSent(o); }
+function statusTag(o) {
+  return isSent(o)
+    ? '<span class="ft-tag tag-sent">✅ 已发送</span>'
+    : '<span class="ft-tag tag-draft">📝 草稿</span>';
+}
 
 function filtered() {
   var q = document.getElementById('q').value.toLowerCase(), t = document.getElementById('fType').value;
+  var s = document.getElementById('fStatus').value;
   return DataStore.list('outreach').filter(function(o) {
     if (t && o.type !== t) return false;
+    if (s === 'sent' && !isSent(o)) return false;
+    if (s === 'draft' && isSent(o)) return false;
     if (!q) return true;
     return ((o.leadName||'') + ' ' + (o.content||'')).toLowerCase().indexOf(q) >= 0;
   }).slice().sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); });
 }
 function render() {
   var all = DataStore.list('outreach');
+  var sent = all.filter(isSent);
   var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
   var wiso = weekAgo.toISOString();
-  document.getElementById('stAll').textContent = all.length;
-  document.getElementById('stWeek').textContent = all.filter(function(o){ return (o.createdAt||'') >= wiso; }).length;
-  document.getElementById('stLeads').textContent = new Set(all.map(function(o){ return o.leadId||o.leadName; })).size;
-  document.getElementById('stAi').textContent = all.filter(function(o){ return String(o.type).indexOf('ai_') === 0 || o.type === 'holiday'; }).length;
+  document.getElementById('stAll').textContent = sent.length;
+  document.getElementById('stWeek').textContent = sent.filter(function(o){ return (o.createdAt||'') >= wiso; }).length;
+  document.getElementById('stLeads').textContent = new Set(sent.map(function(o){ return o.leadId||o.leadName; })).size;
+  document.getElementById('stAi').textContent = sent.filter(function(o){ return String(o.type).indexOf('ai_') === 0 || o.type === 'holiday'; }).length;
 
   var rows = filtered();
   var box = document.getElementById('list');
@@ -123,6 +140,7 @@ function render() {
       + '<div class="body"><div class="meta">'
       + '<span class="name">' + esc(o.leadName || '未关联客户') + '</span>'
       + '<span class="ft-tag ' + cls + '">' + esc(TYPE_NAME[o.type] || o.type) + '</span>'
+      + statusTag(o)
       + '<span>' + fmtDate(o.createdAt) + '</span>'
       + '<button style="margin-left:auto;font-size:11px;padding:2px 10px" onclick="event.stopPropagation();del(\'' + o.id + '\')">删除</button>'
       + '</div>'
@@ -137,12 +155,13 @@ function addManual() {
   var lead = DataStore.get('leads', leadId);
   var content = document.getElementById('a_content').value.trim();
   if (!lead || !content) { alert('请选客户并填内容摘要'); return; }
-  DataStore.add('outreach', { leadId: leadId, leadName: lead.name, type: document.getElementById('a_type').value, content: content });
+  /* 补录的是已经发生的沟通，直接记为已发送 */
+  DataStore.add('outreach', { leadId: leadId, leadName: lead.name, type: document.getElementById('a_type').value, status: 'sent', content: content, sentAt: new Date().toISOString() });
   dlgAdd.close(); document.getElementById('a_content').value = ''; render();
 }
 function exportCsv() {
-  var rows = [['时间', '客户', '类型', '内容']];
-  filtered().forEach(function(o){ rows.push([fmtDate(o.createdAt), o.leadName||'', TYPE_NAME[o.type]||o.type, (o.content||'').replace(/\s+/g,' ')]); });
+  var rows = [['时间', '客户', '类型', '状态', '内容']];
+  filtered().forEach(function(o){ rows.push([fmtDate(o.createdAt), o.leadName||'', TYPE_NAME[o.type]||o.type, isSent(o)?'已发送':'草稿', (o.content||'').replace(/\s+/g,' ')]); });
   /* 统一走 FTCsv：引号转义 + 防公式注入（= + - @ 开头会被 Excel 当公式执行） */
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([FTCsv.build(rows)], { type: 'text/csv;charset=utf-8' }));

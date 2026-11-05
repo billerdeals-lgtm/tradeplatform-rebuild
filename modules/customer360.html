@@ -169,7 +169,7 @@
   <div class="df"><button class="dx" onclick="dlgComp.close()">取消</button><button class="ds" onclick="saveComp()">保存竞品</button></div>
 </dialog>
 
-<script src="../js/datastore.js?v=3"></script>
+<script src="../js/datastore.js?v=4"></script>
 <script src="../agnes-ai.js?v=10"></script>
 <script>
 'use strict';
@@ -275,6 +275,7 @@ function renderDetail() {
     return !!leadNameLower && !!buyer && buyer.indexOf(leadNameLower) >= 0;
   });
   var outreach = DataStore.list('outreach').filter(function(o){ return o.leadId === l.id; });
+  var sentOutreach = outreach.filter(function(o){ return DataStore.outreachSent(o); });
   var comps = DataStore.list('comps').filter(function(c){ return c.leadId === l.id; });
 
   var totalQuoted = quotes.reduce(function(s,q){ return s + (q.total||0); }, 0);
@@ -304,7 +305,7 @@ function renderDetail() {
     + '<div class="stat-item"><b>' + quotes.length + '</b><span>报价</span></div>'
     + '<div class="stat-item"><b>' + docs.length + '</b><span>单证</span></div>'
     + '<div class="stat-item"><b>' + todos.length + '</b><span>待办</span></div>'
-    + '<div class="stat-item"><b>' + outreach.length + '</b><span>触达</span></div>'
+    + '<div class="stat-item"><b>' + sentOutreach.length + '</b><span>触达</span></div>'
     + '<div class="stat-item"><b>' + comps.length + '</b><span>竞品</span></div>'
     + '<div class="stat-item"><b>' + esc(quoteCurrency) + ' ' + totalQuoted.toFixed(2) + '</b><span>累计报价</span></div>'
     + '</div>';
@@ -316,7 +317,7 @@ function renderDetail() {
     +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-quotes" aria-controls="tc-quotes" data-tab="quotes" onclick="switchTab(\'quotes\',this)">💰 报价 (' + quotes.length + ')</div>'
     +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-docs" aria-controls="tc-docs" data-tab="docs" onclick="switchTab(\'docs\',this)">📄 单证 (' + docs.length + ')</div>'
     +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-todos" aria-controls="tc-todos" data-tab="todos" onclick="switchTab(\'todos\',this)">✅ 待办 (' + todos.length + ')</div>'
-    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-outreach" aria-controls="tc-outreach" data-tab="outreach" onclick="switchTab(\'outreach\',this)">📧 触达 (' + outreach.length + ')</div>'
+    +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-outreach" aria-controls="tc-outreach" data-tab="outreach" onclick="switchTab(\'outreach\',this)">📧 触达 (' + sentOutreach.length + ')</div>'
     +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-comps" aria-controls="tc-comps" data-tab="comps" onclick="switchTab(\'comps\',this)">⚔️ 竞品 (' + comps.length + ')</div>'
     +   '<div class="tab" role="tab" aria-selected="false" tabindex="-1" id="tab-notes" aria-controls="tc-notes" data-tab="notes" onclick="switchTab(\'notes\',this)">📝 备注</div>'
     + '</div>';
@@ -328,7 +329,8 @@ function renderDetail() {
     events.push({ date: q.createdAt, title: '报价 ' + (q.no||''), desc: q.currency + ' ' + (q.total||0).toFixed(2) + ' — ' + (q.status||'draft'), done: q.status==='accepted' });
   });
   outreach.forEach(function(o){
-    events.push({ date: o.createdAt, title: '触达：' + (o.scene||''), desc: (o.content||'').slice(0,80), done: true });
+    var sent = DataStore.outreachSent(o);
+    events.push({ date: o.createdAt, title: (sent ? '触达：' : '草稿：') + (o.scene||''), desc: (o.content||'').slice(0,80), done: sent });
   });
   todos.forEach(function(t){
     events.push({ date: t.createdAt || t.due, title: '待办：' + (t.title||''), desc: t.done ? '✅ 已完成' : (t.due ? '到期：' + t.due : ''), done: t.done });
@@ -388,8 +390,9 @@ function renderDetail() {
   html += '<div class="tab-content" id="tc-outreach" role="tabpanel" aria-labelledby="tab-outreach">';
   if (outreach.length) {
     outreach.forEach(function(o){
-      html += '<div class="linked-item"><span class="li-icon">📧</span><div class="li-info">'
-        + '<div class="li-title">' + esc(o.scene||'触达') + '</div>'
+      var sent = DataStore.outreachSent(o);
+      html += '<div class="linked-item"><span class="li-icon">' + (sent ? '📧' : '📝') + '</span><div class="li-info">'
+        + '<div class="li-title">' + esc(o.scene||'触达') + ' <span style="font-size:11px;color:var(--text-3)">' + (sent?'已发送':'草稿') + '</span></div>'
         + '<div class="li-sub">' + esc((o.content||'').slice(0,100)) + '</div>'
         + '</div></div>';
     });
@@ -478,6 +481,7 @@ async function aiSummary() {
   var quotes = DataStore.list('quotes').filter(function(q){ return q.leadId === l.id; });
   var todos = DataStore.list('todos').filter(function(t){ return t.leadId === l.id; });
   var outreach = DataStore.list('outreach').filter(function(o){ return o.leadId === l.id; });
+  var sentOutreach = outreach.filter(function(o){ return DataStore.outreachSent(o); });
   var box = $('aiSummary');
   box.textContent = '🧠 AI 分析中…';
   try {
@@ -488,7 +492,7 @@ async function aiSummary() {
       + '邮箱：' + (l.email||'无') + '\n'
       + 'WhatsApp：' + (l.wa||'无') + '\n'
       + '报价次数：' + quotes.length + '，累计报价：' + quotes.reduce(function(s,q){return s+(q.total||0);},0) + '\n'
-      + '触达次数：' + outreach.length + '\n'
+      + '触达次数：' + sentOutreach.length + '\n'
       + '待办数：' + todos.length + '（未完成：' + todos.filter(function(t){return !t.done;}).length + '）\n'
       + '备注：' + (l.note||'无') + '\n\n'
       + '请给出：\n'

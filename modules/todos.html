@@ -112,7 +112,7 @@
 </dialog>
 
 <script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=3"></script>
+<script src="../js/datastore.js?v=4"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -120,6 +120,7 @@
    数据：DataStore(todos/leads) · AI：AgnesAI（琥珀色=AI 输出）
    ============================================================ */
 var editingId = null;
+var lastOutreachId = null; // 当前 AI 话术对应的 outreach 草稿
 
 /* ---------- 工具 ---------- */
 function $(id){ return document.getElementById(id); }
@@ -252,6 +253,7 @@ async function aiPlan(){
 async function aiFollow(todoId){
   var t = DataStore.get('todos',todoId); if(!t||!t.leadId) return;
   var lead = DataStore.get('leads',t.leadId); if(!lead) return;
+  lastOutreachId = null;
   showAI('✨ 跟进话术生成中（'+lead.name+'）','生成中…');
   try {
     var txt = await AgnesAI.genOutreach(lead, t.title.indexOf('回复')>=0?'跟进回复':'跟进邮件', null);
@@ -259,13 +261,23 @@ async function aiFollow(todoId){
     var wa = String((lead.wa || lead.whatsapp) || '').replace(/[^0-9]/g, '');
     $('aiActions').innerHTML =
       '<button class="iconbtn" onclick="copyText()">📋 复制</button>'
-      +(wa?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+wa+'?text='+encodeURIComponent(txt.split('【中文要点】')[0])+'">💬 WhatsApp 发送</a>':'')
-      +(lead.email?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(txt.split('【中文要点】')[0])+'">✉ Gmail</a>':'');
-    // 落点：把话术记进触达历史（outreach 模块数据源）
-    DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'ai_followup', todoId:todoId, content:txt });
+      +(wa?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" onclick="markOutreachSent(\'wa\')" href="https://wa.me/'+wa+'?text='+encodeURIComponent(txt.split('【中文要点】')[0])+'">💬 WhatsApp 发送</a>':'')
+      +(lead.email?'<a class="ft-btn-primary" style="text-decoration:none" target="_blank" onclick="markOutreachSent(\'gmail\')" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(txt.split('【中文要点】')[0])+'">✉ Gmail</a>':'');
+    // 落点：先把话术记成草稿，点发送后才标记为已发送
+    var rec = DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'ai_followup', todoId:todoId, status:'draft', content:txt });
+    lastOutreachId = rec.id;
   } catch(e){ $('aiBody').textContent = '生成失败：'+e.message; $('aiActions').innerHTML=''; }
 }
 function copyText(){ navigator.clipboard.writeText($('aiBody').textContent).then(function(){toast('已复制');}); }
+/* 点发送链接 = 记录已发送，并回写线索最后联系（复制不算发送） */
+function markOutreachSent(channel){
+  if (!lastOutreachId) return;
+  var o = DataStore.get('outreach', lastOutreachId);
+  if (!o || o.status === 'sent') return;
+  DataStore.update('outreach', lastOutreachId, { status:'sent', channel:channel, sentAt:new Date().toISOString() });
+  if (o.leadId) DataStore.update('leads', o.leadId, { last: todayStr() });
+  toast((channel === 'wa' ? 'WhatsApp' : 'Gmail') + ' 已记录为发送 · 最后联系更新为今天');
+}
 function sendWa(leadId){
   var l=DataStore.get('leads',leadId);
   var wa=l&&(l.wa||l.whatsapp);

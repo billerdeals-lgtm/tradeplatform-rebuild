@@ -79,7 +79,7 @@
 </dialog>
 
 <script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=3"></script>
+<script src="../js/datastore.js?v=4"></script>
 <script src="../js/holidays_data.js"></script>
 <script>
 'use strict';
@@ -88,6 +88,7 @@
    数据集自研维护；AI 问候经 genHolidayGreet，落 outreach 防重复
    ============================================================ */
 var currentHoliday = null;
+var currentGreetId = null; // 当前问候语对应的 outreach 草稿
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -106,11 +107,23 @@ function holidayMatches(h, lead){
   var code = codeOf(lead);
   return h.countries.indexOf(code) >= 0 || h.countries === 'ALL';
 }
-/* 该节是否已向该客户问候过（outreach 有 type=holiday 且同节日） */
+/* 该节是否已向该客户问候过（outreach 有 type=holiday 且同节日，且已发送） */
 function greeted(leadId, h){
   return DataStore.list('outreach').some(function(o){
-    return o.type==='holiday' && o.leadId===leadId && o.holiday===h.name && o.hdate===dstr(h.y,h.m,h.d);
+    return o.type==='holiday' && o.leadId===leadId && o.holiday===h.name && o.hdate===dstr(h.y,h.m,h.d)
+      && DataStore.outreachSent(o);
   });
+}
+
+/* 点发送链接 = 已发送：更新记录 + 回写线索最后联系（复制不算发送） */
+function markGreetSent(channel){
+  if (!currentGreetId) return;
+  var o = DataStore.get('outreach', currentGreetId);
+  if (!o) return;
+  DataStore.update('outreach', currentGreetId, { status:'sent', channel:channel, sentAt:new Date().toISOString() });
+  if (o.leadId) DataStore.update('leads', o.leadId, { last: FT.today(0) });
+  toast((channel === 'wa' ? 'WhatsApp' : 'Gmail') + ' 已记录为发送 · 最后联系更新为今天');
+  render();
 }
 
 /* ---------- 渲染 ---------- */
@@ -171,6 +184,7 @@ function openGreet(key){
 async function doGreet(){
   var lead = DataStore.get('leads', $('gLead').value);
   if (!lead){ toast('先选客户'); return; }
+  currentGreetId = null;
   $('btnGreet').disabled=true; $('btnGreet').textContent='⏳ 生成中…';
   try {
     var txt = await AgnesAI.genHolidayGreet(lead, currentHoliday.name + (currentHoliday.en?' ('+currentHoliday.en+')':''));
@@ -178,12 +192,14 @@ async function doGreet(){
     var send = txt.split('【中文翻译】')[0].split('中文翻译')[0];
     var wa = String((lead.wa || lead.whatsapp) || '').replace(/[^0-9]/g, '');
     var acts = '<button class="iconbtn" onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>alert(\'已复制\'))" data-t="'+esc(send)+'">📋 复制</button>';
-    if (wa) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+wa+'?text='+encodeURIComponent(send)+'">💬 WhatsApp 发送</a>';
-    if (lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(send)+'">✉ Gmail</a>';
+    if (wa) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" onclick="markGreetSent(\'wa\')" href="https://wa.me/'+wa+'?text='+encodeURIComponent(send)+'">💬 WhatsApp 发送</a>';
+    if (lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" onclick="markGreetSent(\'gmail\')" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(send)+'">✉ Gmail</a>';
     $('gActions').innerHTML = acts;
-    // 落库：防重复打扰 + 复盘触达量统计
-    DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'holiday',
-      holiday:currentHoliday.name, hdate:dstr(currentHoliday.y,currentHoliday.m,currentHoliday.d), content:txt });
+    // 落库：先生成草稿；点发送后才算「已问候」，避免草稿把客户误标成已打扰
+    var rec = DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'holiday',
+      holiday:currentHoliday.name, hdate:dstr(currentHoliday.y,currentHoliday.m,currentHoliday.d),
+      status:'draft', content:txt });
+    currentGreetId = rec.id;
     render();
   } catch(e){ $('gOut').style.display='block'; $('gOut').textContent='生成失败：'+e.message; }
   $('btnGreet').disabled=false; $('btnGreet').textContent='✨ AI 生成问候语';

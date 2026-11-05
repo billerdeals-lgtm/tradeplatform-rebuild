@@ -78,7 +78,7 @@
 </dialog>
 
 <script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=3"></script>
+<script src="../js/datastore.js?v=4"></script>
 <script src="../js/templates_data.js"></script>
 <script>
 'use strict';
@@ -87,6 +87,7 @@
    双引擎：模板打底（秒出，不依赖 AI）+ AI 个性化改写（琥珀卡）
    ============================================================ */
 var rewriting = null; // 当前改写的模板
+var lastOutreachId = null; // 当前改写对应的 outreach 草稿
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -95,6 +96,15 @@ function toast(msg){ if (window.FT && FT.toast) FT.toast(msg); }
 function usage(){ try{ return JSON.parse(localStorage.getItem('ftc_tpl_usage')||'{}'); }catch(e){ return {}; } }
 function bumpUse(n){ var u=usage(); u[n]=(u[n]||0)+1; localStorage.setItem('ftc_tpl_usage',JSON.stringify(u)); }
 function copyText(s){ navigator.clipboard.writeText(s).then(function(){toast('已复制');}); }
+/* 点发送链接 = 记录已发送，并回写线索最后联系（复制不算发送） */
+function markOutreachSent(channel){
+  if (!lastOutreachId) return;
+  var o = DataStore.get('outreach', lastOutreachId);
+  if (!o) return;
+  DataStore.update('outreach', lastOutreachId, { status:'sent', channel:channel, sentAt:new Date().toISOString() });
+  if (o.leadId) DataStore.update('leads', o.leadId, { last: FT.today(0) });
+  toast((channel === 'wa' ? 'WhatsApp' : 'Gmail') + ' 已记录为发送 · 最后联系更新为今天');
+}
 
 /* ---------- 渲染 ---------- */
 function render(){
@@ -140,6 +150,7 @@ function openRewrite(n){
 }
 async function doRewrite(){
   if (!rewriting) return;
+  lastOutreachId = null;
   var lead = DataStore.get('leads', $('aiLead').value);
   var hint = $('aiHint').value.trim();
   var p = '下面是一封外贸邮件模板：\n【模板标题】'+rewriting.title+'\n【英文正文】\n'+rewriting.en+'\n';
@@ -163,12 +174,15 @@ async function doRewrite(){
     var sendBody = txt.split('【中文要点】')[0];
     var wa = String((lead && (lead.wa || lead.whatsapp)) || '').replace(/[^0-9]/g, '');
     var acts = '<button class="iconbtn" onclick="navigator.clipboard.writeText(this.dataset.t).then(()=>alert(\'已复制\'))" data-t="'+esc(sendBody)+'">📋 复制</button>';
-    if (wa) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://wa.me/'+wa+'?text='+encodeURIComponent(sendBody)+'">💬 WhatsApp</a>';
-    if (lead && lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(sendBody)+'">✉ Gmail</a>';
+    if (wa) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" onclick="markOutreachSent(\'wa\')" href="https://wa.me/'+wa+'?text='+encodeURIComponent(sendBody)+'">💬 WhatsApp</a>';
+    if (lead && lead.email) acts += '<a class="ft-btn-primary" style="text-decoration:none" target="_blank" onclick="markOutreachSent(\'gmail\')" href="https://mail.google.com/mail/?view=cm&to='+encodeURIComponent(lead.email)+'&body='+encodeURIComponent(sendBody)+'">✉ Gmail</a>';
     $('aiActions').innerHTML = acts;
     bumpUse(rewriting.n);
-    // 落库：触达历史（与待办模块同源，outreach 模块数据源）
-    if (lead) DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'ai_rewrite', tplN:rewriting.n, tplTitle:rewriting.title, content:txt });
+    // 落库：先记草稿，点发送后才转为已发送
+    if (lead) {
+      var rec = DataStore.add('outreach', { leadId:lead.id, leadName:lead.name, type:'ai_rewrite', tplN:rewriting.n, tplTitle:rewriting.title, status:'draft', content:txt });
+      lastOutreachId = rec.id;
+    }
     render();
   } catch(e){ $('aiBody').textContent='改写失败：'+e.message; $('aiBody').style.display='block'; }
   $('btnRewrite').disabled=false; $('btnRewrite').textContent='✨ 开始 AI 改写';

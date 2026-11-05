@@ -76,7 +76,7 @@
 </dialog>
 
 <script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=3"></script>
+<script src="../js/datastore.js?v=4"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -103,7 +103,7 @@ function stats(){
   });
   return {
     leads:leads.length, byStage:byStage, amtByStage:amtByStage,
-    touch:outreach.length,
+    touch: outreach.filter(function(o){ return DataStore.outreachSent(o); }).length,
     todoTotal:todos.length, todoDone:done, todoOpen:open, todoOver:over,
     todoRate: todos.length? Math.round(done*100/todos.length) : 0,
     wonAmt: amtByStage['成交'],
