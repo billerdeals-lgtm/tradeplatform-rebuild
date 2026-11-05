@@ -601,7 +601,19 @@ function loadQuote(id) {
   S.current = id; S.editing = true; gateRan = false;
   $('editorTitle').textContent = '编辑报价 ' + esc(item.no || '');
   $('btnDel').style.display = 'inline-flex';
-  $('q_lead').value = item.leadId || '';
+  var lid = item.leadId || '';
+  /* 线索已被删除（历史数据/旧报价）：保留关联而不是静默清空，
+     否则用户打开旧报价再保存就会把 leadId/leadName 一起抹掉。 */
+  if (lid) {
+    var hasLeadOpt = Array.prototype.some.call($('q_lead').options, function(o){ return o.value === lid; });
+    if (!hasLeadOpt) {
+      var orphanOpt = document.createElement('option');
+      orphanOpt.value = lid;
+      orphanOpt.textContent = (item.leadName || '已删除的线索') + '（线索已删除）';
+      $('q_lead').appendChild(orphanOpt);
+    }
+  }
+  $('q_lead').value = lid;
   $('q_no').value = item.no || '';
   $('q_date').value = item.date || '';
   $('q_currency').value = item.currency || 'USD';
@@ -649,8 +661,10 @@ function saveQuote() {
   var total = items.reduce(function(s, it){ return s + it.amount; }, 0);
   var lid = v('q_lead');
   var lead = lid ? DataStore.get('leads', lid) : null;
+  var prev = S.current ? DataStore.get('quotes', S.current) : null;
+  var leadName = lead ? lead.name : (prev && prev.leadId === lid ? (prev.leadName || '') : '');
   var data = {
-    no: no, leadId: lid, leadName: lead ? lead.name : '',
+    no: no, leadId: lid, leadName: leadName,
     date: v('q_date'), currency: v('q_currency'),
     product: items.length ? items[0].name : '',
     items: items, total: total,

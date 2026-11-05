@@ -427,7 +427,24 @@ function delLead(id) {
   var before = S.leads;
   S.leads = S.leads.filter(function (x) { return x.id !== id; });
   if (!save()) { S.leads = before; return; }
+  unlinkLeadRefs(id);
   render();
+}
+/* 删除线索时保留业务记录，只解除关联：
+   待办/报价/竞品/触达里的客户名不丢，也不会再出现点不动的悬空 leadId。 */
+function unlinkLeadRefs(id) {
+  var failed = [];
+  ['todos', 'quotes', 'comps', 'outreach'].forEach(function (name) {
+    try {
+      var arr = DataStore.list(name);
+      var hit = false;
+      arr.forEach(function (x) {
+        if (x && x.leadId === id) { x.leadId = ''; hit = true; }
+      });
+      if (hit) DataStore.saveAll(name, arr);
+    } catch (e) { failed.push(name); }
+  });
+  if (failed.length) toast('线索已删除，但部分关联记录未能解除（' + failed.join('、') + '）');
 }
 function v(id) { return document.getElementById(id).value.trim(); }
 
