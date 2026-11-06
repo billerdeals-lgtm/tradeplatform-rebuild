@@ -76,6 +76,7 @@ ok('AI 生成先落草稿', /status: 'draft'/.test(leads) && /S\.lastDraftId = r
 ok('发送后回写最后联系', /l\.last = iso\(0\)/.test(leads));
 ok('发送后草稿转已发送', /function markSent/.test(leads) && /status: 'sent'/.test(leads));
 ok('发送被拦截时不记已发送', /浏览器拦截了新窗口/.test(leads) && /markSent\(channel, body\)/.test(leads));
+ok('线索页定义 toast（发送提示不能抛 ReferenceError）', /function toast\(msg\)\{ if \(window\.FT && FT\.toast\) FT\.toast\(msg\); \}/.test(leads));
 ok('复盘只统计已发送触达', /outreach\.filter\(function\(o\)\{ return DataStore\.outreachSent\(o\); \}\)/.test(review));
 ok('发送记录有草稿/已发送标签', /tag-draft/.test(maillog) && /tag-sent/.test(maillog));
 ok('发送记录可按状态筛选', /id="fStatus"/.test(maillog) && /s === 'draft'/.test(maillog));

@@ -185,12 +185,28 @@ nav :focus-visible,
 
 @media screen and (max-width: 520px) {
   main .grid { grid-template-columns: 1fr !important; }
-  .stats { display: grid !important; grid-template-columns: 1fr 1fr; gap: 10px !important; }
-  .stats.s3 { grid-template-columns: repeat(3, 1fr) !important; }
+  /* 手机端统计卡固定 2×2 等宽：避免不同窄屏宽度下出现 3+1 或两列不齐 */
+  .stats { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .stats > * { min-width: 0 !important; }
+  .stats.s3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
   .stat b { font-size: 20px !important; }
   header h1 span { display: none; }
   .srcnote { padding: 0 0 12px !important; }
   .fgrid, .f2 { gap: 10px !important; }
+
+  /* 线索 / 发送记录：搜索框占满一行，筛选与操作按钮排成 2×2。
+     否则最后一个「导出 CSV」会被挤到单独一行，右侧留一大块空白。 */
+  .toolbar-leads, .toolbar-mail {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    align-items: stretch !important;
+  }
+  .toolbar-leads > *, .toolbar-mail > * { min-width: 0 !important; box-sizing: border-box; }
+  .toolbar-leads > input, .toolbar-mail > input { grid-column: 1 / -1; width: 100%; }
+  .toolbar-leads > select, .toolbar-leads > button,
+  .toolbar-mail > select, .toolbar-mail > button { width: 100%; }
+  .toolbar-leads > button, .toolbar-mail > button { display: inline-flex; align-items: center; justify-content: center; }
 }
 
 @media screen and (max-width: 640px) {
