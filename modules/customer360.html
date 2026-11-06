@@ -42,6 +42,7 @@
   .qa-btn.whatsapp { background:#075e54; color:#fff; }
   .qa-btn.email { background:var(--brand-700); color:#fff; }
   .qa-btn.quote { background:#b45309; color:#fff; }
+.qa-btn.docs { background:#0e7490; color:#fff; }
   .qa-btn.todo { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border); }
   /* 统计条 */
   .stats-bar { display:flex; gap:var(--sp-6); padding:0 var(--sp-4) var(--sp-3); }
@@ -296,6 +297,7 @@ function renderDetail() {
     +   (l.wa ? '<a class="qa-btn whatsapp" href="https://wa.me/' + esc(l.wa.replace(/\D/g,'')) + '" target="_blank">💬 WhatsApp</a>' : '')
     +   (l.email ? '<a class="qa-btn email" href="mailto:' + esc(l.email) + '">✉ 邮件</a>' : '')
     +   '<button class="qa-btn quote" onclick="FT.go(\'modules/quotes.html?lead=' + encodeURIComponent(l.id) + '\')">💰 报价</button>'
+    +   '<button class="qa-btn docs" onclick="FT.go(\'modules/docs.html?lead=' + encodeURIComponent(l.id) + '\')">📄 单证</button>'
     +   '<button class="qa-btn todo" onclick="addTodo()">✅ 加待办</button>'
     + '</div>'
     + '</div>';

@@ -32,6 +32,7 @@
   .derived-line { font-size:11.5px; color:var(--text-3); margin:6px 0 0; }
   .form { padding:var(--sp-4); }
   .form h3 { margin:0 0 8px; font-size:15px; }
+  .quote-hint { font-size:12px; line-height:1.6; color:#92400e; background:#fffbeb; border:1px dashed #f0b429; border-radius:var(--r-sm); padding:6px 10px; margin:0 0 10px; }
   .fgrid { display:grid; grid-template-columns:1fr 1fr; gap:var(--sp-2); }
   .fgrid .full { grid-column:1 / -1; }
   .fgrid label { font-size:11px; color:var(--text-2); display:block; margin-bottom:2px; }
@@ -123,6 +124,7 @@
     <div class="ft-card chain" id="chainBar"></div>
     <div class="ft-card form">
       <h3 id="formTitle">选择一张单证</h3>
+      <div id="quoteHint" class="quote-hint" style="display:none"></div>
       <div class="fgrid" id="formFields"></div>
       <div class="btnrow">
         <button class="ft-btn-primary" onclick="printPaper()">🖨 打印 / 存 PDF</button>
@@ -220,6 +222,8 @@ var values = {};           // 字段值（共享+专有）
 var editingSavedId = null;
 var currentLeadId = '';   // 当前单证来源线索（保存时落库，客户 360 用它精确匹配）
 var currentLeadName = ''; // 线索删除后仍保留客户名，单证夹里可读
+var currentQuoteId = '';  // 从报价转来的 PI：记住报价 id，重复转单时不再建第二张
+var currentQuoteNo = '';  // 报价单号，单证夹/表单里可读
 
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
@@ -255,8 +259,12 @@ function pick(id){
       values = saved.values || {};
       currentLeadId = saved.leadId || currentLeadId;
       currentLeadName = saved.leadName || (saved.values && saved.values.buyer) || currentLeadName;
+      currentQuoteId = saved.quoteId || '';
+      currentQuoteNo = saved.quoteNo || '';
     } else {
       editingSavedId = null;
+      /* 换单证类型后没有对应已存单：PI 之外不再沿用报价关联，避免把 CI/PL 也标成同一张报价 */
+      if (id !== 'pi') { currentQuoteId = ''; currentQuoteNo = ''; }
     }
   }
   $('aiOut').style.display='none'; gateRan=false;
@@ -381,6 +389,8 @@ function deriveFromSaved(id){
   currentLeadId = d.leadId || '';
   currentLeadName = d.leadName || (d.values && d.values.buyer) || '';
   current = DOCS_DEF.find(function(x){ return x.id === d.docId; }) || current;
+  currentQuoteId = d.quoteId || '';
+  currentQuoteNo = d.quoteNo || '';
   gateRan = false;
   renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
   // 立即派生
@@ -418,7 +428,15 @@ function renderForm(){
   $('formTitle').textContent = String(current.title||'').split(' / ')[0];
   var all = SHARED_FIELDS.concat((current.rows||[]).map(function(r){ return {k:r[0], label:r[1], ph:r[2]}; }));
   $('formFields').innerHTML = all.map(fieldInput).join('') + confidentialHTML();
+  renderQuoteHint();
   renderChain();
+}
+function renderQuoteHint(){
+  var el = $('quoteHint'); if (!el) return;
+  if (!currentQuoteId || current.id !== 'pi'){ el.style.display='none'; el.innerHTML=''; return; }
+  el.style.display = 'block';
+  el.innerHTML = '💰 来自报价 <b>' + esc(currentQuoteNo || currentQuoteId) + '</b>'
+    + ' · 客户 / 产品 / 金额已带入，核对后点「保存到单证夹」即可';
 }
 function onVal(input){
   values[input.dataset.k] = input.value;
@@ -647,7 +665,9 @@ function saveDoc(){
   var payload = {
     docId: current.id, docTitle: current.title, values: values,
     leadId: currentLeadId || '',
-    leadName: currentLeadName || values.buyer || ''
+    leadName: currentLeadName || values.buyer || '',
+    quoteId: currentQuoteId || '',
+    quoteNo: currentQuoteNo || ''
   };
   if (rec){
     DataStore.update('docs', editingSavedId, payload);
@@ -657,7 +677,7 @@ function saveDoc(){
   }
   toast('已保存到单证夹');
 }
-function clearForm(){ values={}; editingSavedId=null; currentLeadId=''; currentLeadName=''; gateRan=false; $('aiOut').style.display='none'; $('gateBox').innerHTML=''; renderList(); renderChain(); renderForm(); renderPaper(); }
+function clearForm(){ values={}; editingSavedId=null; currentLeadId=''; currentLeadName=''; currentQuoteId=''; currentQuoteNo=''; gateRan=false; $('aiOut').style.display='none'; $('gateBox').innerHTML=''; renderList(); renderChain(); renderForm(); renderPaper(); }
 function renderSaved(){
   var docs = DataStore.list('docs');
   $('savedList').innerHTML = docs.length ? docs.map(function(d){
@@ -666,9 +686,10 @@ function renderSaved(){
     var dv = d.values || {};
     var who = dv.buyer || d.leadName || '—';
     var leadMark = d.leadId ? '👤 ' : '';
+    var quoteMark = d.quoteNo ? ' · 💰 ' + esc(d.quoteNo) : '';
     return '<div class="ft-card" style="padding:10px;margin-bottom:8px;display:flex;align-items:center;gap:8px">'
       + '<div style="flex:1"><b style="font-size:13px">'+esc(d.docTitle)+'</b>'
-      + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(dv.no||'—')+' · '+leadMark+esc(who)+' · '+esc((d.updatedAt||d.createdAt||'').slice(0,10))
+      + '<div style="font-size:11px;color:var(--text-2)">No.'+esc(dv.no||'—')+' · '+leadMark+esc(who)+quoteMark+' · '+esc((d.updatedAt||d.createdAt||'').slice(0,10))
       + (d.aiCheck?' · <span style="color:'+(d.aiCheck.ok?'var(--ok-text)':'var(--danger-text)')+'">AI 校验'+(d.aiCheck.ok?'通过':'有问题')+'</span>':'')
       + (dv.derivedFrom?' · <span style="color:var(--brand-700)">⛓ 派生</span>':'')+'</div></div>'
       + (canDerive?'<button class="iconbtn" onclick="deriveFromSaved(\''+d.id+'\')" title="从此单派生下一环">⛓ 派生</button>':'')
@@ -691,6 +712,8 @@ function loadSaved(id){
   editingSavedId = id; values = d.values||{};
   currentLeadId = d.leadId || '';
   currentLeadName = d.leadName || (d.values && d.values.buyer) || '';
+  currentQuoteId = d.quoteId || '';
+  currentQuoteNo = d.quoteNo || '';
   current = DOCS_DEF.find(function(x){ return x.id===d.docId; }) || current;
   gateRan = false;
   dlgSaved.close(); renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
@@ -720,6 +743,8 @@ function doImport(){
   if (editingSavedId && (buyerChanged || (currentLeadId && currentLeadId !== l.id))){
     editingSavedId = null;
   }
+  /* 手动换成别的线索：解除原报价关联，避免这张单证被当成该报价的 PI */
+  if (currentLeadId && currentLeadId !== l.id){ currentQuoteId = ''; currentQuoteNo = ''; }
   values.buyer = l.name || values.buyer;
   values.buyerAddr = values.buyerAddr || (l.addr || l.country || '');
   values.product = values.product || l.product || '';
@@ -745,12 +770,104 @@ function doImport(){
   toast(demoRu ? '已带入俄语演示数据，单据语言已切到 Русский' : '已带入：'+l.name+'（金额/数量需手工确认）');
 }
 
+/* ---------- 报价 → PI：?quote=<id> ---------- */
+function fmt2(n){ return (Number(n) || 0).toFixed(2); }
+
+function latestDoc(list){
+  return list.slice().sort(function(a, b){
+    return String(b.updatedAt || b.createdAt || '').localeCompare(String(a.updatedAt || a.createdAt || ''));
+  })[0] || null;
+}
+
+/** 打开某张报价对应的 PI：已有就打开原单，没有才按报价预填。
+ *  用 quoteId 去重，避免同一张报价被转出多张 PI。 */
+function openFromQuote(qid){
+  var q = DataStore.get('quotes', qid);
+  if (!q){ toast('未找到这张报价（可能已删除）'); return; }
+
+  var existed = latestDoc(DataStore.list('docs').filter(function(d){
+    return d.docId === 'pi' && d.quoteId === qid;
+  }));
+  if (existed){
+    loadSaved(existed.id);
+    toast('该报价已生成 PI No.' + ((existed.values||{}).no || '') + '，已打开原单');
+    return;
+  }
+
+  var lead = q.leadId ? DataStore.get('leads', q.leadId) : null;
+  var items = Array.isArray(q.items) ? q.items : [];
+  var it = items[0] || {};
+  var qty = Number(it.qty) || 0;
+  var price = Number(it.unitPrice) || 0;
+  var amount = it.amount != null ? Number(it.amount) : qty * price;
+
+  var pi = DOCS_DEF.find(function(d){ return d.id === 'pi'; });
+  if (pi) current = pi;
+
+  values = {};
+  var no = genNo('pi');
+  values.no = no;
+  values.date = todayStr();
+  values.buyer = q.leadName || (lead && lead.name) || '';
+  values.buyerAddr = (lead && (lead.addr || lead.country)) || '';
+  values.product = it.name || q.product || '';
+  values.qty = qty ? String(qty) : '';
+  values.unit = it.unit || 'pcs';
+  values.price = price ? fmt2(price) : '';
+  values.currency = q.currency || 'USD';
+  values.total = (amount || q.total) ? fmt2(amount || q.total) : '';
+  values.payment = q.payment || '';
+  values.portFrom = q.portFrom || '';
+  values.portTo = q.portTo || '';
+  values.delivery = q.delivery || '';
+  values.valid = q.validity || '';
+  values.remark = q.note || '';
+
+  var note = '由报价 ' + (q.no || qid) + ' 生成';
+  if (items.length > 1){
+    note += '；报价含 ' + items.length + ' 项，本 PI 仅带入第 1 项「' + (it.name || '') + '」，请核对 PI 明细';
+  } else if (!items.length){
+    note += '；报价没有明细，请手工补产品 / 数量 / 单价';
+  }
+  values.internalNote = note;
+
+  currentLeadId = q.leadId || '';
+  currentLeadName = q.leadName || (lead && lead.name) || '';
+  currentQuoteId = qid;
+  currentQuoteNo = q.no || '';
+  editingSavedId = null;
+  gateRan = false;
+  $('aiOut').style.display = 'none';
+  renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
+  toast('已从报价 ' + (q.no || '') + ' 带入 PI 草稿'
+    + (items.length > 1 ? '；报价含 ' + items.length + ' 项，请核对明细' : ''));
+}
+
+/** ?lead=<id>：直接带入线索，不用先打开弹窗选人 */
+function importLeadById(id){
+  var l = DataStore.get('leads', id);
+  if (!l) return;
+  $('impLead').innerHTML = '<option value="' + esc(l.id) + '" selected>' + esc(l.name) + '</option>';
+  doImport();
+}
+
+/** 读取 URL 参数：?quote= 优先于 ?lead= */
+function consumeParams(){
+  var params;
+  try { params = new URLSearchParams(location.search); } catch (e) { return; }
+  var quoteId = params.get('quote');
+  var leadId = params.get('lead');
+  if (quoteId){ openFromQuote(quoteId); return; }
+  if (leadId){ importLeadById(leadId); }
+}
+
 /* ---------- 初始化 ---------- */
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
 $('brandHost').innerHTML = Brand.dialogHTML('dlgBrand');
 Brand.initDialog('dlgBrand', function(){ renderPaper(); });
 initPaperTools();
 renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
+consumeParams();
 License.ready();
 </script>
 </body>

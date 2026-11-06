@@ -95,5 +95,22 @@ ok('备份保留损坏原文', /data\._corrupt\[name\]/.test(read('index.html'))
 ok('恢复前自动备份当前数据', /backupAll\(true, '恢复备份'\)/.test(read('index.html')));
 ok('备份逾期检测读取原始数据', /DataStore\.readRaw\(name\)/.test(read('index.html')));
 
+/* 11. 核心业务闭环（方案 A）：线索→报价→PI→跟进 */
+ok('线索卡有报价入口', /goQuote\(\\'' \+ jsArg\(l\.id\)/.test(leads) && /function goQuote\(id\)/.test(leads));
+ok('线索报价跳到报价页并带 lead 参数', /modules\/quotes\.html\?lead=/.test(leads));
+ok('报价页有转 PI 入口', /onclick="toPI\(\)"/.test(quotes) && /function toPI\(\)/.test(quotes));
+ok('报价标题不覆盖预览/品牌按钮', /id="editorTitleText"/.test(quotes) && !/\$\('editorTitle'\)\.textContent/.test(quotes));
+ok('报价转 PI 前先校验明细并保存', /function toPI\(\) \{[\s\S]{0,220}getItems\(\)\.length[\s\S]{0,220}saveQuote\(\)/.test(quotes));
+ok('报价转 PI 跳到单证页并带 quote 参数', /modules\/docs\.html\?quote=/.test(quotes));
+ok('单证页识别 quote 参数', /params\.get\('quote'\)/.test(docs) && /function openFromQuote\(qid\)/.test(docs));
+ok('单证页识别 lead 参数', /params\.get\('lead'\)/.test(docs) && /function importLeadById\(id\)/.test(docs));
+ok('同一报价按 quoteId 去重', /d\.docId === 'pi' && d\.quoteId === qid/.test(docs));
+ok('单证保存 quoteId/quoteNo', /quoteId: currentQuoteId \|\| ''/.test(docs) && /quoteNo: currentQuoteNo \|\| ''/.test(docs));
+ok('单证夹显示来源报价', /💰 ' \+ esc\(d\.quoteNo\)/.test(docs));
+ok('换客户时解除报价关联', /currentLeadId !== l\.id\)\{ currentQuoteId = ''; currentQuoteNo = ''; \}/.test(docs));
+ok('客户 360 有单证入口', /modules\/docs\.html\?lead=/.test(c360) && /📄 单证/.test(c360));
+ok('AI 触达默认勾选 3 天提醒', /id="t_remind" checked/.test(leads));
+ok('发送后自动建跟进待办且去重', /aiGenerated: 'outreach_sent'/.test(leads) && /已有未完成待办，未重复创建/.test(leads));
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

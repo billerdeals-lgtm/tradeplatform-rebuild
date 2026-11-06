@@ -166,6 +166,11 @@
     </div>
     <div class="mrow"><button class="btn" id="btnGen" onclick="genTouch()">AI 生成</button></div>
     <div class="mout" id="t_out" aria-live="polite"></div>
+    <div class="mrow" id="t_remindRow" style="display:none">
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text-2);margin:0;cursor:pointer">
+        <input type="checkbox" id="t_remind" checked style="width:auto;margin:0"> 发送后 3 天提醒跟进
+      </label>
+    </div>
     <div class="mrow" id="t_sendRow" style="display:none">
       <button class="btn sm amber" onclick="sendWa()">WhatsApp 发送</button>
       <button class="btn sm amber" onclick="sendGmail()">Gmail 发送</button>
@@ -376,6 +381,7 @@ function render() {
       + '<span style="flex:1"></span>'
       + '<button class="btn sm amber" onclick="aiScore(\'' + jsArg(l.id) + '\',this)">⚡ AI 评分</button>'
       + '<button class="btn sm" onclick="openTouch(\'' + jsArg(l.id) + '\')">✉ AI 触达</button>'
+      + '<button class="btn sm" onclick="goQuote(\'' + jsArg(l.id) + '\')">💰 报价</button>'
       + '<button class="btn sm ghost" onclick="openEdit(\'' + jsArg(l.id) + '\')">编辑</button>'
       + '<button class="btn sm ghost" onclick="delLead(\'' + jsArg(l.id) + '\')">删除</button>'
       + '</div><div class="meta">'
@@ -480,6 +486,7 @@ function openTouch(id) {
   document.getElementById('touchTitle').textContent = 'AI 触达：' + l.name + '（' + (l.country || '') + '）';
   document.getElementById('t_out').style.display = 'none';
   document.getElementById('t_sendRow').style.display = 'none';
+  document.getElementById('t_remindRow').style.display = 'none';
   touchTab('mail');
   show('mTouch');
 }
@@ -489,6 +496,7 @@ function touchTab(mode) {
   document.getElementById('t_out').style.display = 'none';
   document.getElementById('t_out').textContent = '';
   document.getElementById('t_sendRow').style.display = 'none';
+  document.getElementById('t_remindRow').style.display = 'none';
   document.getElementById('paneMail').style.display = mode === 'mail' ? '' : 'none';
   document.getElementById('paneReply').style.display = mode === 'reply' ? '' : 'none';
   document.getElementById('paneObjection').style.display = mode === 'objection' ? '' : 'none';
@@ -515,6 +523,7 @@ async function genTouch() {
     }
     out.textContent = S.lastOut;
     document.getElementById('t_sendRow').style.display = 'flex';
+    document.getElementById('t_remindRow').style.display = 'flex';
     // 落库：先生成「草稿」，真正点发送后才变成「已发送」（发送记录模块按此区分）
     var draft = { leadId: l.id, leadName: l.name, type: S.touchMode === 'objection' ? 'ai_objection' : S.touchMode, status: 'draft', content: S.lastOut };
     var prev = S.lastDraftId ? DataStore.get('outreach', S.lastDraftId) : null;
@@ -538,7 +547,7 @@ function subjBody() {
   var body = outBody();
   return { su: 'Re: ' + (S.leads.find(function (x) { return x.id === S.touchId; }).product || 'cooperation'), bd: body };
 }
-/* 发送成功后：回写最后联系 + 把草稿标记为已发送 */
+/* 发送成功后：回写最后联系 + 把草稿标记为已发送 + 可选建 3 天跟进待办 */
 function markSent(channel, body) {
   var l = S.leads.find(function (x) { return x.id === S.touchId; });
   if (!l) return;
@@ -556,11 +565,34 @@ function markSent(channel, body) {
       });
     }
     var label = channel === 'wa' ? 'WhatsApp' : channel === 'gmail' ? 'Gmail' : 'Outlook';
-    toast('已记录：' + label + ' 已发送 · 最后联系更新为 ' + l.last);
+    toast('已记录：' + label + ' 已发送 · 最后联系更新为 ' + l.last + followupTodo(l));
   } catch (e) {
     toast('已打开发送窗口，但触达记录写入失败：' + e.message);
   }
   if (saved) render();
+}
+/* 发送后跟进：默认勾选时建一条 3 天后的待办；同一客户已有未完成待办则不重复建 */
+function followupTodo(l) {
+  var box = document.getElementById('t_remind');
+  if (box && !box.checked) return '';
+  try {
+    var open = DataStore.list('todos').filter(function (t) { return !t.done && t.leadId === l.id; });
+    if (open.length) return ' · 已有未完成待办，未重复创建';
+    var due = iso(3);
+    DataStore.add('todos', {
+      title: '跟进 ' + l.name + (l.product ? ' · ' + l.product : ''),
+      leadId: l.id, leadName: l.name, done: false, due: due,
+      note: '发送后自动创建（' + iso(0) + '）', aiGenerated: 'outreach_sent'
+    });
+    return ' · 已建跟进待办 ' + due;
+  } catch (e) {
+    return ' · 跟进待办创建失败：' + e.message;
+  }
+}
+/* 线索卡「💰 报价」：进入报价页并预选该线索 */
+function goQuote(id) {
+  if (window.FT && typeof FT.go === 'function') FT.go('modules/quotes.html?lead=' + encodeURIComponent(id));
+  else location.href = 'quotes.html?lead=' + encodeURIComponent(id);
 }
 function sendVia(channel) {
   var l = S.leads.find(function (x) { return x.id === S.touchId; });

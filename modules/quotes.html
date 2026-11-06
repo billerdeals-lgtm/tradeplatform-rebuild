@@ -146,7 +146,7 @@
   <div class="right">
     <div class="ft-card form-card" id="editor">
       <h3 id="editorTitle">
-        新建报价
+        <span id="editorTitleText">新建报价</span>
         <span class="preview-toggle paper-tools" id="paperTools"></span>
         <span class="preview-toggle">
           <button class="btn-sm btn-ghost" onclick="Brand.open('dlgBrand', function(){ if($('paper').style.display==='block') renderPaper(); })" title="Logo/签名/公章，报价单自动盖章">🏷 品牌</button>
@@ -210,6 +210,7 @@
       <div class="btnrow">
         <button class="btn-sm btn-primary" onclick="saveQuote()">💾 保存</button>
         <button class="btn-sm btn-primary" onclick="saveAndPreview()">💾 保存并预览</button>
+        <button class="btn-sm btn-primary" onclick="toPI()" title="保存报价并带入单证中心生成 PI">📄 转 PI</button>
         <button class="btn-sm btn-ghost" onclick="printQuote()">🖨 打印</button>
         <button class="btn-sm btn-ghost" onclick="exportClientXls()" title="客户可改数量的单 sheet">⬇ Excel 客户版</button>
         <button class="btn-sm btn-ghost" onclick="exportDataXls()" title="多 sheet：报价头/明细/商品/客户">⬇ Excel 数据版</button>
@@ -307,9 +308,9 @@ function init() {
   addItem(); // 默认一行
   renderList();
   if (!S.quotes.length) {
-    $('editorTitle').textContent = '新建报价';
-    $('q_date').value = today();
-    $('q_no').value = genNo();
+    /* 首次进入就走一遍「新建报价」的默认值，保证付款方式/有效期/交期
+       与点「＋ 新建报价」完全一致（否则空库时这些字段是空的） */
+    newQuote();
   }
   /* 客户 360 的「报价」按钮带 ?lead=id 进来：直接选中客户并预填目的港/产品 */
   try {
@@ -572,7 +573,7 @@ function renderList() {
 /* ========== 新建/加载 ========== */
 function newQuote() {
   S.current = null; S.editing = false; gateRan = false;
-  $('editorTitle').textContent = '新建报价';
+  $('editorTitleText').textContent = '新建报价';
   $('btnDel').style.display = 'none';
   $('q_lead').value = '';
   $('q_no').value = genNo();
@@ -599,7 +600,7 @@ function loadQuote(id) {
   var item = DataStore.get('quotes', id);
   if (!item) return;
   S.current = id; S.editing = true; gateRan = false;
-  $('editorTitle').textContent = '编辑报价 ' + esc(item.no || '');
+  $('editorTitleText').textContent = '编辑报价 ' + esc(item.no || '');
   $('btnDel').style.display = 'inline-flex';
   var lid = item.leadId || '';
   /* 线索已被删除（历史数据/旧报价）：保留关联而不是静默清空，
@@ -685,7 +686,7 @@ function saveQuote() {
     S.current = saved.id;
   }
   S.quotes = DataStore.list('quotes');
-  $('editorTitle').textContent = '编辑报价 ' + esc(no);
+  $('editorTitleText').textContent = '编辑报价 ' + esc(no);
   $('btnDel').style.display = 'inline-flex';
   renderList();
   refreshGate();
@@ -693,6 +694,15 @@ function saveQuote() {
 }
 function saveAndPreview() {
   if (saveQuote()) { togglePreview(); }
+}
+/* 报价 → PI：先落库，再带 quoteId 跳单证中心。
+   同一报价重复点击时，docs.html 会按 quoteId 打开已生成的那张 PI。 */
+function toPI() {
+  if (!getItems().length) { alert('报价还没有明细，先填至少一行产品再转 PI'); return; }
+  var id = saveQuote();
+  if (!id) return;
+  if (window.FT && typeof FT.go === 'function') FT.go('modules/docs.html?quote=' + encodeURIComponent(id));
+  else location.href = 'docs.html?quote=' + encodeURIComponent(id);
 }
 function deleteQuote() {
   if (!S.current) return;
