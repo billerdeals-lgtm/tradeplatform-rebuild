@@ -176,6 +176,11 @@ nav :focus-visible,
   .paper { min-width: 0; padding: 28px 30px; }
   .paper table { min-width: 0; }
 
+  /* ---- 触控目标：24px 左右的小按钮抬到 28px 以上（平板按触屏处理） ---- */
+  .btn-sm { min-height: 28px; }
+  .iconbtn { min-height: 28px; }
+  .items-table .btn-sm { min-width: 30px; min-height: 30px; padding: 2px 6px; }
+
   /* ---- 客户 360 ---- */
   .profile-card { gap: 10px !important; }
   .linked-item { align-items: flex-start !important; }
@@ -207,6 +212,52 @@ nav :focus-visible,
   .toolbar-leads > select, .toolbar-leads > button,
   .toolbar-mail > select, .toolbar-mail > button { width: 100%; }
   .toolbar-leads > button, .toolbar-mail > button { display: inline-flex; align-items: center; justify-content: center; }
+
+  /* 待办工具条：AI 排序整行，新建 / 导入并排，搜索与筛选各占整行 */
+  .toolbar-todos { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; align-items: stretch !important; }
+  .toolbar-todos > * { min-width: 0 !important; box-sizing: border-box; }
+  .toolbar-todos > button { width: 100%; display: inline-flex; align-items: center; justify-content: center; white-space: nowrap; }
+  .toolbar-todos > .ft-btn-ai { grid-column: 1 / -1; grid-row: 1; }
+  .toolbar-todos > .ft-btn-primary { grid-column: 1; grid-row: 2; }
+  .toolbar-todos > .iconbtn { grid-column: 2; grid-row: 2; }
+  .toolbar-todos > input,
+  .toolbar-todos > select { grid-column: 1 / -1; width: 100%; }
+  .toolbar-todos > span { display: none; }
+
+  /* 线索卡：名称/标签一行，操作按钮固定 3+2 等宽，避免「删除」单独一行 */
+  .lead .top { align-items: flex-start !important; }
+  .lead .acts {
+    flex: 1 1 100% !important;
+    display: grid !important;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 7px;
+    margin-top: 2px;
+  }
+  .lead .acts > * { grid-column: span 2; width: 100%; min-width: 0; }
+  .lead .acts > *:nth-child(4),
+  .lead .acts > *:nth-child(5) { grid-column: span 3; }
+  .lead .acts .btn { display: inline-flex; align-items: center; justify-content: center; min-height: 32px; padding: 6px; font-size: 12px; white-space: nowrap; }
+
+  /* 报价编辑器标题：标题 / 纸面工具 / 品牌预览 分三行，按钮不竖排 */
+  #editorTitle { flex-wrap: wrap !important; row-gap: 8px !important; }
+  #editorTitle > #editorTitleText { flex: 1 1 100%; }
+  #editorTitle > #paperTools { margin-left: 0 !important; flex: 0 1 auto; min-width: 0; }
+  #editorTitle > .preview-toggle:last-child { flex: 1 1 100%; margin-left: 0 !important; display: flex; justify-content: flex-end; gap: 6px; }
+  #editorTitle .preview-toggle button { white-space: nowrap; }
+
+  /* 客户 360：6 项统计 3×2；7 个标签页换行，避免第 5 个起被裁切 */
+  .stats-bar { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px 8px !important; padding: 0 12px 12px !important; }
+  .stats-bar .stat-item { min-width: 0 !important; }
+  .stats-bar .stat-item b { font-size: 16px !important; overflow-wrap: anywhere; }
+  .tabs { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; overflow: visible !important; white-space: normal !important; gap: 0 !important; padding: 0 8px 2px !important; }
+  .tab { padding: 9px 4px !important; font-size: 12px !important; text-align: center; white-space: nowrap; min-width: 0; }
+
+  /* 复盘漏斗：5 个阶段等分一行 */
+  .funnel { display: grid !important; grid-template-columns: repeat(5, minmax(0, 1fr)) !important; gap: 6px !important; align-items: end !important; }
+  .funnel .fstage { min-width: 0 !important; }
+  .funnel .bar { font-size: 15px !important; padding: 6px 2px !important; }
+  .funnel .lbl { font-size: 11px !important; padding: 5px 2px !important; }
+  .funnel .amt { font-size: 10px !important; }
 }
 
 @media screen and (max-width: 640px) {

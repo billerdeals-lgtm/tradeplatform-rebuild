@@ -42,7 +42,7 @@
 </style>
 <script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=10">
+<link rel="stylesheet" href="../assets/responsive.css?v=11">
 </head>
 <body>
 <header>
@@ -63,10 +63,10 @@
   <div id="focusWrap"></div>
 
   <!-- 工具栏 -->
-  <div class="toolbar">
+  <div class="toolbar toolbar-todos">
     <button class="ft-btn-primary" onclick="openAdd()">＋ 新建待办</button>
     <button class="ft-btn-ai" id="btnPlan" onclick="aiPlan()">🧭 AI 排序：今天先做谁</button>
-    <button class="iconbtn" onclick="importFromLeads()">↘ 从线索评分导入 nextAction</button>
+    <button class="iconbtn" title="从线索 AI 评分导入下一步行动" onclick="importFromLeads()">↘ 导入下一步</button>
     <span style="flex:1"></span>
     <input class="grow" id="q" aria-label="搜索待办" placeholder="搜索待办/关联客户…" oninput="render()">
     <select id="fFilter" aria-label="按状态筛选" onchange="render()">
@@ -192,7 +192,7 @@ function render(){
       +   '</div>'
       + '</div></div>';
   });
-  $('list').innerHTML = html || '<div class="empty">还没有待办。点「＋ 新建待办」，或先去线索工作台给线索 AI 评分，再点「从线索评分导入 nextAction」。</div>';
+  $('list').innerHTML = html || '<div class="empty">还没有待办。点「＋ 新建待办」，或先去线索工作台给线索 AI 评分，再点「从线索评分导入下一步」。</div>';
   $('stOpen').textContent=st.open; $('stToday').textContent=st.today;
   $('stOver').textContent=st.over; $('stDone').textContent=st.done;
 }

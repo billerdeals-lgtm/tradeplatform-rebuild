@@ -112,5 +112,22 @@ ok('客户 360 有单证入口', /modules\/docs\.html\?lead=/.test(c360) && /�
 ok('AI 触达默认勾选 3 天提醒', /id="t_remind" checked/.test(leads));
 ok('发送后自动建跟进待办且去重', /aiGenerated: 'outreach_sent'/.test(leads) && /已有未完成待办，未重复创建/.test(leads));
 
+/* 12. 移动端布局回归：viewport、3+2 按钮、3×2 统计、漏斗等分、标签页换行 */
+const products = read('modules/products.html');
+const responsive = read('assets/responsive.css');
+const compact = squash(responsive);
+ok('线索页有 viewport（独立打开不缩成 980px）', /<meta name="viewport" content="width=device-width, initial-scale=1.0">/.test(leads));
+ok('线索卡按钮包进 .acts 容器', /\+\s*'<div class="acts">'/.test(leads) && /\+\s*'<\/div>'\s*\+\s*'<\/div><div class="meta">'/.test(leads));
+ok('线索卡按钮 3+2 等宽', /\.lead\.acts\{[^}]*grid-template-columns:repeat\(6,minmax\(0,1fr\)\)/.test(compact) && /nth-child\(4\)/.test(compact) && /nth-child\(5\)/.test(compact));
+ok('商品库 3 张统计卡一行', /<div class="stats s3">/.test(products));
+ok('客户 360 统计 3×2', /\.stats-bar\{[^}]*grid-template-columns:repeat\(3,minmax\(0,1fr\)\)/.test(compact));
+ok('客户 360 标签页 4 列换行不裁切', /\.tabs\{[^}]*grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/.test(compact) && /overflow:visible/.test(compact));
+ok('复盘漏斗 5 阶段等分', /\.funnel\{[^}]*grid-template-columns:repeat\(5,minmax\(0,1fr\)\)/.test(compact));
+ok('报价标题移动端分行不竖排', /#editorTitle>#editorTitleText\{flex:11100%;\}/.test(compact) && /#editorTitle\.preview-togglebutton\{white-space:nowrap;\}/.test(compact));
+ok('发送记录删除按钮触控尺寸', /class="log-del"/.test(maillog) && /\.log-del\{[^}]*min-height:28px/.test(squash(maillog)));
+ok('发送记录导出按钮使用统一按钮样式', /<button class="iconbtn" onclick="exportCsv\(\)">/.test(maillog));
+ok('待办工具条移动端 2 列 + 导入整行', /class="toolbar toolbar-todos"/.test(todos) && /\.toolbar-todos\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/.test(compact));
+ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(read('index.html')) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);
