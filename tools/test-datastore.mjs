@@ -106,5 +106,26 @@ ok('cfg 损坏锁定 setCfg', (() => {
   catch (err) { return err.code === 'CORRUPT_LOCK'; }
 })());
 
+/* 11. 线索阶段变更：DataStore.update 自动追 stageLog */
+const s = makeStore({ ftc_leads_v1: JSON.stringify([{ id: 'L1', stage: '待开发' }]) });
+s.DataStore.update('leads', 'L1', { stage: '已联系' });
+let lead = s.DataStore.get('leads', 'L1');
+ok('换阶段追加 stageLog', Array.isArray(lead.stageLog) && lead.stageLog.length === 1);
+ok('stageLog 记录 from/to/at', lead.stageLog[0].from === '待开发' && lead.stageLog[0].stage === '已联系' && !!lead.stageLog[0].at);
+s.DataStore.update('leads', 'L1', { stage: '已联系' });
+lead = s.DataStore.get('leads', 'L1');
+ok('同阶段不重复追加', lead.stageLog.length === 1);
+s.DataStore.update('leads', 'L1', { note: '只改备注' });
+lead = s.DataStore.get('leads', 'L1');
+ok('只改备注不追加', lead.stageLog.length === 1);
+s.DataStore.update('leads', 'L1', { stage: '成交' });
+lead = s.DataStore.get('leads', 'L1');
+ok('再次换阶段继续追加', lead.stageLog.length === 2 && lead.stageLog[1].from === '已联系');
+ok('非线索集合不写 stageLog', (() => {
+  const t = makeStore({ ftc_todos_v1: JSON.stringify([{ id: 'T1', stage: 'x' }]) });
+  t.DataStore.update('todos', 'T1', { stage: 'y' });
+  return !('stageLog' in t.DataStore.get('todos', 'T1'));
+})());
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

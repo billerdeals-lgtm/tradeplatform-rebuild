@@ -7,7 +7,7 @@
 <title>FT Compass · 外贸线索工作台</title>
 <link rel="stylesheet" href="../assets/tokens.css?v=3">
 <script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=5"></script>
+<script src="../js/datastore.js?v=6"></script>
 <script src="../js/csv.js?v=4"></script>
 <style>
   /* FT Compass 视觉体系（tokens.css 为准）：翡翠绿 / 琥珀 AI 规范 / 米白纸面 */
@@ -428,7 +428,13 @@ function saveEdit() {
   };
   if (S.editId) {
     var l = S.leads.find(function (x) { return x.id === S.editId; });
+    var prevStage = l.stage;
     Object.assign(l, obj); // 编辑不清除已有 AI 评分
+    /* 与 DataStore.update 保持同一份 stageLog 结构，供将来算阶段停留天数 */
+    if (obj.stage && obj.stage !== prevStage) {
+      if (!Array.isArray(l.stageLog)) l.stageLog = [];
+      l.stageLog.push({ stage: obj.stage, from: prevStage || '', at: new Date().toISOString() });
+    }
   } else {
     obj.id = uid(); if (!obj.last) obj.last = iso(0); obj.score = null;
     obj.source = 'manual';

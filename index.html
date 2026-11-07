@@ -185,7 +185,7 @@
   </div>
   <!-- 首页简报 -->
   <div id="home">
-    <h2>早上好 🧭</h2>
+    <h2><span id="greet">早上好</span> 🧭</h2>
     <div class="sub">FT Compass 自研版 · 8 步闭环第一步已就绪（线索 → 触达 → 成交）</div>
     <div class="grid">
       <button type="button" class="ft-card stat" onclick="go('modules/leads.html')"><b id="hLeads" style="color:var(--brand-700)">0</b><span>线索总数</span></button>
@@ -257,14 +257,15 @@
 </dialog>
 
 <script src="agnes-ai.js?v=10"></script>
-<script src="js/datastore.js?v=5"></script>
+<script src="js/datastore.js?v=6"></script>
+<script src="js/quote-validity.js?v=1"></script>
 <script src="js/license.js?v=3"></script>
 <script src="assets/a11y.js?v=2"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261106e';
+var MODULE_V = '20261107a';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -302,6 +303,10 @@ function closeNav(){
   if (b){ b.setAttribute('aria-expanded','false'); b.setAttribute('aria-label','打开菜单'); }
 }
 function $(id){ return document.getElementById(id); }
+function greetingText(hour){
+  if (hour == null) hour = new Date().getHours();
+  return hour < 12 ? '早上好' : hour < 18 ? '下午好' : '晚上好';
+}
 document.querySelectorAll('.navitem').forEach(function(n){
   n.addEventListener('click', function(){ go(n.dataset.view); });
 });
@@ -374,7 +379,7 @@ function renderDash(leads, todos, quotes){
   $('dashQuote').innerHTML = qs.slice(0,4).map(function(q){
     var money = (q.currency || 'USD') + ' ' + Number(q.total || 0).toLocaleString();
     var sub = [q.leadName, money].filter(Boolean).join(' · ');
-    var st = q.status || 'draft';
+    var st = QuoteValidity.effectiveStatus(q);
     return '<button type="button" class="dash-row" onclick="go(\'modules/quotes.html\')">'
       + '<span class="dr-main"><span class="dr-t">' + escHtml(q.no || '未编号报价') + '</span>'
       + '<span class="dr-s">' + escHtml(sub) + '</span></span>'
@@ -389,10 +394,11 @@ function refresh(){
   todos.forEach(function(t){
     if (!t.done) open++;
   });
+  $('greet').textContent=greetingText();
   $('hLeads').textContent=leads.length;
   var he=$('homeEmpty'); if(he) he.style.display = (leads.length || todos.length || quotes.length) ? 'none' : 'block';
   $('hScored').textContent=leads.filter(function(l){return l.score!=null;}).length;
-  $('hQuotes').textContent=quotes.filter(function(q){return q.status==='sent'||q.status==='draft';}).length;
+  $('hQuotes').textContent=quotes.filter(function(q){var st=QuoteValidity.effectiveStatus(q);return st==='sent'||st==='draft';}).length;
   $('hTodos').textContent=open;
   renderDash(leads, todos, quotes);
   var aiLeft=null; try{ aiLeft=AgnesAI.aiTrialLeft(); }catch(e){}

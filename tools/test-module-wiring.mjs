@@ -23,6 +23,8 @@ const leads = read('modules/leads.html');
 const review = read('modules/review.html');
 const maillog = read('modules/maillog.html');
 const datastore = read('js/datastore.js');
+const quoteValidity = read('js/quote-validity.js');
+const home = read('index.html');
 
 /* 1. 线索的 WhatsApp 字段是 wa，不是 whatsapp */
 [[todos, '待办'], [templates, '话术库'], [holidays, '节假日']].forEach(function (pair) {
@@ -141,8 +143,24 @@ ok('历史复盘读中文快照', /varp=reviewPoint\(r\)/.test(rvc) && /成交 \
 ok('图表无第三方依赖', !/chart\.js|cdn\.jsdelivr|unpkg\.com|cdnjs/i.test(rv));
 ok('CSV 导入标记来源', /rec\.source = 'csv'/.test(leads));
 ok('手动新增标记来源', /obj\.source = 'manual'/.test(leads));
-ok('模块缓存版本已升级到 e', /MODULE_V = '20261106e'/.test(read('index.html')));
-ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(read('index.html')) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
+ok('模块缓存版本已升级到 20261107a', /MODULE_V = '20261107a'/.test(home));
+ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(home) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
+
+/* 14. 报价有效期日期化 + 渲染时自动过期 + 首页问候 + 阶段日志 */
+ok('报价有效期改为 date 字段', /id="q_validity" type="date"/.test(quotes));
+ok('有效期默认值改为 30 天后日期', /FT\.today\(30\)/.test(quotes) && !/\$\('q_validity'\)\.value = '30 days'/.test(quotes));
+ok('报价保存 validUntil 与兼容 validity', /validUntil: v\('q_validity'\), validity: v\('q_validity'\)/.test(quotes));
+ok('有效期 helper 兼容旧 30 days', /day\|days\|天/.test(quoteValidity));
+ok('自动过期只作用于已发送', /st === 'sent' \|\| st === 'expired'/.test(quoteValidity) && /isExpired\(q\)/.test(quoteValidity));
+ok('报价列表按生效状态渲染', /QuoteValidity\.effectiveStatus\(item\)/.test(quotes) && /st-' \+ esc\(est\)/.test(quotes));
+ok('报价筛选按生效状态匹配', /QuoteValidity\.effectiveStatus\(item\) !== st/.test(quotes));
+ok('首页报价徽标使用生效状态', /QuoteValidity\.effectiveStatus\(q\)/.test(home) && /hQuotes/.test(home));
+ok('首页问候按小时切换', /id="greet"/.test(home) && /function greetingText/.test(home) && /早上好.*下午好.*晚上好/.test(home));
+ok('首页和报价页都加载有效期 helper', /quote-validity\.js\?v=1/.test(home) && /quote-validity\.js\?v=1/.test(quotes));
+ok('DataStore.update 换阶段追 stageLog', /patch\.stage && patch\.stage !== prevStage/.test(datastore) && /stageLog\.push/.test(datastore));
+ok('线索编辑换阶段追 stageLog', /prevStage/.test(leads) && /l\.stageLog\.push/.test(leads));
+ok('单证读取 validUntil 兜底', /values\.valid = q\.validUntil \|\| q\.validity/.test(docs));
+ok('datastore 缓存版本已升级', /datastore\.js\?v=6/.test(home) && /datastore\.js\?v=6/.test(quotes) && /datastore\.js\?v=6/.test(leads));
 
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

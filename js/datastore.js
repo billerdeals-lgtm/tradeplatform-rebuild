@@ -275,8 +275,16 @@
       var arr = this.list(name);
       for (var i = 0; i < arr.length; i++) {
         if (arr[i].id === id) {
+          var prevStage = arr[i].stage;
           Object.keys(patch).forEach(function (k) { arr[i][k] = patch[k]; });
-          arr[i].updatedAt = new Date().toISOString();
+          var now = new Date().toISOString();
+          /* 线索换阶段时留痕：为将来的「各阶段平均停留天数」存数据。
+             只换 stage 才写，单纯改备注/评分不会污染日志。 */
+          if (name === 'leads' && patch.stage && patch.stage !== prevStage) {
+            if (!Array.isArray(arr[i].stageLog)) arr[i].stageLog = [];
+            arr[i].stageLog.push({ stage: patch.stage, from: prevStage || '', at: now });
+          }
+          arr[i].updatedAt = now;
           this.saveAll(name, arr);
           return arr[i];
         }

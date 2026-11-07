@@ -201,7 +201,7 @@
 <div id="brandHost"></div>
 
 <script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=5"></script>
+<script src="../js/datastore.js?v=6"></script>
 <script src="../js/license.js?v=3"></script>
 <script src="../js/docs_data.js"></script>
 <script src="../js/gate.js?v=2"></script>
@@ -820,7 +820,7 @@ function openFromQuote(qid){
   values.portFrom = q.portFrom || '';
   values.portTo = q.portTo || '';
   values.delivery = q.delivery || '';
-  values.valid = q.validity || '';
+  values.valid = q.validUntil || q.validity || '';
   values.remark = q.note || '';
 
   var note = '由报价 ' + (q.no || qid) + ' 生成';
