@@ -127,6 +127,21 @@ ok('报价标题移动端分行不竖排', /#editorTitle>#editorTitleText\{flex:
 ok('发送记录删除按钮触控尺寸', /class="log-del"/.test(maillog) && /\.log-del\{[^}]*min-height:28px/.test(squash(maillog)));
 ok('发送记录导出按钮使用统一按钮样式', /<button class="iconbtn" onclick="exportCsv\(\)">/.test(maillog));
 ok('待办工具条移动端 2 列 + 导入整行', /class="toolbar toolbar-todos"/.test(todos) && /\.toolbar-todos\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/.test(compact));
+
+/* 13. 复盘图表：趋势 / 转化率 / 来源 / 月度报价（纯内联 SVG） */
+const rv = read('modules/review.html');
+const rvc = squash(rv);
+ok('复盘页有 3 个图表容器', /id="trendChart"/.test(rv) && /id="sourceChart"/.test(rv) && /id="monthChart"/.test(rv));
+ok('漏斗阶段转化率有容器与计算', /id="convRow"/.test(rv) && /st\.byStage\[cur\]\*100\/st\.byStage\[prev\]/.test(rvc));
+ok('趋势兼容中英文 stats key', /'线索总数','leads'/.test(rvc) && /'成交额','wonAmt'/.test(rvc) && /'各阶段金额'/.test(rvc));
+ok('趋势按日期去重且最多 12 点', /byDate\[p\.date\]=p/.test(rvc) && /slice\(-12\)/.test(rvc));
+ok('来源分组映射', /multi_source/.test(rv) && /CSV 导入/.test(rv) && /source\|\|'manual'/.test(rvc));
+ok('月度报价排除草稿并按已决算赢单率', /q\.status==='draft'/.test(rvc) && /q\.status==='accepted'\|\|q\.status==='rejected'\|\|q\.status==='expired'/.test(rvc));
+ok('历史复盘读中文快照', /varp=reviewPoint\(r\)/.test(rvc) && /成交 \$/.test(rv));
+ok('图表无第三方依赖', !/chart\.js|cdn\.jsdelivr|unpkg\.com|cdnjs/i.test(rv));
+ok('CSV 导入标记来源', /rec\.source = 'csv'/.test(leads));
+ok('手动新增标记来源', /obj\.source = 'manual'/.test(leads));
+ok('模块缓存版本已升级到 e', /MODULE_V = '20261106e'/.test(read('index.html')));
 ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(read('index.html')) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
 
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');

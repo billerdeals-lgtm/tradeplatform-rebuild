@@ -431,6 +431,7 @@ function saveEdit() {
     Object.assign(l, obj); // 编辑不清除已有 AI 评分
   } else {
     obj.id = uid(); if (!obj.last) obj.last = iso(0); obj.score = null;
+    obj.source = 'manual';
     S.leads.push(obj);
   }
   if (!save()) return;
@@ -771,6 +772,7 @@ function doImport() {
     var rec = Object.assign({}, r);
     rec.id = uid();
     rec.createdAt = new Date().toISOString();
+    if (!rec.source) rec.source = 'csv';
     if (rec.score != null) rec.aiImported = true;
     add.push(rec);
   });

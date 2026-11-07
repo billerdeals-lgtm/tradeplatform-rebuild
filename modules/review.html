@@ -34,6 +34,38 @@
   dialog::backdrop { background:rgba(31,41,51,.4); }
   .dlg-h { background:var(--bg-inset); padding:var(--sp-3) var(--sp-4); font-weight:600; display:flex; justify-content:space-between; }
   .dlg-b { padding:var(--sp-4); }
+  /* ---- 图表（纯内联 SVG，无第三方依赖） ---- */
+  .chart-card { padding:var(--sp-4); }
+  .chart-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+  .chart-head b { font-size:13.5px; }
+  .chart-sub { font-size:11.5px; color:var(--text-3); }
+  .metric-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }
+  .metric-tab { border:1px solid var(--border); background:var(--bg-card); color:var(--text-2); border-radius:999px; padding:3px 10px; font-size:11.5px; line-height:1.6; cursor:pointer; }
+  .metric-tab.on { background:var(--brand-700); border-color:var(--brand-700); color:#fff; font-weight:600; }
+  .chart-svg { display:block; width:100%; height:auto; overflow:visible; }
+  .chart-svg text { font-family:var(--font-sans); font-size:10.5px; fill:var(--text-3); }
+  .chart-svg .axis { stroke:var(--border); stroke-width:1; }
+  .chart-svg .grid { stroke:var(--border); stroke-width:1; stroke-dasharray:3 3; }
+  .chart-svg .line { fill:none; stroke:var(--brand-700); stroke-width:2.4; stroke-linecap:round; stroke-linejoin:round; }
+  .chart-svg .area { fill:var(--brand-100); opacity:.6; }
+  .chart-svg .dot { fill:var(--brand-700); stroke:#fff; stroke-width:1.5; }
+  .chart-svg .val { fill:var(--text-2); font-size:9.5px; font-weight:600; }
+  .chart-svg .bar-a { fill:var(--brand-100); }
+  .chart-svg .bar-b { fill:var(--brand-700); }
+  .chart-svg .bar-track { fill:var(--bg-inset); }
+  .chart-svg .rate { fill:var(--text-2); font-size:9.5px; }
+  .chart-legend { display:flex; gap:14px; flex-wrap:wrap; margin-top:8px; font-size:11px; color:var(--text-2); }
+  .chart-legend i { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+  .conv-row { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; padding-top:10px; border-top:1px dashed var(--border); }
+  .conv { display:inline-flex; align-items:center; gap:4px; font-size:11.5px; color:var(--text-2); background:var(--bg-inset); border-radius:999px; padding:4px 9px; white-space:nowrap; }
+  .conv .arr { color:var(--text-3); }
+  .conv b { color:var(--brand-700); }
+  .chart-empty { text-align:center; color:var(--text-3); font-size:12.5px; padding:22px 0; }
+  @media screen and (max-width:520px) {
+    .chart-card { padding:12px; }
+    .chart-head { gap:6px; }
+    .metric-tabs { margin-left:0; width:100%; }
+  }
 </style>
 <script src="../assets/standalone.js?v=2"></script>
 <script src="../assets/a11y.js?v=2"></script>
@@ -49,6 +81,7 @@
   <h2>📊 本期漏斗（截至今天）</h2>
   <div class="ft-card" style="padding:var(--sp-4)">
     <div class="funnel" id="funnel"></div>
+    <div class="conv-row" id="convRow" aria-label="阶段转化率"></div>
   </div>
 
   <h2>📈 关键指标</h2>
@@ -59,12 +92,47 @@
     <div class="ft-card kpi"><b id="kAmt" style="color:var(--accent-500)">$0</b><span>成交阶段金额</span></div>
   </div>
 
+  <h2>📈 历史趋势</h2>
+  <div class="ft-card chart-card">
+    <div class="chart-head">
+      <b>每期复盘快照</b>
+      <span class="chart-sub">点指标切换</span>
+      <div class="metric-tabs" id="metricTabs" role="tablist" aria-label="趋势指标">
+        <button type="button" class="metric-tab on" data-metric="won" role="tab" aria-selected="true">成交额</button>
+        <button type="button" class="metric-tab" data-metric="leads" role="tab" aria-selected="false">线索数</button>
+        <button type="button" class="metric-tab" data-metric="touch" role="tab" aria-selected="false">触达</button>
+        <button type="button" class="metric-tab" data-metric="rate" role="tab" aria-selected="false">完成率</button>
+      </div>
+    </div>
+    <div id="trendChart"></div>
+  </div>
+
   <div class="ft-card" style="padding:var(--sp-4);display:flex;align-items:center;gap:var(--sp-3);margin-bottom:var(--sp-4)">
     <div style="flex:1"><b>🧭 AI 本期复盘</b>
       <div style="font-size:12px;color:var(--text-2)">基于上方真实数据推理：三个发现 + 三个动作 + 一个该砍掉的</div></div>
     <button class="ft-btn-ai" id="btnReview" onclick="aiReview()">✨ 生成本期复盘</button>
   </div>
   <div id="reviewWrap"></div>
+
+  <h2>🎯 来源效果</h2>
+  <div class="ft-card chart-card">
+    <div class="chart-head">
+      <b>线索来源 → 成交</b>
+      <span class="chart-sub">按线索数排序</span>
+    </div>
+    <div id="sourceChart"></div>
+    <div class="chart-legend"><span><i style="background:var(--brand-100)"></i>线索数</span><span><i style="background:var(--brand-700)"></i>成交数</span></div>
+  </div>
+
+  <h2>🧾 月度报价与赢单率</h2>
+  <div class="ft-card chart-card">
+    <div class="chart-head">
+      <b>近 6 个月</b>
+      <span class="chart-sub">柱高=报价额 · 深色=已接受 · 标签=赢单率</span>
+    </div>
+    <div id="monthChart"></div>
+    <div class="chart-legend"><span><i style="background:var(--brand-100)"></i>报价总额（不含草稿）</span><span><i style="background:var(--brand-700)"></i>已接受金额</span></div>
+  </div>
 
   <h2>🗂 历史复盘</h2>
   <div id="hist"></div>
@@ -122,7 +190,217 @@ function renderStats(){
   $('kTodo').textContent = st.todoRate+'%';
   $('kOver').textContent = st.todoOver;
   $('kAmt').textContent = '$'+st.wonAmt.toLocaleString();
+  var conv = [];
+  for (var i=1;i<STAGES.length;i++){
+    var prev=STAGES[i-1], cur=STAGES[i];
+    var pct = st.byStage[prev] ? Math.round(st.byStage[cur]*100/st.byStage[prev]) : null;
+    conv.push('<span class="conv" title="'+esc(prev+' → '+cur)+'"><span>'+esc(prev)+'</span><span class="arr">→</span><span>'+esc(cur)+'</span><b>'+(pct==null?'—':pct+'%')+'</b></span>');
+  }
+  $('convRow').innerHTML = conv.join('');
   return st;
+}
+
+/* ---------- 图表：纯内联 SVG，零依赖 ---------- */
+var trendMetric = 'won';
+var METRICS = {
+  won:   { label:'成交额', fmt:function(v){ return '$'+fmtShort(v); }, get:function(p){ return p.won; } },
+  leads: { label:'线索数', fmt:function(v){ return String(Math.round(v)); }, get:function(p){ return p.leads; } },
+  touch: { label:'触达',   fmt:function(v){ return String(Math.round(v)); }, get:function(p){ return p.touch; } },
+  rate:  { label:'完成率', fmt:function(v){ return Math.round(v)+'%'; }, get:function(p){ return p.rate; }, max:100 }
+};
+function parseNum(v){
+  if (typeof v === 'number') return isFinite(v) ? v : 0;
+  var n = parseFloat(String(v == null ? '' : v).replace(/[^0-9.\-]/g, ''));
+  return isFinite(n) ? n : 0;
+}
+function pickNum(s, keys){
+  for (var i=0;i<keys.length;i++){
+    var v = s[keys[i]];
+    if (v != null && v !== '') return parseNum(v);
+  }
+  return null;
+}
+function fmtShort(n){
+  n = +n || 0;
+  var abs = Math.abs(n);
+  if (abs >= 1e6) return (n/1e6).toFixed(abs >= 1e7 ? 0 : 1).replace(/\.0$/, '') + 'M';
+  if (abs >= 1e3) { var k = n/1e3; return (abs >= 1e5 ? Math.round(k) : Math.round(k*10)/10) + 'k'; }
+  return String(Math.round(n*10)/10);
+}
+function fmtFull(n){ return (+n || 0).toLocaleString('en-US'); }
+/* 视口越宽，viewBox 越宽：文字始终接近 1:1，手机不缩成蚂蚁字 */
+function chartW(){ var w = window.innerWidth || 390; return w <= 520 ? 360 : (w <= 860 ? 560 : 720); }
+function niceMax(v){
+  v = Math.abs(+v || 0);
+  if (v <= 0) return 1;
+  var p = Math.pow(10, Math.floor(Math.log10(v)));
+  var n = v/p;
+  var s = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
+  return s*p;
+}
+function svgOpen(w, h, label){
+  return '<svg class="chart-svg" viewBox="0 0 '+w+' '+h+'" role="img" aria-label="'+esc(label)+'"><title>'+esc(label)+'</title>';
+}
+function txt(x, y, s, cls, anchor){
+  return '<text x="'+x+'" y="'+y+'"'+(cls?' class="'+cls+'"':'')+(anchor?' text-anchor="'+anchor+'"':'')+'>'+esc(s)+'</text>';
+}
+
+/* 历史复盘快照：兼容中文 key 与英文 key；同一天只保留最新一条 */
+function reviewPoint(r){
+  var s = (r && r.stats && typeof r.stats === 'object') ? r.stats : {};
+  var amt = s['各阶段金额'] || s.amtByStage || {};
+  var won = pickNum(s, ['成交额','wonAmt']);
+  if (won == null) won = parseNum(amt['成交']);
+  return {
+    date: String(r.period || (r.createdAt ? String(r.createdAt).slice(0,10) : '')).slice(0,10),
+    leads: pickNum(s, ['线索总数','leads']) || 0,
+    touch: pickNum(s, ['触达次数','touch']) || 0,
+    rate:  pickNum(s, ['完成率','todoRate']) || 0,
+    won:   won || 0
+  };
+}
+function reviewPoints(){
+  var byDate = {};
+  DataStore.list('reviews').forEach(function(r){
+    var p = reviewPoint(r);
+    if (p.date) byDate[p.date] = p;
+  });
+  return Object.keys(byDate).sort().map(function(d){ return byDate[d]; }).slice(-12);
+}
+function renderTrend(){
+  var host = $('trendChart'), pts = reviewPoints();
+  if (!pts.length){
+    host.innerHTML = '<div class="chart-empty">还没有复盘快照。生成 1 次复盘后，这里会按日期记录趋势。</div>';
+    return;
+  }
+  var m = METRICS[trendMetric] || METRICS.won;
+  var W=chartW(), H=W<=400?190:220, pl=38, pr=12, pt=18, pb=30;
+  var iw=W-pl-pr, ih=H-pt-pb;
+  var vals = pts.map(m.get);
+  var max = m.max || niceMax(Math.max.apply(null, vals));
+  if (!(max > 0)) max = 1;
+  var x = function(i){ return pts.length === 1 ? pl+iw/2 : pl + i*iw/(pts.length-1); };
+  var y = function(v){ return H-pb - Math.max(0, Math.min(max, v))/max*ih; };
+  var parts = [svgOpen(W, H, '历史趋势：'+m.label)];
+  [0, 0.5, 1].forEach(function(r){
+    var gy = H-pb-r*ih;
+    parts.push('<line class="grid" x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'"/>');
+    parts.push(txt(pl-5, gy+3, m.fmt(max*r), '', 'end'));
+  });
+  var step = pts.length <= 5 ? 1 : Math.ceil(pts.length/5);
+  pts.forEach(function(p, i){
+    if (i % step !== 0 && i !== pts.length-1) return;
+    parts.push(txt(x(i), H-9, p.date.slice(5), '', 'middle'));
+  });
+  var d = pts.map(function(p, i){ return (i ? 'L' : 'M') + x(i).toFixed(1) + ' ' + y(m.get(p)).toFixed(1); }).join(' ');
+  parts.push('<path class="area" d="'+d+' L '+x(pts.length-1).toFixed(1)+' '+(H-pb)+' L '+x(0).toFixed(1)+' '+(H-pb)+' Z"/>');
+  parts.push('<path class="line" d="'+d+'"/>');
+  pts.forEach(function(p, i){
+    parts.push('<circle class="dot" cx="'+x(i).toFixed(1)+'" cy="'+y(m.get(p)).toFixed(1)+'" r="3.2"><title>'+esc(p.date+' · '+m.fmt(m.get(p)))+'</title></circle>');
+  });
+  var li = pts.length-1, lv = m.get(pts[li]);
+  parts.push(txt(x(li), Math.max(pt+9, y(lv)-8), m.fmt(lv), 'val', 'middle'));
+  parts.push('</svg>');
+  host.innerHTML = parts.join('') + (pts.length === 1 ? '<div class="chart-sub" style="text-align:center">再生成 1 次复盘就能连成折线</div>' : '');
+}
+
+/* 来源效果：线索数 / 成交数 */
+function sourceLabel(s){
+  s = String(s || '').trim();
+  if (!s || s === 'manual' || s === '手动') return '手动';
+  if (s === 'multi_source') return '多渠道';
+  if (s === 'csv') return 'CSV 导入';
+  return s;
+}
+function sourceRows(){
+  var map = {};
+  DataStore.list('leads').forEach(function(l){
+    var key = String(l.source || 'manual');
+    if (!map[key]) map[key] = { key:key, label:sourceLabel(key), leads:0, won:0 };
+    map[key].leads++;
+    if (l.stage === '成交') map[key].won++;
+  });
+  var rows = Object.keys(map).map(function(k){ return map[k]; });
+  rows.sort(function(a, b){ return b.leads-a.leads || b.won-a.won || a.label.localeCompare(b.label); });
+  if (rows.length > 6){
+    var other = { key:'__other', label:'其他', leads:0, won:0 };
+    rows.slice(6).forEach(function(r){ other.leads += r.leads; other.won += r.won; });
+    rows = rows.slice(0, 6).concat(other);
+  }
+  return rows;
+}
+function renderSources(){
+  var host = $('sourceChart'), rows = sourceRows();
+  if (!rows.length){ host.innerHTML = '<div class="chart-empty">还没有线索数据</div>'; return; }
+  var W=chartW(), rowH=42, pt=8, pb=6, labelW=(W<=400?78:96), rightW=(W<=400?70:86);
+  var barW = W-12-labelW-rightW;
+  var max = Math.max.apply(null, rows.map(function(r){ return r.leads; })) || 1;
+  var H = pt + rows.length*rowH + pb;
+  var parts = [svgOpen(W, H, '线索来源效果：'+rows.map(function(r){ return r.label+' '+r.leads+' 条，成交 '+r.won+' 条'; }).join('；'))];
+  rows.forEach(function(r, i){
+    var y = pt+i*rowH;
+    parts.push(txt(4, y+14, r.label, '', 'start'));
+    parts.push('<rect class="bar-track" x="'+labelW+'" y="'+(y+4)+'" width="'+barW+'" height="9" rx="4.5"/>');
+    parts.push('<rect class="bar-a" x="'+labelW+'" y="'+(y+4)+'" width="'+Math.max(0, r.leads/max*barW).toFixed(1)+'" height="9" rx="4.5"/>');
+    parts.push('<rect class="bar-track" x="'+labelW+'" y="'+(y+19)+'" width="'+barW+'" height="9" rx="4.5"/>');
+    parts.push('<rect class="bar-b" x="'+labelW+'" y="'+(y+19)+'" width="'+Math.max(0, r.won/max*barW).toFixed(1)+'" height="9" rx="4.5"/>');
+    var rate = r.leads ? Math.round(r.won*100/r.leads) : null;
+    parts.push(txt(W-4, y+14, r.leads+' → '+r.won, '', 'end'));
+    parts.push(txt(W-4, y+28, rate == null ? '—' : rate+'%', 'rate', 'end'));
+  });
+  parts.push('</svg>');
+  host.innerHTML = parts.join('');
+}
+
+/* 月度报价额 + 赢单率：近 6 个月，不含草稿 */
+function monthRows(){
+  var qs = DataStore.list('quotes'), out = [], idx = {}, now = new Date();
+  for (var i=5;i>=0;i--){
+    var d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+    var key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+    var row = { key:key, label:(d.getMonth()+1)+'月', total:0, acceptedAmt:0, accepted:0, decided:0, count:0 };
+    out.push(row); idx[key] = row;
+  }
+  qs.forEach(function(q){
+    var row = idx[String(q.date || q.createdAt || '').slice(0,7)];
+    if (!row || q.status === 'draft') return;
+    var amt = parseNum(q.total);
+    row.total += amt;
+    row.count++;
+    if (q.status === 'accepted'){ row.accepted++; row.acceptedAmt += amt; }
+    if (q.status === 'accepted' || q.status === 'rejected' || q.status === 'expired') row.decided++;
+  });
+  return out;
+}
+function renderMonthly(){
+  var host = $('monthChart'), rows = monthRows();
+  var maxAmt = Math.max.apply(null, rows.map(function(r){ return r.total; }));
+  if (!(maxAmt > 0)){ host.innerHTML = '<div class="chart-empty">近 6 个月还没有非草稿报价</div>'; return; }
+  var W=chartW(), H=W<=400?200:230, pl=34, pr=12, pt=28, pb=34;
+  var iw=W-pl-pr, ih=H-pt-pb;
+  var max = niceMax(maxAmt);
+  var slot = iw/rows.length, barW = Math.min(26, slot*0.52);
+  var parts = [svgOpen(W, H, '近 6 个月报价额与赢单率：'+rows.map(function(r){
+    return r.label+' 报价 '+fmtFull(r.total)+'，'+(r.decided ? '赢单率 '+Math.round(r.accepted*100/r.decided)+'%' : '暂无已决报价');
+  }).join('；'))];
+  [0, 0.5, 1].forEach(function(r){
+    var gy = H-pb-r*ih;
+    parts.push('<line class="grid" x1="'+pl+'" y1="'+gy+'" x2="'+(W-pr)+'" y2="'+gy+'"/>');
+    parts.push(txt(pl-5, gy+3, '$'+fmtShort(max*r), '', 'end'));
+  });
+  rows.forEach(function(r, i){
+    var cx = pl+slot*i+slot/2;
+    var h = r.total/max*ih, by = H-pb-h;
+    parts.push('<rect class="bar-a" x="'+(cx-barW/2).toFixed(1)+'" y="'+by.toFixed(1)+'" width="'+barW+'" height="'+Math.max(0,h).toFixed(1)+'" rx="3"><title>'+esc(r.label+'：报价 $'+fmtFull(r.total)+'，'+r.count+' 张')+'</title></rect>');
+    var ha = r.acceptedAmt/max*ih;
+    if (ha > 0) parts.push('<rect class="bar-b" x="'+(cx-barW/2).toFixed(1)+'" y="'+(H-pb-ha).toFixed(1)+'" width="'+barW+'" height="'+Math.max(0,ha).toFixed(1)+'" rx="3"><title>'+esc('已接受 $'+fmtFull(r.acceptedAmt))+'</title></rect>');
+    var rate = r.decided ? Math.round(r.accepted*100/r.decided) : null;
+    parts.push(txt(cx, Math.max(pt+8, by-6), rate == null ? '—' : rate+'%', 'rate', 'middle'));
+    parts.push(txt(cx, H-18, r.label, '', 'middle'));
+    parts.push(txt(cx, H-5, r.total ? '$'+fmtShort(r.total) : '', 'val', 'middle'));
+  });
+  parts.push('</svg>');
+  host.innerHTML = parts.join('');
 }
 
 /* ---------- AI 复盘（矩阵：原版假洞察 → 真推理） ---------- */
@@ -153,14 +431,18 @@ function renderHist(){
   var rs = DataStore.list('reviews').slice().reverse();
   $('hist').innerHTML = rs.length ? rs.map(function(r){
     r = r || {};
-    var st = (r.stats && typeof r.stats === 'object') ? r.stats : {};
+    var hasStats = !!(r.stats && typeof r.stats === 'object');
+    var p = reviewPoint(r);
     var oneLine = String(r.summary||'').split('\n').filter(Boolean)[0] || '';
     var period = r.period || '（未记录日期）';
     var rid = String(r.id || '');
     var canDelete = /^[A-Za-z0-9_.:-]{1,120}$/.test(rid);
     function num(v){ return v == null || v === '' ? '—' : esc(v); }
     return '<div class="ft-card hist"><div class="when">'+esc(period)
-      + ' · 线索 '+num(st.leads)+' · 触达 '+num(st.touch)+' · 完成率 '+(st.todoRate == null ? '—' : esc(st.todoRate)+'%')+'</div>'
+      + ' · 线索 '+num(hasStats ? p.leads : null)
+      + ' · 触达 '+num(hasStats ? p.touch : null)
+      + ' · 完成率 '+(hasStats ? num(p.rate)+'%' : '—')
+      + ' · 成交 $'+(hasStats ? fmtShort(p.won) : '—')+'</div>'
       + '<div class="sum">'+esc(oneLine.slice(0,80))+(oneLine.length>80?'…':'')+'</div>'
       + '<div style="margin-top:6px"><button class="iconbtn" onclick="this.closest(\'.hist\').querySelector(\'.full\').style.display=this.closest(\'.hist\').querySelector(\'.full\').style.display===\'none\'?\'block\':\'none\'">展开全文</button>'
       + (canDelete ? '<button class="iconbtn" onclick="delReview(\''+rid+'\')" aria-label="删除">🗑</button>' : '')
@@ -174,7 +456,23 @@ function delReview(id){
 }
 
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
-renderStats(); renderHist();
+$('metricTabs').addEventListener('click', function(e){
+  var btn = e.target.closest ? e.target.closest('button[data-metric]') : null;
+  if (!btn || !METRICS[btn.getAttribute('data-metric')]) return;
+  trendMetric = btn.getAttribute('data-metric');
+  Array.prototype.forEach.call(this.querySelectorAll('button[data-metric]'), function(b){
+    var on = b === btn;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  renderTrend();
+});
+renderStats(); renderTrend(); renderSources(); renderMonthly(); renderHist();
+var chartResizeTimer;
+window.addEventListener('resize', function(){
+  clearTimeout(chartResizeTimer);
+  chartResizeTimer = setTimeout(function(){ renderTrend(); renderSources(); renderMonthly(); }, 150);
+});
 </script>
 </body>
 </html>
