@@ -655,6 +655,7 @@ function openCfg() {
 /* ---------- CSV 导入 ---------- */
 var IMPORT_MAX = 5000;
 var FIELD_LABEL = { name:'客户名', country:'国家', market:'市场', stage:'阶段', wa:'WhatsApp', email:'邮箱',
+  website:'官网', source:'来源', createdAt:'创建时间',
   product:'产品', amount:'预估金额', last:'最后联系', note:'备注', nextAction:'下一步', score:'AI评分' };
 
 function pickCsv() {
@@ -794,7 +795,8 @@ function doImport() {
     if (k) existing[k] = true;
     var rec = Object.assign({}, r);
     rec.id = uid();
-    rec.createdAt = new Date().toISOString();
+    /* 备份迁移：CSV 里带了创建时间就保留，否则才记成今天 */
+    rec.createdAt = r.createdAt || new Date().toISOString();
     if (!rec.source) rec.source = 'csv';
     if (rec.score != null) rec.aiImported = true;
     add.push(rec);
@@ -832,11 +834,32 @@ function downloadTemplate() {
 }
 
 /* ---------- CSV 导出 ---------- */
+/* 阶段流转摘要：导出给人看 + 迁移时保留轨迹；导入按「来源/官网/创建时间」回填，
+   阶段日志本身不重建（它是过程数据，不是客户主数据）。 */
+function stageSummary(l) {
+  var log = Array.isArray(l.stageLog) ? l.stageLog : [];
+  return log.map(function (e) {
+    var day = e.at ? String(e.at).slice(0, 10) : '';
+    return (e.from ? e.from + ' → ' : '') + (e.stage || '') + (day ? '（' + day + '）' : '');
+  }).join('；');
+}
 function exportCsv() {
   if (!S.leads.length) { alert('没有数据'); return; }
-  var rows = [['客户名', '国家', '市场', '阶段', 'WhatsApp', '邮箱', '产品', '预估USD', '最后联系', 'AI评分', 'AI下一步', '备注']];
+  /* validUntil 是报价级字段：这里取每个客户最近一张报价，带回有效期，方便迁移后核对价格窗口 */
+  var quotes = DataStore.list('quotes');
+  var latest = {};
+  quotes.forEach(function (q) {
+    if (!q || !q.leadId) return;
+    var prev = latest[q.leadId];
+    var a = String(q.date || q.createdAt || ''), b = prev ? String(prev.date || prev.createdAt || '') : '';
+    if (!prev || a > b) latest[q.leadId] = q;
+  });
+  var rows = [['客户名', '国家', '市场', '阶段', 'WhatsApp', '邮箱', '官网', '产品', '预估USD', '最后联系', '来源', '阶段变更摘要', '备注', 'AI评分', 'AI下一步', '创建时间', '最近报价单号', '最近报价有效期']];
   S.leads.forEach(function (l) {
-    rows.push([l.name, l.country, l.market, l.stage, l.wa, l.email, l.product, l.amount, l.last, l.score == null ? '' : l.score, l.nextAction || '', l.note]);
+    var q = latest[l.id] || null;
+    rows.push([l.name, l.country, l.market, l.stage, l.wa, l.email, l.website, l.product, l.amount, l.last,
+      l.source || '', stageSummary(l), l.note, l.score == null ? '' : l.score, l.nextAction || '',
+      l.createdAt || '', q ? (q.no || '') : '', q ? (q.validUntil || q.validity || '') : '']);
   });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([FTCsv.build(rows)], { type: 'text/csv;charset=utf-8' }));

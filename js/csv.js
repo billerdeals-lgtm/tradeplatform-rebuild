@@ -42,7 +42,10 @@
       '最后跟进', '最近跟进', '最后沟通'],
     note: ['note', 'notes', 'remark', 'remarks', 'comment', '备注', '说明', '描述'],
     nextAction: ['nextaction', 'next', 'nextstep', 'todo', '下一步', '下一步动作', '跟进动作', '待办'],
-    score: ['score', 'aiscore', 'rating', 'ai评分', '评分', '意向分', '意向评分']
+    score: ['score', 'aiscore', 'rating', 'ai评分', '评分', '意向分', '意向评分'],
+    website: ['website', 'web', 'site', 'url', 'domain', '官网', '网站', '网址', '公司网站', '企业网站'],
+    source: ['source', 'channel', 'from', '来源', '渠道', '客户来源', '线索来源'],
+    createdAt: ['createdat', 'created', '创建时间', '创建日期', '录入时间', '添加时间']
   };
 
   function normHeader(s) {
@@ -371,6 +374,15 @@
   }
   function pad2(n) { n = String(n); return n.length < 2 ? '0' + n : n; }
 
+  /* 时间戳：CSV 导出的是 ISO 时间，导入时保留到分钟，避免备份迁移后创建时间全变成今天 */
+  function stamp(v) {
+    var s = text(v);
+    if (!s) return '';
+    var d = new Date(s);
+    if (isNaN(d.getTime())) return '';
+    return d.toISOString();
+  }
+
   function phone(v) {
     var s = text(v);
     if (!s) return '';
@@ -431,12 +443,15 @@
         stage: stage(cell('stage')),
         wa: phone(cell('wa')),
         email: text(cell('email')).toLowerCase(),
+        website: text(cell('website')),
         product: text(cell('product')),
         amount: amount(cell('amount')),
         last: date(cell('last')),
         note: text(cell('note')),
         nextAction: text(cell('nextAction')),
-        score: score(cell('score'))
+        score: score(cell('score')),
+        source: text(cell('source')).slice(0, 40),
+        createdAt: stamp(cell('createdAt'))
       };
       if (!rec.name) { invalid++; if (errors.length < 8) errors.push({ row: rowNo, msg: '客户名为空，已跳过' }); return; }
       if (rec.name.length > 120) rec.name = rec.name.slice(0, 120);
@@ -471,8 +486,8 @@
   }
   function template() {
     return build([
-      ['客户名', '国家', '市场', '阶段', 'WhatsApp', '邮箱', '产品', '预估USD', '最后联系', '备注', 'AI评分', 'AI下一步'],
-      ['Example Importer Ltd', 'Egypt', '中东', '待开发', '+20101234567', 'buyer@example.com', 'prayer pillow', '2400', '2026-11-01', '展会名片（示例行，导入前请删除）', '', '']
+      ['客户名', '国家', '市场', '阶段', 'WhatsApp', '邮箱', '官网', '产品', '预估USD', '最后联系', '备注', 'AI评分', 'AI下一步'],
+      ['Example Importer Ltd', 'Egypt', '中东', '待开发', '+20101234567', 'buyer@example.com', 'https://example.com', 'prayer pillow', '2400', '2026-11-01', '展会名片（示例行，导入前请删除）', '', '']
     ]);
   }
 
@@ -489,6 +504,7 @@
     amount: amount,
     score: score,
     date: date,
+    stamp: stamp,
     phone: phone,
     stage: stage,
     template: template,

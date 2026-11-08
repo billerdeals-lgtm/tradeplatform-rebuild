@@ -311,6 +311,28 @@ for (const deflate of [false, true]) {
   check('XLSX-按 workbook 第一张表选择', rows.length === 2 && rows[0][0] === '客户名', JSON.stringify(rows[0]));
 }
 
+/* ---------- 9.5 备份迁移：来源 / 官网 / 创建时间 ---------- */
+{
+  const rows = [
+    ['客户名', '国家', '来源', '官网', '创建时间'],
+    ['Acme Ltd', 'Egypt', 'manual', 'https://acme.com', '2026-01-02T03:04:05.000Z']
+  ];
+  const m = C.detectMapping(rows[0]);
+  check('映射识别 来源', m.source === 2, String(m.source));
+  check('映射识别 官网', m.website === 3, String(m.website));
+  check('映射识别 创建时间', m.createdAt === 4, String(m.createdAt));
+  const r = C.toLeads(rows.slice(1), m).records[0];
+  check('导入保留来源', r.source === 'manual', r.source);
+  check('导入保留官网', r.website === 'https://acme.com', r.website);
+  check('导入保留创建时间', r.createdAt === '2026-01-02T03:04:05.000Z', r.createdAt);
+  check('导出模板含官网列', C.template().includes('官网'));
+}
+{
+  const rows = C.parse(C.build([['客户名', '创建时间'], ['X', 'not-a-date']]));
+  const r = C.toLeads(rows.slice(1), C.detectMapping(rows[0])).records[0];
+  check('非法创建时间清空而不是瞎猜', r.createdAt === '', r.createdAt);
+}
+
 /* ---------- 10. 异常输入不崩溃 ---------- */
 {
   check('空字符串', C.parse('').length === 0);

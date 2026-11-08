@@ -37,6 +37,7 @@
   .tag-stage { background:var(--brand-100); color:var(--brand-700); }
   .tag-market { background:#dbeafe; color:#1d4ed8; }
   .tag-type { background:#fef3c7; color:#92400e; }
+  .tag-dwell { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border); }
   .profile-card .quick-actions { display:flex; gap:8px; flex-wrap:wrap; }
   .qa-btn { font-size:12.5px; padding:6px 14px; border-radius:var(--r-sm); border:0; cursor:pointer; display:flex; align-items:center; gap:4px; }
   .qa-btn.whatsapp { background:#075e54; color:#fff; }
@@ -171,6 +172,7 @@
 </dialog>
 
 <script src="../js/datastore.js?v=6"></script>
+<script src="../js/stage-analytics.js?v=1"></script>
 <script src="../agnes-ai.js?v=10"></script>
 <script>
 'use strict';
@@ -281,6 +283,8 @@ function renderDetail() {
 
   var totalQuoted = quotes.reduce(function(s,q){ return s + (q.total||0); }, 0);
   var quoteCurrency = quotes.length ? quotes[0].currency : 'USD';
+  /* 当前阶段停留：没有 stageLog 时从创建时间算起 */
+  var dwell = (typeof StageAnalytics!=='undefined') ? StageAnalytics.currentDays(l) : null;
 
   var html = '<div class="ft-card profile-card">'
     + '<div class="avatar-lg">' + esc(initials) + '</div>'
@@ -289,6 +293,7 @@ function renderDetail() {
     +   '<div class="sub">' + esc(l.country||'') + (l.market ? ' · ' + esc(l.market) : '') + '</div>'
     +   '<div class="tags">'
     +     '<span class="tag tag-stage">' + esc(l.stage||'待开发') + '</span>'
+    +     (dwell != null ? '<span class="tag tag-dwell" title="从进入当前阶段到现在">已停留 ' + esc(StageAnalytics.fmtDays(dwell)) + ' 天</span>' : '')
     +     (l.market ? '<span class="tag tag-market">' + esc(l.market) + '</span>' : '')
     +     (l.product ? '<span class="tag tag-type">' + esc(l.product) + '</span>' : '')
     +   '</div>'
@@ -327,6 +332,18 @@ function renderDetail() {
   // 时间线
   var events = [];
   if (l.createdAt) events.push({ date: l.createdAt, title: '线索创建', desc: '来源：' + (l.source||''), done: true });
+  /* 阶段流转：DataStore / 线索编辑在换阶段时写 stageLog，这里还原成时间线事件 */
+  if (typeof StageAnalytics !== 'undefined') {
+    StageAnalytics.transitions(l).forEach(function(tr){
+      events.push({
+        date: tr.at,
+        title: '进入「' + tr.stage + '」阶段',
+        desc: (tr.ongoing ? '当前已停留 ' : '在此阶段停留 ') + StageAnalytics.fmtDays(tr.days) + ' 天'
+          + (tr.from ? ' · 从「' + tr.from + '」转入' : ''),
+        done: !tr.ongoing
+      });
+    });
+  }
   quotes.forEach(function(q){
     events.push({ date: q.createdAt, title: '报价 ' + (q.no||''), desc: q.currency + ' ' + (q.total||0).toFixed(2) + ' — ' + (q.status||'draft'), done: q.status==='accepted' });
   });

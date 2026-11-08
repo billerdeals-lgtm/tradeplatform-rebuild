@@ -140,9 +140,9 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js?v=6"></script><script src="../js/sources.js?v=6"></script><script src="../agnes-ai.js?v=10"></script><script src="../js/license.js?v=4"></script><script>
+<script src="../js/datastore.js?v=6"></script><script src="../js/sources.js?v=6"></script><script src="../js/lead-dedupe.js?v=1"></script><script src="../agnes-ai.js?v=10"></script><script src="../js/license.js?v=4"></script><script>
 'use strict';
-var S={all:[],results:[],convIds:{},round:0,seq:0,_p:null};
+var S={all:[],results:[],convIds:{},dupIds:{},round:0,seq:0,_p:null};
 
 function v(i){return document.getElementById(i).value}
 function $(i){return document.getElementById(i)}
@@ -152,6 +152,23 @@ function log(m,ok){var b=$('log');b.style.display='block';var d=document.createE
 function setP(p){$('prog').style.display=p>0?'block':'none';$('progBar').style.width=p+'%'}
 function regionText(){return document.getElementById('k_region').value}
 function hasC(r){return(r.email&&r.email.length>3)||(r.phone&&r.phone.length>5)}
+
+/* ---------- 转线索查重 ----------
+   手工录入和 CSV 都有查重，找客户这里原来直接把结果塞进线索库。
+   「换一批」很容易再挖到同一家，所以单条/批量都先走 LeadDedupe 的模糊匹配：
+   名称略有出入、官网域名相同都能认出来；命中后由用户决定跳过还是强行保存。 */
+function findDupes(obj){
+  if(typeof LeadDedupe==='undefined')return [];
+  try{return LeadDedupe.find(DataStore.list('leads'),obj);}catch(e){return []}
+}
+function dupLines(hits){
+  var out=hits.slice(0,3).map(function(d){
+    var lead=d.lead||{};
+    return '· '+(lead.name||'(未命名)')+(lead.country?'（'+lead.country+'）':'')+' — '+d.reasons.join('、');
+  });
+  if(hits.length>3)out.push('…另有 '+(hits.length-3)+' 条疑似');
+  return out;
+}
 
 /* ---------- AI 额度 ---------- */
 /* 勾选了 AI 相关选项才需要额度；额度耗尽时整次挖掘不启动，也不扣试用次数。 */
@@ -218,7 +235,7 @@ async function doSearch(){
   var qm=aiQuotaMsg();
   if(qm){stopForQuota(qm);return}
   if(typeof License!=='undefined'&&!(await License.consume('find')))return;
-  S.round++;S.seq=0;S.all=[];S.results=[];S.convIds={};$('rB').innerHTML='';$('fbar').style.display='none';await runPipeline(false)
+  S.round++;S.seq=0;S.all=[];S.results=[];S.convIds={};S.dupIds={};$('rB').innerHTML='';$('fbar').style.display='none';await runPipeline(false)
 }
 async function doMore(){
   var qm=aiQuotaMsg();
@@ -385,6 +402,13 @@ async function runPipeline(append){
     $('st').textContent='✅ '+(append?'追加':'完成')+'：共 '+S.all.length+' 家，高意向 '+hi+' 家';
     log('总计 '+S.all.length+' 家，高意向 '+hi+' 家',true);
     DataStore.add('searches',{query:prod,via:ids.join('+'),n:S.all.length,contacts:S.all.filter(hasC).length,round:S.round});
+    /* 搜索历史只留最近 40 条：写而不读的集合不该无限长，localStorage 还要留给业务数据 */
+    try{
+      var hist=DataStore.list('searches');
+      if(hist.length>40)DataStore.saveAll('searches',hist.slice(-40));
+    }catch(e){}
+    /* 与线索库做一次模糊匹配：换一批又挖到同一家时，行内直接显示「已在线索库」 */
+    markExistingLeads();
     if(S.all.length>5)$('btnM').style.display='inline-flex';
     applyFilter();
   }catch(e){
@@ -438,7 +462,7 @@ function render(){
   if(!S.results.length){$('rT').style.display='none';$('eS').style.display='block';$('twhint').style.display='none';return}
   $('rT').style.display='table';$('eS').style.display='none';$('twhint').style.display='';
   $('rB').innerHTML=S.results.map(function(r){
-    var imp=S.convIds[r._id];
+    var imp=S.convIds[r._id],dup=S.dupIds[r._id];
     var badges=(r._sources||[r.source||'目录']).map(function(s){return '<span class="badge '+srcClass(s)+'">'+esc(s)+'</span>'}).join('');
     var ch='';
     if(hasC(r)){
@@ -454,7 +478,7 @@ function render(){
       +'<td><span class="score" title="'+esc(tip)+'">'+r.score+'<small>/12</small></span><span class="tier t-'+(r.tier?r.tier.key:'d')+'">'+(r.tier?r.tier.label:'低')+'</span>'+(flagsOf(r)?'<div class="flags">'+flagsOf(r)+'</div>':'')+'</td>'
       +'<td class="cc">'+ch+'</td>'
       +'<td>'+badges+'</td>'
-      +'<td>'+(imp?'<span class="imp">✓ 已导入</span>':((hasC(r)||r._inquiry)?'<button class="bs bi" onclick="openConv(\''+r._id+'\')">→ 导入</button>':(r.website?'<button class="bs bd" onclick="digOne(\''+r._id+'\')">⛏ 深挖</button>':'')))+'</td></tr>';
+      +'<td>'+(imp?'<span class="imp">✓ 已导入</span>':(dup?'<span class="imp" title="'+esc('线索库已有：'+dup)+'">✓ 已在线索库</span>':((hasC(r)||r._inquiry)?'<button class="bs bi" onclick="openConv(\''+r._id+'\')">→ 导入</button>':(r.website?'<button class="bs bd" onclick="digOne(\''+r._id+'\')">⛏ 深挖</button>':''))))+'</td></tr>';
   }).join('');
 }
 
@@ -489,16 +513,65 @@ function convSave(){
   var email=$('c_email').value.trim(),phone=$('c_wa').value.trim();
   var lead=leadById(S._p);
   if(!email&&!phone&&!(lead&&lead._inquiry)){alert('邮箱或电话至少填一个');return}
-  DataStore.add('leads',{name:name,country:$('c_country').value.trim(),person:$('c_person').value.trim(),market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:phone,email:email,product:v('k_prod').trim(),website:$('c_web').value.trim(),amount:0,last:FT.today(),note:$('c_note').value.trim(),source:'multi_source'});
-  S.convIds[S._p]=name;dlg.close();render();
+  var obj={name:name,country:$('c_country').value.trim(),person:$('c_person').value.trim(),market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:phone,email:email,product:v('k_prod').trim(),website:$('c_web').value.trim(),amount:0,last:FT.today(),note:$('c_note').value.trim(),source:'multi_source'};
+  var dups=findDupes(obj);
+  if(dups.length){
+    if(!confirm('疑似已有类似客户：\n\n'+dupLines(dups).join('\n')
+      +'\n\n点「确定」仍然保存；点「取消」返回修改。'))return;
+  }
+  DataStore.add('leads',obj);
+  S.convIds[S._p]=name;delete S.dupIds[S._p];dlg.close();render();
 }
 function bulkImp(){
-  var n=0;S.results.forEach(function(r){
-    if(!hasC(r)||S.convIds[r._id])return;
-    DataStore.add('leads',{name:r.name||'未知',country:r.country||'',person:'',market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:r.phone||'',email:r.email||'',website:r.website||'',product:v('k_prod').trim(),amount:0,last:FT.today(),note:'来源：'+((r._sources||[r.source||'']).join('/'))+(r.why?' | '+r.why:''),source:'multi_source'});
-    S.convIds[r._id]='bulk';n++;
+  if(!S.results.length)return;
+  /* 两阶段：先对「线索库 + 本批候选」做一次预演，命中就跳过；
+     用户确认后只写真正的新客户，避免提示确认时数据已经写了一半。 */
+  var picked=S.results.filter(function(r){return hasC(r)&&!S.convIds[r._id]&&!S.dupIds[r._id]});
+  if(!picked.length){$('bS').textContent='没有可导入的新客户';return}
+  var sim=DataStore.list('leads').slice(),candidates=[],skipped=[];
+  picked.forEach(function(r){
+    var obj={name:r.name||'未知',country:r.country||'',person:'',market:regionText()?document.getElementById('k_region').selectedOptions[0].text:'',stage:'待开发',wa:r.phone||'',email:r.email||'',website:r.website||'',product:v('k_prod').trim(),amount:0,last:FT.today(),note:'来源：'+((r._sources||[r.source||'']).join('/'))+(r.why?' | '+r.why:''),source:'multi_source'};
+    var hits=findDupesIn(sim,obj);
+    if(hits.length){skipped.push({r:r,hits:hits});return}
+    candidates.push({r:r,obj:obj});sim.push(obj);
   });
-  $('bS').textContent='已导入 '+n+' 条 ✓';render();
+  skipped.forEach(function(x){
+    S.dupIds[x.r._id]=(x.hits[0].lead&&x.hits[0].lead.name)||'';
+  });
+  if(skipped.length){
+    var lines=skipped.slice(0,5).map(function(x){
+      return '· '+(x.r.name||'未知')+' — '+(x.hits[0].reasons.join('、')||'疑似重复');
+    });
+    if(skipped.length>5)lines.push('…另有 '+(skipped.length-5)+' 条疑似');
+    if(!confirm('批量导入发现 '+skipped.length+' 条疑似已有客户：\n\n'+lines.join('\n')
+      +'\n\n点「确定」跳过这些，导入其余 '+candidates.length+' 条；点「取消」取消本次批量导入。')){
+      /* 取消时把本轮预演的「已在线索库」标记撤回，保持界面与点击前一致 */
+      skipped.forEach(function(x){delete S.dupIds[x.r._id]});
+      return;
+    }
+  }
+  var n=0;
+  candidates.forEach(function(x){
+    try{DataStore.add('leads',x.obj);S.convIds[x.r._id]=x.obj.name;n++}catch(e){}
+  });
+  $('bS').textContent='已导入 '+n+' 条'+(skipped.length?'，跳过疑似重复 '+skipped.length+' 条':'')+' ✓';
+  render();
+}
+function findDupesIn(list,obj){
+  if(typeof LeadDedupe==='undefined')return [];
+  try{return LeadDedupe.find(list,obj);}catch(e){return []}
+}
+/* 搜索结果与线索库做一次模糊匹配：换一批又挖到同一家时，行内直接显示「已在线索库」 */
+function markExistingLeads(){
+  try{
+    var lib=DataStore.list('leads');
+    if(typeof LeadDedupe==='undefined'||!lib.length)return;
+    S.all.forEach(function(c){
+      if(S.convIds[c._id])return;
+      var hit=LeadDedupe.find(lib,c)[0];
+      if(hit)S.dupIds[c._id]=(hit.lead&&hit.lead.name)||'';
+    });
+  }catch(e){}
 }
 renderSrcList();
 render();

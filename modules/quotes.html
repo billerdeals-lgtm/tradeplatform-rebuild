@@ -25,6 +25,7 @@
   .qitem .qi-top { display:flex; align-items:center; gap:6px; }
   .qitem .qi-no { font-weight:600; font-size:13.5px; }
   .qitem .qi-status { font-size:11px; padding:1px 8px; border-radius:999px; margin-left:auto; }
+  .qitem .qi-exp { font-size:10.5px; padding:1px 7px; border-radius:999px; background:#fdf0d5; color:#ae5008; white-space:nowrap; }
   .qitem .qi-client { font-size:12.5px; color:var(--text-2); margin-top:2px; }
   .qitem .qi-amt { font-size:12.5px; color:var(--brand-700); font-weight:500; }
   .qitem .qi-date { font-size:11px; color:var(--text-3); }
@@ -129,6 +130,7 @@
         <input id="searchQ" aria-label="搜索报价单" placeholder="搜索客户/产品/单号…" oninput="renderList()">
         <select id="filterSt" aria-label="按状态筛选" onchange="renderList()">
           <option value="">全部状态</option>
+          <option value="expiring">7 天内到期</option>
           <option value="draft">草稿</option>
           <option value="sent">已发送</option>
           <option value="accepted">已接受</option>
@@ -253,7 +255,7 @@
 <div id="brandHost"></div>
 
 <script src="../js/datastore.js?v=6"></script>
-<script src="../js/quote-validity.js?v=1"></script>
+<script src="../js/quote-validity.js?v=2"></script>
 <script src="../js/license.js?v=4"></script>
 <script src="../agnes-ai.js?v=10"></script>
 <script src="../js/gate.js?v=2"></script>
@@ -581,10 +583,19 @@ function renderList() {
   var q = v('searchQ').toLowerCase();
   var st = v('filterSt');
   var list = S.quotes.filter(function(item) {
-    if (st && QuoteValidity.effectiveStatus(item) !== st) return false;
+    if (st === 'expiring') {
+      if (!QuoteValidity.isExpiringSoon(item, 7)) return false;
+    } else if (st && QuoteValidity.effectiveStatus(item) !== st) return false;
     if (q && !String(item.no).toLowerCase().includes(q) && !(item.leadName||'').toLowerCase().includes(q) && !(item.product||'').toLowerCase().includes(q)) return false;
     return true;
   }).reverse();
+  /* 临期视图按「最快到期」排，用户点开就能先处理最急的 */
+  if (st === 'expiring') {
+    list.sort(function(a, b){
+      var da = QuoteValidity.daysLeft(a), db = QuoteValidity.daysLeft(b);
+      return (da == null ? 999 : da) - (db == null ? 999 : db);
+    });
+  }
 
   var box = $('qlist');
   if (!list.length) { box.innerHTML = '<div class="empty-left">暂无报价记录<br>点击上方按钮新建</div>'; return; }
@@ -595,8 +606,11 @@ function renderList() {
     var cur = item.currency || 'USD';
     var sym = CUR_SYM[cur] || cur;
     var money = (sym === cur ? sym + ' ' : sym) + (item.total || 0).toFixed(2);
+    var left = QuoteValidity.isExpiringSoon(item, 7) ? QuoteValidity.daysLeft(item) : null;
+    var expBadge = left == null ? '' : '<span class="qi-exp" title="报价有效期至 ' + esc(QuoteValidity.validUntil(item)) + '">' + (left === 0 ? '今天到期' : '剩 ' + left + ' 天') + '</span>';
     return '<div class="qitem' + (on ? ' on' : '') + '" role="button" tabindex="0"' + (on ? ' aria-current="true"' : '') + ' onclick="loadQuote(\'' + item.id + '\')">'
       + '<div class="qi-top"><span class="qi-no">' + esc(item.no || '未编号') + '</span>'
+      + expBadge
       + '<span class="qi-status st-' + esc(est) + '">' + stLabel + '</span></div>'
       + '<div class="qi-client">' + esc(item.leadName || '未关联线索') + ' · ' + esc(item.product || '') + '</div>'
       + '<div class="qi-amt">' + money

@@ -66,6 +66,26 @@
     return String((q && q.validity) || '').trim();
   }
 
+  /* 距离有效期还有几天：0 = 今天最后一天，负数 = 已过期，null = 没设日期 */
+  function daysLeft(q, fromISO) {
+    var until = validUntil(q);
+    if (!until) return null;
+    var end = parseISO(until);
+    var base = parseISO(fromISO || todayISO());
+    if (!end || !base) return null;
+    return Math.round((end.getTime() - base.getTime()) / 86400000);
+  }
+
+  /* 临期：未成交/未拒绝、还没过期、且在 N 天内到期（默认 7 天）。
+     草稿也算：报价还没发出去，但价格窗口一样会关。 */
+  function isExpiringSoon(q, days) {
+    var st = effectiveStatus(q);
+    if (st === 'accepted' || st === 'rejected' || st === 'expired') return false;
+    var left = daysLeft(q);
+    var limit = days == null ? 7 : Number(days);
+    return left != null && left >= 0 && left <= limit;
+  }
+
   global.QuoteValidity = {
     todayISO: todayISO,
     parseISO: parseISO,
@@ -73,6 +93,8 @@
     validUntil: validUntil,
     isExpired: isExpired,
     effectiveStatus: effectiveStatus,
-    validityText: validityText
+    validityText: validityText,
+    daysLeft: daysLeft,
+    isExpiringSoon: isExpiringSoon
   };
 })(typeof window !== 'undefined' ? window : this);

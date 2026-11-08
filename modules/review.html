@@ -61,6 +61,26 @@
   .conv .arr { color:var(--text-3); }
   .conv b { color:var(--brand-700); }
   .chart-empty { text-align:center; color:var(--text-3); font-size:12.5px; padding:22px 0; }
+  .chart-dl { border:1px solid var(--border); background:var(--bg-card); color:var(--text-2); border-radius:999px; padding:3px 10px; font-size:11.5px; line-height:1.6; cursor:pointer; margin-left:auto; white-space:nowrap; }
+  .chart-dl:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  /* 各阶段平均停留 */
+  .dwell-row { display:grid; grid-template-columns:64px 1fr 58px 104px; gap:8px; align-items:center; margin-bottom:8px; font-size:12px; }
+  .dwell-name { color:var(--text-2); white-space:nowrap; }
+  .dwell-track { height:9px; background:var(--bg-inset); border-radius:5px; overflow:hidden; }
+  .dwell-fill { display:block; height:100%; background:var(--brand-700); border-radius:5px; }
+  .dwell-val { font-weight:600; color:var(--text-1); text-align:right; white-space:nowrap; }
+  .dwell-sub { font-size:11px; color:var(--text-3); text-align:right; white-space:nowrap; }
+  @media screen and (max-width:520px) {
+    .dwell-row { grid-template-columns:52px 1fr 50px; }
+    .dwell-sub { display:none; }
+  }
+  @media print {
+    header, .metric-tabs, .chart-dl, #btnReview, .no-print, dialog { display:none !important; }
+    body { background:#fff; }
+    main { max-width:none; padding:0 8mm; }
+    h2 { margin:12px 0 6px; }
+    .ft-card { box-shadow:none; border:1px solid #ddd; break-inside:avoid; margin-bottom:10px; }
+  }
   @media screen and (max-width:520px) {
     .chart-card { padding:12px; }
     .chart-head { gap:6px; }
@@ -76,12 +96,24 @@
   <img src="../assets/logo.svg" alt="">
   <h1>复盘增长 <span style="font-size:12px;opacity:.7;font-weight:400">漏斗真实统计 · AI 三发现三动作一砍掉</span></h1>
   <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
+  <button class="no-print" onclick="window.print()">🖨 打印</button>
 </header>
 <main>
   <h2>📊 本期漏斗（截至今天）</h2>
   <div class="ft-card" style="padding:var(--sp-4)">
     <div class="funnel" id="funnel"></div>
     <div class="conv-row" id="convRow" aria-label="阶段转化率"></div>
+    <div class="chart-sub" style="margin-top:6px">当前各阶段线索存量占比（快照），不是同一批客户随时间的转化率。</div>
+  </div>
+
+  <h2>⏱ 各阶段平均停留</h2>
+  <div class="ft-card chart-card">
+    <div class="chart-head">
+      <b>销售周期地基</b>
+      <span class="chart-sub">只统计已完成区段，避免在途客户拉低均值</span>
+    </div>
+    <div id="stageDwell"></div>
+    <div class="chart-sub" id="stageDwellHint" style="margin-top:8px"></div>
   </div>
 
   <h2>📈 关键指标</h2>
@@ -103,6 +135,7 @@
         <button type="button" class="metric-tab" data-metric="touch" role="tab" aria-selected="false">触达</button>
         <button type="button" class="metric-tab" data-metric="rate" role="tab" aria-selected="false">完成率</button>
       </div>
+      <button type="button" class="chart-dl" onclick="exportChartPng('trendChart','复盘-历史趋势')">⬇ PNG</button>
     </div>
     <div id="trendChart"></div>
   </div>
@@ -119,6 +152,7 @@
     <div class="chart-head">
       <b>线索来源 → 成交</b>
       <span class="chart-sub">按线索数排序</span>
+      <button type="button" class="chart-dl" onclick="exportChartPng('sourceChart','复盘-来源效果')">⬇ PNG</button>
     </div>
     <div id="sourceChart"></div>
     <div class="chart-legend"><span><i style="background:var(--brand-100)"></i>线索数</span><span><i style="background:var(--brand-700)"></i>成交数</span></div>
@@ -129,6 +163,7 @@
     <div class="chart-head">
       <b>近 6 个月</b>
       <span class="chart-sub">柱高=报价额 · 深色=已接受 · 标签=赢单率</span>
+      <button type="button" class="chart-dl" onclick="exportChartPng('monthChart','复盘-月度报价')">⬇ PNG</button>
     </div>
     <div id="monthChart"></div>
     <div class="chart-legend"><span><i style="background:var(--brand-100)"></i>报价总额（不含草稿）</span><span><i style="background:var(--brand-700)"></i>已接受金额</span></div>
@@ -145,6 +180,7 @@
 
 <script src="../agnes-ai.js?v=10"></script>
 <script src="../js/datastore.js?v=6"></script>
+<script src="../js/stage-analytics.js?v=1"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -194,9 +230,10 @@ function renderStats(){
   for (var i=1;i<STAGES.length;i++){
     var prev=STAGES[i-1], cur=STAGES[i];
     var pct = st.byStage[prev] ? Math.round(st.byStage[cur]*100/st.byStage[prev]) : null;
-    conv.push('<span class="conv" title="'+esc(prev+' → '+cur)+'"><span>'+esc(prev)+'</span><span class="arr">→</span><span>'+esc(cur)+'</span><b>'+(pct==null?'—':pct+'%')+'</b></span>');
+    conv.push('<span class="conv" title="'+esc(prev+' → '+cur+'：当前存量占比（快照），不是同一批客户随时间的转化率')+'"><span>'+esc(prev)+'</span><span class="arr">→</span><span>'+esc(cur)+'</span><b>'+(pct==null?'—':pct+'%')+'</b></span>');
   }
   $('convRow').innerHTML = conv.join('');
+  $('convRow').title = '当前各阶段线索数量之比，用于看结构是否头重脚轻；不是时间序列的转化率。';
   return st;
 }
 
@@ -403,6 +440,82 @@ function renderMonthly(){
   host.innerHTML = parts.join('');
 }
 
+/* ---------- 各阶段平均停留（stageLog 的第一个消费方） ---------- */
+function renderDwell(){
+  var host = $('stageDwell');
+  if (!host) return;
+  if (typeof StageAnalytics === 'undefined') {
+    host.innerHTML = '<div class="chart-empty">阶段分析脚本未加载</div>';
+    return;
+  }
+  var s = StageAnalytics.stats(DataStore.list('leads'));
+  var rows = s.rows.filter(function(r){ return r.closedCount || r.ongoingCount; });
+  if (!rows.length) {
+    host.innerHTML = '<div class="chart-empty">还没有线索数据</div>';
+    $('stageDwellHint').textContent = '';
+    return;
+  }
+  var max = Math.max.apply(null, rows.map(function(r){ return r.avgClosed || 0; })) || 1;
+  host.innerHTML = rows.map(function(r){
+    var pct = r.avgClosed == null ? 0 : Math.max(4, Math.round(r.avgClosed / max * 100));
+    return '<div class="dwell-row">'
+      + '<span class="dwell-name">' + esc(r.stage) + '</span>'
+      + '<span class="dwell-track"><span class="dwell-fill" style="width:' + pct + '%"></span></span>'
+      + '<span class="dwell-val">' + (r.avgClosed == null ? '—' : StageAnalytics.fmtDays(r.avgClosed) + ' 天') + '</span>'
+      + '<span class="dwell-sub">' + r.closedCount + ' 次完成' + (r.ongoingCount ? ' · 在途 ' + r.ongoingCount : '') + '</span>'
+      + '</div>';
+  }).join('');
+  $('stageDwellHint').textContent = s.transitions
+    ? '已记录 ' + s.transitions + ' 次阶段流转，覆盖 ' + s.leadsWithLog + ' / ' + s.leads + ' 条线索；数据从换阶段开始积累，越用越准。'
+    : '还没有阶段流转记录。把线索从「待开发」推进到下一阶段后，这里开始统计。';
+}
+
+/* ---------- 图表导出 PNG：SVG 序列化 → canvas → 下载 ----------
+   图表用的是页面 CSS 类，直接序列化会掉色，所以把最小样式表塞回 SVG。 */
+var PNG_CSS = '.chart-svg{font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif}'
+  + '.chart-svg text{font-family:-apple-system,"Segoe UI","Microsoft YaHei",system-ui,sans-serif;font-size:10.5px;fill:#646f7b}'
+  + '.grid{stroke:#e4e0d4;stroke-width:1;stroke-dasharray:3 3}'
+  + '.line{fill:none;stroke:#0b6e4f;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}'
+  + '.area{fill:#dff2ea;opacity:.6}'
+  + '.dot{fill:#0b6e4f;stroke:#fff;stroke-width:1.5}'
+  + '.val{fill:#52606d;font-size:9.5px;font-weight:600}'
+  + '.bar-a{fill:#dff2ea}.bar-b{fill:#0b6e4f}.bar-track{fill:#f3f1ea}'
+  + '.rate{fill:#52606d;font-size:9.5px}';
+function exportChartPng(hostId, filename){
+  var host = $(hostId), svg = host && host.querySelector('svg');
+  if (!svg) { toast('还没有图表可导出'); return; }
+  var vb = svg.viewBox && svg.viewBox.baseVal;
+  var W = (vb && vb.width) || 720, H = (vb && vb.height) || 220;
+  var clone = svg.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('width', W);
+  clone.setAttribute('height', H);
+  var style = document.createElementNS('http://www.w3.org/2000/svg', 'style');
+  style.textContent = PNG_CSS;
+  clone.insertBefore(style, clone.firstChild);
+  var src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(new XMLSerializer().serializeToString(clone));
+  var img = new Image();
+  img.onload = function(){
+    var scale = 2, c = document.createElement('canvas');
+    c.width = Math.round(W * scale); c.height = Math.round(H * scale);
+    var g = c.getContext('2d');
+    g.fillStyle = '#ffffff';
+    g.fillRect(0, 0, c.width, c.height);
+    g.drawImage(img, 0, 0, c.width, c.height);
+    c.toBlob(function(blob){
+      if (!blob) { toast('导出失败：图片生成失败'); return; }
+      var a = document.createElement('a'), url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = (filename || 'chart') + '-' + todayStr() + '.png';
+      document.body.appendChild(a); a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 500);
+      toast('已导出 PNG');
+    }, 'image/png');
+  };
+  img.onerror = function(){ toast('导出失败：浏览器无法渲染这张图表'); };
+  img.src = src;
+}
+
 /* ---------- AI 复盘（矩阵：原版假洞察 → 真推理） ---------- */
 async function aiReview(){
   var st = renderStats();
@@ -467,11 +580,11 @@ $('metricTabs').addEventListener('click', function(e){
   });
   renderTrend();
 });
-renderStats(); renderTrend(); renderSources(); renderMonthly(); renderHist();
+renderStats(); renderTrend(); renderSources(); renderMonthly(); renderDwell(); renderHist();
 var chartResizeTimer;
 window.addEventListener('resize', function(){
   clearTimeout(chartResizeTimer);
-  chartResizeTimer = setTimeout(function(){ renderTrend(); renderSources(); renderMonthly(); }, 150);
+  chartResizeTimer = setTimeout(function(){ renderTrend(); renderSources(); renderMonthly(); renderDwell(); }, 150);
 });
 </script>
 </body>

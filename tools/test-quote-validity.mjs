@@ -63,5 +63,19 @@ eq('旧数据自动过期', Q.effectiveStatus({ status: 'sent', date: '2026-01-0
 eq('validityText 新字段', Q.validityText({ validUntil: '2026-12-31' }), '2026-12-31');
 eq('validityText 旧文本', Q.validityText({ validity: '30 days' }), '30 days');
 
+/* 7. 临期视角：7 天内到期 */
+eq('今天到期 daysLeft 0', Q.daysLeft({ validUntil: isoOffset(0) }), 0);
+eq('3 天后到期 daysLeft 3', Q.daysLeft({ validUntil: isoOffset(3) }), 3);
+eq('已过期 daysLeft 负数', Q.daysLeft({ validUntil: isoOffset(-2) }), -2);
+eq('没日期 daysLeft null', Q.daysLeft({}), null);
+eq('已发送 + 3 天 → 临期', Q.isExpiringSoon({ status: 'sent', validUntil: isoOffset(3) }, 7), true);
+eq('草稿 + 3 天 → 也算临期', Q.isExpiringSoon({ status: 'draft', validUntil: isoOffset(3) }, 7), true);
+eq('8 天后 → 不算临期', Q.isExpiringSoon({ status: 'sent', validUntil: isoOffset(8) }, 7), false);
+eq('已过期 → 不算临期', Q.isExpiringSoon({ status: 'sent', validUntil: isoOffset(-1) }, 7), false);
+eq('已接受 → 不算临期', Q.isExpiringSoon({ status: 'accepted', validUntil: isoOffset(1) }, 7), false);
+eq('已拒绝 → 不算临期', Q.isExpiringSoon({ status: 'rejected', validUntil: isoOffset(1) }, 7), false);
+eq('默认窗口 7 天', Q.isExpiringSoon({ status: 'sent', validUntil: isoOffset(7) }), true);
+eq('旧 30 days 也参与临期', Q.isExpiringSoon({ status: 'sent', date: isoOffset(-28), validity: '30 days' }, 7), true);
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

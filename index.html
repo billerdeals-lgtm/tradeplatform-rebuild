@@ -258,14 +258,14 @@
 
 <script src="agnes-ai.js?v=10"></script>
 <script src="js/datastore.js?v=6"></script>
-<script src="js/quote-validity.js?v=1"></script>
+<script src="js/quote-validity.js?v=2"></script>
 <script src="js/license.js?v=4"></script>
 <script src="assets/a11y.js?v=2"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261108b';
+var MODULE_V = '20261108c';
 function go(view){
   document.querySelectorAll('.navitem').forEach(function(n){
     var on = n.dataset.view===view;
@@ -380,9 +380,14 @@ function renderDash(leads, todos, quotes){
     var money = (q.currency || 'USD') + ' ' + Number(q.total || 0).toLocaleString();
     var sub = [q.leadName, money].filter(Boolean).join(' · ');
     var st = QuoteValidity.effectiveStatus(q);
+    var left = QuoteValidity.isExpiringSoon(q, 7) ? QuoteValidity.daysLeft(q) : null;
+    var exp = left == null ? ''
+      : '<span class="dr-badge warn exp" title="报价有效期至 ' + escHtml(QuoteValidity.validUntil(q)) + '">'
+        + (left === 0 ? '今天到期' : '剩 ' + left + ' 天') + '</span>';
     return '<button type="button" class="dash-row" onclick="go(\'modules/quotes.html\')">'
       + '<span class="dr-main"><span class="dr-t">' + escHtml(q.no || '未编号报价') + '</span>'
       + '<span class="dr-s">' + escHtml(sub) + '</span></span>'
+      + exp
       + '<span class="dr-badge ' + (STATUS_CLS[st] || 'info') + '">' + escHtml(STATUS[st] || st) + '</span></button>';
   }).join('') || '<div class="dash-empty">还没有报价，去新建一张？</div>';
 }

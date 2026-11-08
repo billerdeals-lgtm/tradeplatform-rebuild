@@ -27,6 +27,9 @@ const quoteValidity = read('js/quote-validity.js');
 const leadDedupe = read('js/lead-dedupe.js');
 const license = read('js/license.js');
 const tplData = read('js/templates_data.js');
+const find = read('modules/find.html');
+const stageAnalytics = read('js/stage-analytics.js');
+const csvjs = read('js/csv.js');
 const home = read('index.html');
 
 /* 1. 线索的 WhatsApp 字段是 wa，不是 whatsapp */
@@ -146,7 +149,7 @@ ok('历史复盘读中文快照', /varp=reviewPoint\(r\)/.test(rvc) && /成交 \
 ok('图表无第三方依赖', !/chart\.js|cdn\.jsdelivr|unpkg\.com|cdnjs/i.test(rv));
 ok('CSV 导入标记来源', /rec\.source = 'csv'/.test(leads));
 ok('手动新增标记来源', /obj\.source = 'manual'/.test(leads));
-ok('模块缓存版本已升级到 20261108b', /MODULE_V = '20261108b'/.test(home));
+ok('模块缓存版本已升级到 20261108c', /MODULE_V = '20261108c'/.test(home));
 ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(home) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
 
 /* 14. 报价有效期日期化 + 渲染时自动过期 + 首页问候 + 阶段日志 */
@@ -159,7 +162,7 @@ ok('报价列表按生效状态渲染', /QuoteValidity\.effectiveStatus\(item\)/
 ok('报价筛选按生效状态匹配', /QuoteValidity\.effectiveStatus\(item\) !== st/.test(quotes));
 ok('首页报价徽标使用生效状态', /QuoteValidity\.effectiveStatus\(q\)/.test(home) && /hQuotes/.test(home));
 ok('首页问候按小时切换', /id="greet"/.test(home) && /function greetingText/.test(home) && /早上好.*下午好.*晚上好/.test(home));
-ok('首页和报价页都加载有效期 helper', /quote-validity\.js\?v=1/.test(home) && /quote-validity\.js\?v=1/.test(quotes));
+ok('首页和报价页都加载有效期 helper', /quote-validity\.js\?v=2/.test(home) && /quote-validity\.js\?v=2/.test(quotes));
 ok('DataStore.update 换阶段追 stageLog', /patch\.stage && patch\.stage !== prevStage/.test(datastore) && /stageLog\.push/.test(datastore));
 ok('线索编辑换阶段追 stageLog', /prevStage/.test(leads) && /l\.stageLog\.push/.test(leads));
 ok('单证读取 validUntil 兜底', /values\.valid = q\.validUntil \|\| q\.validity/.test(docs));
@@ -184,6 +187,38 @@ ok('页首占位符说明包含 {展会}', /PH_TOP/.test(templates) && /\{展会
 ok('话术数据无 &amp; 双重转义', !/&amp;/.test(tplData));
 ok('新增 4 类话术', ['跟进序列 / Follow-up', '涨价通知 / Price update', '转介绍 / Referral', '合规通知 / Compliance'].every(c => tplData.includes(c)));
 ok('话术库标题显示 23 类 85 封', /23 类 · 85 封/.test(templates) && /23 类 85 封/.test(tplData));
+
+/* 17. 转线索查重 + 阶段停留 + 临期报价 + CSV 备份迁移 */
+ok('找客户加载模糊查重 helper', /lead-dedupe\.js\?v=1/.test(find));
+ok('单条转线索前查重并可强行保存', /var dups=findDupes\(obj\)/.test(find) && /疑似已有类似客户/.test(find) && /点「取消」返回修改/.test(find));
+ok('批量转线索先预演再确认', /var sim=DataStore\.list\('leads'\)\.slice\(\)/.test(find) && /批量导入发现/.test(find) && /跳过这些/.test(find));
+ok('批量导入跳过疑似重复计入 dupIds', /S\.dupIds\[x\.r\._id\]/.test(find));
+ok('搜索结果标出已在线索库', /S\.dupIds\[c\._id\]/.test(find) && /已在线索库/.test(find));
+ok('搜索历史最多 40 条', /hist\.length>40/.test(find) && /slice\(-40\)/.test(find));
+
+ok('客户 360 加载阶段分析', /stage-analytics\.js\?v=1/.test(c360));
+ok('客户 360 时间线展示阶段流转与停留', /StageAnalytics\.transitions\(l\)/.test(c360) && /进入「/.test(c360) && /已停留/.test(c360));
+ok('复盘加载阶段分析并渲染平均停留', /stage-analytics\.js\?v=1/.test(review) && /id="stageDwell"/.test(review) && /function renderDwell/.test(review));
+ok('阶段停留只统计已完成区段', /closedCount/.test(stageAnalytics) && /ongoingCount/.test(stageAnalytics) && /closed: true/.test(stageAnalytics));
+ok('阶段分析兼容缺失 from/createdAt', /first\.from && created/.test(stageAnalytics));
+ok('阶段停留有纯函数测试', fs.existsSync(new URL('../tools/test-stage-analytics.mjs', import.meta.url)));
+
+ok('转化率 chips 标注为存量快照', /不是同一批客户随时间的转化率/.test(review));
+ok('复盘图表可导出 PNG', /function exportChartPng/.test(review) && /toBlob/.test(review) && /XMLSerializer/.test(review));
+ok('复盘三个图表都有 PNG 按钮', (review.match(/class="chart-dl"/g) || []).length === 3);
+ok('复盘打印样式隐藏按钮', /@media print/.test(review) && /window\.print\(\)/.test(review));
+
+ok('报价筛选有 7 天内到期', /<option value="expiring">7 天内到期<\/option>/.test(quotes));
+ok('临期筛选使用 isExpiringSoon', /QuoteValidity\.isExpiringSoon\(item, 7\)/.test(quotes));
+ok('报价列表有临期徽标', /class="qi-exp"/.test(quotes) && /今天到期/.test(quotes));
+ok('首页报价卡有临期徽标', /QuoteValidity\.isExpiringSoon\(q, 7\)/.test(home) && /'剩 ' \+ left \+ ' 天'/.test(home));
+ok('有效期 helper 提供 daysLeft/临期判断', /function daysLeft/.test(quoteValidity) && /function isExpiringSoon/.test(quoteValidity));
+
+ok('CSV 导出补齐来源/阶段摘要/创建时间', /'来源'/.test(leads) && /阶段变更摘要/.test(leads) && /最近报价有效期/.test(leads));
+ok('CSV 导出 18 列结构', /'客户名', '国家', '市场', '阶段', 'WhatsApp', '邮箱', '官网', '产品'/.test(leads));
+ok('CSV 导入保留来源/官网/创建时间', /rec\.createdAt = r\.createdAt \|\| new Date\(\)\.toISOString\(\)/.test(leads) && /website:'官网'/.test(leads) && /source:'来源'/.test(leads));
+ok('csv.js 识别官网/来源/创建时间', /website: \['website'/.test(csvjs) && /source: \['source'/.test(csvjs) && /createdAt: \['createdat'/.test(csvjs));
+ok('csv.js 保留 ISO 创建时间', /function stamp/.test(csvjs) && /createdAt: stamp\(cell\('createdAt'\)\)/.test(csvjs));
 
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);
