@@ -26,6 +26,7 @@ const datastore = read('js/datastore.js');
 const quoteValidity = read('js/quote-validity.js');
 const leadDedupe = read('js/lead-dedupe.js');
 const license = read('js/license.js');
+const tplData = read('js/templates_data.js');
 const home = read('index.html');
 
 /* 1. 线索的 WhatsApp 字段是 wa，不是 whatsapp */
@@ -145,7 +146,7 @@ ok('历史复盘读中文快照', /varp=reviewPoint\(r\)/.test(rvc) && /成交 \
 ok('图表无第三方依赖', !/chart\.js|cdn\.jsdelivr|unpkg\.com|cdnjs/i.test(rv));
 ok('CSV 导入标记来源', /rec\.source = 'csv'/.test(leads));
 ok('手动新增标记来源', /obj\.source = 'manual'/.test(leads));
-ok('模块缓存版本已升级到 20261108a', /MODULE_V = '20261108a'/.test(home));
+ok('模块缓存版本已升级到 20261108b', /MODULE_V = '20261108b'/.test(home));
 ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(home) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
 
 /* 14. 报价有效期日期化 + 渲染时自动过期 + 首页问候 + 阶段日志 */
@@ -174,6 +175,15 @@ ok('购买入口有微信/邮箱占位', /BUY_WECHAT/.test(license) && /BUY_EMAI
 ok('我已购买有可用转化路径', /mailto:/.test(license) && /global\.location\.href = BUY_URL/.test(license));
 ok('激活弹窗展示联系方式', /buyContactText\(\)/.test(license) && /lic-buy/.test(license));
 ok('license 缓存版本已升级', /license\.js\?v=4/.test(home) && /license\.js\?v=4/.test(quotes));
+
+/* 16. 话术库补缺 + 占位符说明 + 默认按热度 */
+ok('话术数据缓存版本已升级', /templates_data\.js\?v=2/.test(templates));
+ok('话术库默认按使用热度排序', /<option value="hot" selected>按使用热度<\/option>/.test(templates));
+ok('占位符说明从全部话术自动收集', /var PH = \(function\(\)/.test(templates) && /function renderPlaceholders/.test(templates));
+ok('页首占位符说明包含 {展会}', /PH_TOP/.test(templates) && /\{展会\}/.test(tplData));
+ok('话术数据无 &amp; 双重转义', !/&amp;/.test(tplData));
+ok('新增 4 类话术', ['跟进序列 / Follow-up', '涨价通知 / Price update', '转介绍 / Referral', '合规通知 / Compliance'].every(c => tplData.includes(c)));
+ok('话术库标题显示 23 类 85 封', /23 类 · 85 封/.test(templates) && /23 类 85 封/.test(tplData));
 
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);
