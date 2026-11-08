@@ -13,8 +13,13 @@
   var TRIAL_DAYS = 15;
   var TRIAL_USES = 30;
 
-  /* 购买链接：填你的发卡台/微店地址，留空则提示联系卖家 */
-  var BUY_URL = '';
+  /* 购买 / 找回激活码：先留微信号和邮箱占位，保证点「我已购买」有反应。
+     以后有发卡台/微店，把 BUY_URL 换成商品页即可，按钮会优先跳转。 */
+  var BUY_WECHAT = 'ftcompass';
+  var BUY_EMAIL = 'buy@ftcompass.com';
+  var BUY_URL = 'mailto:' + BUY_EMAIL
+    + '?subject=' + encodeURIComponent('FT Compass 激活码（我已购买）')
+    + '&body=' + encodeURIComponent('你好，我需要 FT Compass 激活码。\n公司名称：\n购买渠道：');
 
   /* tools/gen-key.mjs 生成的公钥（SPKI DER base64） */
   var PUBKEY_B64 = 'MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE4e/RyCWhmYz2nA8Vq09VdIs9Te88dq6pna64CRucbh8Gf5VR8NXXPb1p/LCFNGfqZlnu6WAVD40ApbK5S4G3pg==';
@@ -477,6 +482,8 @@
     + '.lic-btn.primary:disabled{opacity:.6;cursor:default}'
     + '.lic-btn.ghost{background:#eef2f6;color:#334e68}'
     + '.lic-btn.ghost:hover{background:#e3eaf1}'
+    + '.lic-buy{font-size:12px;color:#52606d;background:#f0f7f4;border:1px solid #d7e9e2;border-radius:9px;padding:9px 12px;margin:12px 0 0;line-height:1.7;text-align:center;word-break:break-all}'
+    + '.lic-buy b{color:#0b6e4f}'
     + '.lic-note{font-size:11px;color:#9aa5b1;margin:14px 0 0;line-height:1.6;text-align:center}'
     + '.lic-close{position:absolute;top:14px;right:16px;border:0;background:transparent;font-size:18px;'
     + 'color:#9aa5b1;cursor:pointer;line-height:1}'
@@ -502,6 +509,14 @@
   function esc(s) {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  /* 购买/激活联系方式文案：微信、邮箱都留空时退回默认提示 */
+  function buyContactText() {
+    var parts = [];
+    if (BUY_WECHAT) parts.push('微信 ' + BUY_WECHAT);
+    if (BUY_EMAIL) parts.push('邮箱 ' + BUY_EMAIL);
+    return parts.join(' · ') || '请联系卖家';
   }
 
   function showLock(reason) {
@@ -564,8 +579,9 @@
         + '<div class="lic-err" id="licErr"></div>'
         + '<div class="lic-row">'
         + '<button class="lic-btn primary" id="licBtnAct">激活</button>'
-        + '<button class="lic-btn ghost" id="licBtnBuy">我已购买 →</button>'
+        + '<button class="lic-btn ghost" id="licBtnBuy">获取激活码 →</button>'
         + '</div>'
+        + '<p class="lic-buy">购买或找回激活码<br><b>' + esc(buyContactText()).replace(/ · /g, '<br>') + '</b></p>'
         + '<p class="lic-note">激活只在本机校验签名，不会上传你的任何数据。<br>'
         + '换电脑可直接用同一个激活码，不绑定设备。</p>';
     }
@@ -585,8 +601,15 @@
       if (act) act.onclick = doActivate;
       var buy = document.getElementById('licBtnBuy');
       if (buy) buy.onclick = function () {
-        if (BUY_URL) global.open(BUY_URL, '_blank');
-        else toast('请联系卖家购买激活码');
+        if (!BUY_URL) { toast('购买/激活请联系：' + buyContactText()); return; }
+        if (/^mailto:/i.test(BUY_URL)) {
+          /* mailto 交给系统邮件客户端，用 location 比 window.open 稳 */
+          try { global.location.href = BUY_URL; } catch (e) {}
+          toast('已打开邮件客户端；也可直接联系：' + buyContactText());
+          return;
+        }
+        var win = global.open(BUY_URL, '_blank');
+        if (!win) toast('弹窗被拦截，请手动打开：' + BUY_URL);
       };
       var inp = document.getElementById('licInput');
       if (inp) {

@@ -9,6 +9,7 @@
 <script src="../agnes-ai.js?v=10"></script>
 <script src="../js/datastore.js?v=6"></script>
 <script src="../js/csv.js?v=4"></script>
+<script src="../js/lead-dedupe.js?v=1"></script>
 <style>
   /* FT Compass 视觉体系（tokens.css 为准）：翡翠绿 / 琥珀 AI 规范 / 米白纸面 */
   * { box-sizing: border-box; margin: 0; }
@@ -426,6 +427,22 @@ function saveEdit() {
     amount: +v('e_amount') || 0, note: v('e_note'),
     last: v('e_last') || (S.editId ? '' : iso(0))
   };
+  /* 保存前模糊查重：名称 / 企业邮箱域名命中先提示。
+     取消 = 返回修改，确定 = 仍然保存（CSV 导入仍走精确去重键）。 */
+  if (window.LeadDedupe) {
+    var dups = LeadDedupe.find(S.leads, obj, S.editId);
+    if (dups.length) {
+      var dupLines = dups.slice(0, 3).map(function (d) {
+        var lead = d.lead || {};
+        return '· ' + (lead.name || '(未命名)')
+          + (lead.country ? '（' + lead.country + '）' : '')
+          + ' — ' + d.reasons.join('、');
+      });
+      if (dups.length > 3) dupLines.push('…另有 ' + (dups.length - 3) + ' 条疑似');
+      if (!confirm('疑似已有类似客户：\n\n' + dupLines.join('\n')
+        + '\n\n点「确定」仍然保存；点「取消」返回修改。')) return;
+    }
+  }
   if (S.editId) {
     var l = S.leads.find(function (x) { return x.id === S.editId; });
     var prevStage = l.stage;

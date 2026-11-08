@@ -24,6 +24,8 @@ const review = read('modules/review.html');
 const maillog = read('modules/maillog.html');
 const datastore = read('js/datastore.js');
 const quoteValidity = read('js/quote-validity.js');
+const leadDedupe = read('js/lead-dedupe.js');
+const license = read('js/license.js');
 const home = read('index.html');
 
 /* 1. 线索的 WhatsApp 字段是 wa，不是 whatsapp */
@@ -143,7 +145,7 @@ ok('历史复盘读中文快照', /varp=reviewPoint\(r\)/.test(rvc) && /成交 \
 ok('图表无第三方依赖', !/chart\.js|cdn\.jsdelivr|unpkg\.com|cdnjs/i.test(rv));
 ok('CSV 导入标记来源', /rec\.source = 'csv'/.test(leads));
 ok('手动新增标记来源', /obj\.source = 'manual'/.test(leads));
-ok('模块缓存版本已升级到 20261107a', /MODULE_V = '20261107a'/.test(home));
+ok('模块缓存版本已升级到 20261108a', /MODULE_V = '20261108a'/.test(home));
 ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(home) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
 
 /* 14. 报价有效期日期化 + 渲染时自动过期 + 首页问候 + 阶段日志 */
@@ -161,6 +163,17 @@ ok('DataStore.update 换阶段追 stageLog', /patch\.stage && patch\.stage !== p
 ok('线索编辑换阶段追 stageLog', /prevStage/.test(leads) && /l\.stageLog\.push/.test(leads));
 ok('单证读取 validUntil 兜底', /values\.valid = q\.validUntil \|\| q\.validity/.test(docs));
 ok('datastore 缓存版本已升级', /datastore\.js\?v=6/.test(home) && /datastore\.js\?v=6/.test(quotes) && /datastore\.js\?v=6/.test(leads));
+
+/* 15. 手工线索模糊查重 + 购买链路 */
+ok('线索页加载查重 helper', /lead-dedupe\.js\?v=1/.test(leads));
+ok('保存线索前调用模糊查重并排除自己', /LeadDedupe\.find\(S\.leads, obj, S\.editId\)/.test(leads));
+ok('查重命中可跳过或强行保存', /疑似已有类似客户/.test(leads) && /点「取消」返回修改/.test(leads) && /if \(!confirm\([\s\S]{0,260}\)\) return;/.test(leads));
+ok('查重按名称和域名匹配', /名称完全相同/.test(leadDedupe) && /网站\/邮箱域名相同/.test(leadDedupe));
+ok('公共邮箱不参与域名匹配', /GENERIC_DOMAINS/.test(leadDedupe) && /gmail\.com/.test(leadDedupe));
+ok('购买入口有微信/邮箱占位', /BUY_WECHAT/.test(license) && /BUY_EMAIL/.test(license) && /buy@ftcompass\.com/.test(license));
+ok('我已购买有可用转化路径', /mailto:/.test(license) && /global\.location\.href = BUY_URL/.test(license));
+ok('激活弹窗展示联系方式', /buyContactText\(\)/.test(license) && /lic-buy/.test(license));
+ok('license 缓存版本已升级', /license\.js\?v=4/.test(home) && /license\.js\?v=4/.test(quotes));
 
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);
