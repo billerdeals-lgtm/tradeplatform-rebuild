@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 利润计算器</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=3">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -61,9 +62,9 @@
   .hist-item .hi-margin.bad { background:#fee2e2; color:#991b1b; }
   @media(max-width:700px) { .grid2 { grid-template-columns:1fr; } }
 </style>
-<script src="../assets/standalone.js?v=2"></script>
-<script src="../assets/a11y.js?v=2"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=11">
+<script src="../assets/standalone.js?v=20261109b"></script>
+<script src="../assets/a11y.js?v=20261109b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
 </head>
 <body>
 <header>
@@ -186,9 +187,9 @@
   </div>
 </main>
 
-<script src="../js/datastore.js?v=6"></script>
-<script src="../js/pricing.js?v=1"></script>
-<script src="../agnes-ai.js?v=10"></script>
+<script src="../js/datastore.js?v=20261109b"></script>
+<script src="../js/pricing.js?v=20261109b"></script>
+<script src="../agnes-ai.js?v=20261109b"></script>
 <script>
 'use strict';
 
@@ -365,8 +366,8 @@ function loadHist() {
     var cls = margin >= 25 ? 'good' : margin >= 10 ? 'warn' : 'bad';
     return '<div class="hist-item">'
       + '<span class="hi-date">' + date + '</span>'
-      + '<span class="hi-prod">' + (item.product || '—') + ' ×' + (item.qty || 0) + '</span>'
-      + '<span class="hi-price">' + (item.result || '—') + '</span>'
+      + '<span class="hi-prod">' + FT.esc(item.product || '—') + ' ×' + FT.esc(item.qty || 0) + '</span>'
+      + '<span class="hi-price">' + FT.esc(item.result || '—') + '</span>'
       + '<span class="hi-margin ' + cls + '">' + margin + '%</span>'
       + '</div>';
   }).join('');

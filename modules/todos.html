@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 待办工作台</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=3">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -40,9 +41,9 @@
   .empty { text-align:center; color:var(--text-3); padding:var(--sp-8) 0; }
   .focus-card { margin-bottom:var(--sp-4); }
 </style>
-<script src="../assets/standalone.js?v=2"></script>
-<script src="../assets/a11y.js?v=2"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=11">
+<script src="../assets/standalone.js?v=20261109b"></script>
+<script src="../assets/a11y.js?v=20261109b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
 </head>
 <body>
 <header>
@@ -111,8 +112,8 @@
   </div>
 </dialog>
 
-<script src="../agnes-ai.js?v=10"></script>
-<script src="../js/datastore.js?v=6"></script>
+<script src="../agnes-ai.js?v=20261109b"></script>
+<script src="../js/datastore.js?v=20261109b"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -174,9 +175,9 @@ function render(){
     var lead = t.leadId ? leads[t.leadId] : null;
     var ds = dueState(t);
     var dueHtml = t.due ? '<span class="ft-tag" style="background:'+(ds==='over'?'var(--danger-bg);color:var(--danger-text)':ds==='today'?'var(--warn-bg);color:var(--warn-text)':'var(--bg-inset);color:var(--text-2)')+'">📅 '+esc(t.due)+(ds==='over'?' 逾期':ds==='today'?' 今天':'')+'</span>' : '';
-    var aiHtml = t.aiPriority ? '<span class="ft-tag" style="background:var(--accent-100);color:#8a6100">AI #'+t.aiPriority+'</span>' : '';
+    var aiHtml = t.aiPriority ? '<span class="ft-tag" style="background:var(--accent-100);color:#8a6100">AI #'+esc(t.aiPriority)+'</span>' : '';
     html += '<div class="ft-card todo '+(t.done?'done':'')+'">'
-      + '<input type="checkbox" class="checkbox" aria-label="标记完成：'+esc(t.title)+'" '+(t.done?'checked':'')+' onchange="toggleDone(\''+t.id+'\')">'
+      + '<input type="checkbox" class="checkbox" aria-label="标记完成：'+esc(t.title)+'" '+(t.done?'checked':'')+' onchange="toggleDone(\''+FT.jsArg(t.id)+'\')">'
       + '<div class="body" role="button" tabindex="0" aria-expanded="false" onclick="this.parentElement.classList.toggle(\'open\')">'
       +   '<div class="title">'+(t.done?'<s>':'')+esc(t.title)+(t.done?'</s>':'')+'</div>'
       +   '<div class="meta">'+aiHtml+dueHtml
@@ -185,10 +186,10 @@ function render(){
       +   '</div>'
       +   (t.aiReason?'<div class="ai-reason">🧭 '+esc(t.aiReason)+'</div>':'')
       +   '<div class="row2">'
-      +     '<button class="iconbtn" onclick="event.stopPropagation();openEdit(\''+t.id+'\')">✎ 编辑</button>'
-      +     '<button class="iconbtn" onclick="event.stopPropagation();delTodo(\''+t.id+'\')">🗑 删除</button>'
-      +     (lead?'<button class="ft-btn-ai" style="padding:4px 12px;font-size:12px" onclick="event.stopPropagation();aiFollow(\''+t.id+'\')">✨ AI 生成跟进话术</button>':'')
-      +     (lead&&(lead.wa||lead.whatsapp)?'<button class="iconbtn" onclick="event.stopPropagation();sendWa(\''+t.leadId+'\')">💬 WhatsApp</button>':'')
+      +     '<button class="iconbtn" onclick="event.stopPropagation();openEdit(\''+FT.jsArg(t.id)+'\')">✎ 编辑</button>'
+      +     '<button class="iconbtn" onclick="event.stopPropagation();delTodo(\''+FT.jsArg(t.id)+'\')">🗑 删除</button>'
+      +     (lead?'<button class="ft-btn-ai" style="padding:4px 12px;font-size:12px" onclick="event.stopPropagation();aiFollow(\''+FT.jsArg(t.id)+'\')">✨ AI 生成跟进话术</button>':'')
+      +     (lead&&(lead.wa||lead.whatsapp)?'<button class="iconbtn" onclick="event.stopPropagation();sendWa(\''+FT.jsArg(lead.id)+'\')">💬 WhatsApp</button>':'')
       +   '</div>'
       + '</div></div>';
   });

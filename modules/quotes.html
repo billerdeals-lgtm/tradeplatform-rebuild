@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 报价管理</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=3">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -113,9 +114,9 @@
   .field-hint { font-size:11px; line-height:1.45; color:var(--text-3); margin-top:3px; }
   .field-hint.warn { color:var(--warn-text); }
 </style>
-<script src="../assets/standalone.js?v=2"></script>
-<script src="../assets/a11y.js?v=2"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=11">
+<script src="../assets/standalone.js?v=20261109b"></script>
+<script src="../assets/a11y.js?v=20261109b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
 </head>
 <body>
 <header>
@@ -254,15 +255,15 @@
 
 <div id="brandHost"></div>
 
-<script src="../js/datastore.js?v=6"></script>
-<script src="../js/quote-validity.js?v=2"></script>
-<script src="../js/license.js?v=4"></script>
-<script src="../agnes-ai.js?v=10"></script>
-<script src="../js/gate.js?v=2"></script>
-<script src="../js/i18n.js?v=4"></script>
-<script src="../js/brand.js?v=3"></script>
-<script src="../js/excel.js?v=6"></script>
-<script src="../js/paper.js?v=6"></script>
+<script src="../js/datastore.js?v=20261109b"></script>
+<script src="../js/quote-validity.js?v=20261109b"></script>
+<script src="../js/license.js?v=20261109b"></script>
+<script src="../agnes-ai.js?v=20261109b"></script>
+<script src="../js/gate.js?v=20261109b"></script>
+<script src="../js/i18n.js?v=20261109b"></script>
+<script src="../js/brand.js?v=20261109b"></script>
+<script src="../js/excel.js?v=20261109b"></script>
+<script src="../js/paper.js?v=20261109b"></script>
 <script>
 'use strict';
 
@@ -362,7 +363,7 @@ function loadLeads() {
   var sel = $('q_lead');
   var leads = DataStore.list('leads');
   sel.innerHTML = '<option value="">— 选择线索（可选）—</option>'
-    + leads.map(function(l){ return '<option value="' + esc(l.id) + '">' + esc(l.name) + (l.product ? ' / ' + l.product : '') + '</option>'; }).join('');
+    + leads.map(function(l){ return '<option value="' + esc(l.id) + '">' + esc(l.name) + (l.product ? ' / ' + esc(l.product) : '') + '</option>'; }).join('');
 }
 
 /* ========== 明细操作 ========== */
@@ -447,8 +448,9 @@ function openPicker() {
     return;
   }
   $('pickerList').innerHTML = prods.map(function(p) {
-    return '<div class="ft-card" role="button" tabindex="0" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\'' + p.id + '\')">'
-      + (p.image ? '<img src="' + p.image + '" style="width:44px;height:44px;object-fit:contain;background:var(--bg-inset);border-radius:4px" alt="">' : '<span style="font-size:22px">📦</span>')
+    var img = FT.imgSrc(p.image);
+    return '<div class="ft-card" role="button" tabindex="0" style="padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="pickProduct(\'' + FT.jsArg(p.id) + '\')">'
+      + (img ? '<img src="' + FT.esc(img) + '" style="width:44px;height:44px;object-fit:contain;background:var(--bg-inset);border-radius:4px" alt="">' : '<span style="font-size:22px">📦</span>')
       + '<div style="flex:1;min-width:0"><b style="font-size:13px;display:block">' + esc(p.name) + '</b>'
       + '<span style="font-size:11px;color:var(--text-3)">' + esc(p.sku || '') + (p.spec ? ' · ' + esc(p.spec) : '') + (p.price ? ' · ' + esc(p.currency || 'USD') + ' ' + esc(p.price) : '') + '</span></div>'
       + '<span class="btn-sm btn-ghost" style="border:1px solid var(--border);border-radius:4px;padding:4px 10px">选入</span>'
@@ -603,15 +605,15 @@ function renderList() {
     var est = QuoteValidity.effectiveStatus(item);
     var stLabel = {draft:'草稿',sent:'已发送',accepted:'已接受',rejected:'已拒绝',expired:'已过期'}[est] || est;
     var on = S.current === item.id;
-    var cur = item.currency || 'USD';
-    var sym = CUR_SYM[cur] || cur;
+    var cur = CUR_SYM[item.currency] ? item.currency : 'USD';
+    var sym = CUR_SYM[cur] || '$';
     var money = (sym === cur ? sym + ' ' : sym) + (item.total || 0).toFixed(2);
     var left = QuoteValidity.isExpiringSoon(item, 7) ? QuoteValidity.daysLeft(item) : null;
     var expBadge = left == null ? '' : '<span class="qi-exp" title="报价有效期至 ' + esc(QuoteValidity.validUntil(item)) + '">' + (left === 0 ? '今天到期' : '剩 ' + left + ' 天') + '</span>';
-    return '<div class="qitem' + (on ? ' on' : '') + '" role="button" tabindex="0"' + (on ? ' aria-current="true"' : '') + ' onclick="loadQuote(\'' + item.id + '\')">'
+    return '<div class="qitem' + (on ? ' on' : '') + '" role="button" tabindex="0"' + (on ? ' aria-current="true"' : '') + ' onclick="loadQuote(\'' + FT.jsArg(item.id) + '\')">'
       + '<div class="qi-top"><span class="qi-no">' + esc(item.no || '未编号') + '</span>'
       + expBadge
-      + '<span class="qi-status st-' + esc(est) + '">' + stLabel + '</span></div>'
+      + '<span class="qi-status st-' + esc(est) + '">' + esc(stLabel) + '</span></div>'
       + '<div class="qi-client">' + esc(item.leadName || '未关联线索') + ' · ' + esc(item.product || '') + '</div>'
       + '<div class="qi-amt">' + money
       + '<span class="qi-date" style="margin-left:8px">' + esc(item.date || '') + '</span></div>'

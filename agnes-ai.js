@@ -480,6 +480,7 @@
       + '<div style="margin-bottom:10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534">✅ 已预填 Agnes AI 配置，开箱即用。如需切换其它 OpenAI 兼容服务，修改下方内容并保存即可。</div>'
       + '<label>接口地址（/v1 结尾）</label><input id="ag_base" value="' + escAttr(c.base) + '" placeholder="https://你的网关/v1" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">API 密钥</label><input id="ag_key" value="' + escAttr(c.key || '') + '" placeholder="留空 = 使用内置密钥" type="password" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
+      + '<div style="margin-top:6px;padding:6px 9px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11.5px;line-height:1.6;color:#92400e">🔒 密钥只保存在本机 localStorage（明文），同机的浏览器扩展或脚本可以读取。公用电脑建议留空使用内置密钥，用完后清空此栏并保存。</div>'
       + '<label style="display:block;margin-top:8px">模型名</label><input id="ag_model" value="' + escAttr(c.model) + '" placeholder="agnes-3.0-flash" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<label style="display:block;margin-top:8px">每日上限：<input id="ag_limit" type="number" value="' + (Number(c.dailyLimit) || 100) + '" style="width:80px"></label>'
       + '<div style="margin-top:6px;color:#888;font-size:12px">今日已调用 ' + todayCount() + ' 次 · '

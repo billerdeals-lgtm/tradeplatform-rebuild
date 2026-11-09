@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 客户 360°</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=3">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -121,9 +122,9 @@
   .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
-<script src="../assets/standalone.js?v=2"></script>
-<script src="../assets/a11y.js?v=2"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=11">
+<script src="../assets/standalone.js?v=20261109b"></script>
+<script src="../assets/a11y.js?v=20261109b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
 </head>
 <body>
 <header>
@@ -171,9 +172,9 @@
   <div class="df"><button class="dx" onclick="dlgComp.close()">取消</button><button class="ds" onclick="saveComp()">保存竞品</button></div>
 </dialog>
 
-<script src="../js/datastore.js?v=6"></script>
-<script src="../js/stage-analytics.js?v=1"></script>
-<script src="../agnes-ai.js?v=10"></script>
+<script src="../js/datastore.js?v=20261109b"></script>
+<script src="../js/stage-analytics.js?v=20261109b"></script>
+<script src="../agnes-ai.js?v=20261109b"></script>
 <script>
 'use strict';
 
@@ -427,12 +428,12 @@ function renderDetail() {
   if (comps.length) {
     comps.forEach(function(c){
       var url = safeUrl(c.website);
-      var meta = [c.country || '', url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url.replace(/^https?:\/\/(www\.)?/, '')) + '</a>' : '']
+      var meta = [esc(c.country || ''), url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener">' + esc(url.replace(/^https?:\/\/(www\.)?/, '')) + '</a>' : '']
         .filter(Boolean).join(' · ');
       html += '<div class="comp-item">'
         + '<div class="comp-top"><span class="comp-name">' + esc(c.name) + '</span>'
         + (meta ? '<span class="comp-meta">' + meta + '</span>' : '')
-        + '<span class="comp-acts"><button onclick="openCompEdit(\'' + esc(c.id) + '\')">编辑</button><button class="del" onclick="delComp(\'' + esc(c.id) + '\')">删除</button></span></div>'
+        + '<span class="comp-acts"><button onclick="openCompEdit(\'' + FT.jsArg(c.id) + '\')">编辑</button><button class="del" onclick="delComp(\'' + FT.jsArg(c.id) + '\')">删除</button></span></div>'
         + (c.product ? '<div class="comp-row"><b>对标产品：</b>' + esc(c.product) + '</div>' : '')
         + ((c.price || c.moq) ? '<div class="comp-row"><b>价格 / MOQ：</b>' + esc(c.price || '—') + (c.moq ? ' · ' + esc(c.moq) : '') + '</div>' : '')
         + (c.advantage ? '<div class="comp-row"><b>优势：</b>' + esc(c.advantage) + '</div>' : '')

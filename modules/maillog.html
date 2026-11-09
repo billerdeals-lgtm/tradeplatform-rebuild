@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 发送记录</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=3">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -41,9 +42,9 @@
   dialog textarea { min-height:80px; resize:vertical; }
   .log-del { margin-left:auto; font-size:11px; padding:4px 10px; min-height:28px; border-radius:6px; }
 </style>
-<script src="../assets/standalone.js?v=2"></script>
-<script src="../assets/a11y.js?v=2"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=11">
+<script src="../assets/standalone.js?v=20261109b"></script>
+<script src="../assets/a11y.js?v=20261109b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
 </head>
 <body>
 <header>
@@ -97,8 +98,8 @@
   </div>
 </dialog>
 
-<script src="../js/datastore.js?v=6"></script>
-<script src="../js/csv.js?v=4"></script>
+<script src="../js/datastore.js?v=20261109b"></script>
+<script src="../js/csv.js?v=20261109b"></script>
 <script>
 /* 发送记录 = outreach 统一视图（线索/待办/话术/节假日各模块生成时已落库） */
 var TYPE_NAME = { mail:'邮件', wa:'WhatsApp', ai_rewrite:'AI 改写', ai_followup:'AI 跟进', ai_objection:'AI 异议应对', objection:'AI 异议应对', holiday:'节日问候', manual:'手动', call:'电话' };
@@ -142,8 +143,8 @@ function render() {
       + '<span class="name">' + esc(o.leadName || '未关联客户') + '</span>'
       + '<span class="ft-tag ' + cls + '">' + esc(TYPE_NAME[o.type] || o.type) + '</span>'
       + statusTag(o)
-      + '<span>' + fmtDate(o.createdAt) + '</span>'
-      + '<button class="log-del" onclick="event.stopPropagation();del(\'' + o.id + '\')">删除</button>'
+      + '<span>' + esc(fmtDate(o.createdAt)) + '</span>'
+      + '<button class="log-del" onclick="event.stopPropagation();del(\'' + FT.jsArg(o.id) + '\')">删除</button>'
       + '</div>'
       + (o.tplTitle ? '<div style="font-size:12.5px;color:var(--text-2)">模板：' + esc(o.tplTitle) + '</div>' : '')
       + '<pre>' + esc(o.content || '(无正文)') + '</pre>'
@@ -174,7 +175,7 @@ function exportCsv() {
 /* 补记录弹窗的客户下拉：按 AI 评分排 */
 (function() {
   var leads = DataStore.list('leads').slice().sort(function(a,b){ return (b.score||0)-(a.score||0); });
-  document.getElementById('a_lead').innerHTML = leads.map(function(l){ return '<option value="' + l.id + '">' + esc(l.name) + '（' + esc(l.country||'?') + (l.score?' · AI'+l.score:'') + '）</option>'; }).join('') || '<option value="">（先去线索模块添加客户）</option>';
+  document.getElementById('a_lead').innerHTML = leads.map(function(l){ return '<option value="' + esc(l.id) + '">' + esc(l.name) + '（' + esc(l.country||'?') + (l.score?' · AI'+esc(l.score):'') + '）</option>'; }).join('') || '<option value="">（先去线索模块添加客户）</option>';
 })();
 render();
 </script>

@@ -149,8 +149,8 @@ ok('历史复盘读中文快照', /varp=reviewPoint\(r\)/.test(rvc) && /成交 \
 ok('图表无第三方依赖', !/chart\.js|cdn\.jsdelivr|unpkg\.com|cdnjs/i.test(rv));
 ok('CSV 导入标记来源', /rec\.source = 'csv'/.test(leads));
 ok('手动新增标记来源', /obj\.source = 'manual'/.test(leads));
-ok('模块缓存版本已升级到 20261108c', /MODULE_V = '20261108c'/.test(home));
-ok('响应式样式版本已升级', /responsive\.css\?v=11/.test(home) && /responsive\.css\?v=11/.test(leads) && /responsive\.css\?v=11/.test(quotes));
+ok('模块缓存版本是统一发布戳', /MODULE_V = '\d{8}[a-z]?'/.test(home));
+ok('响应式样式已统一发布戳', /responsive\.css\?v=/.test(home) && /responsive\.css\?v=/.test(leads) && /responsive\.css\?v=/.test(quotes));
 
 /* 14. 报价有效期日期化 + 渲染时自动过期 + 首页问候 + 阶段日志 */
 ok('报价有效期改为 date 字段', /id="q_validity" type="date"/.test(quotes));
@@ -162,14 +162,14 @@ ok('报价列表按生效状态渲染', /QuoteValidity\.effectiveStatus\(item\)/
 ok('报价筛选按生效状态匹配', /QuoteValidity\.effectiveStatus\(item\) !== st/.test(quotes));
 ok('首页报价徽标使用生效状态', /QuoteValidity\.effectiveStatus\(q\)/.test(home) && /hQuotes/.test(home));
 ok('首页问候按小时切换', /id="greet"/.test(home) && /function greetingText/.test(home) && /早上好.*下午好.*晚上好/.test(home));
-ok('首页和报价页都加载有效期 helper', /quote-validity\.js\?v=2/.test(home) && /quote-validity\.js\?v=2/.test(quotes));
+ok('首页和报价页都加载有效期 helper', /quote-validity\.js\?v=/.test(home) && /quote-validity\.js\?v=/.test(quotes));
 ok('DataStore.update 换阶段追 stageLog', /patch\.stage && patch\.stage !== prevStage/.test(datastore) && /stageLog\.push/.test(datastore));
 ok('线索编辑换阶段追 stageLog', /prevStage/.test(leads) && /l\.stageLog\.push/.test(leads));
 ok('单证读取 validUntil 兜底', /values\.valid = q\.validUntil \|\| q\.validity/.test(docs));
-ok('datastore 缓存版本已升级', /datastore\.js\?v=6/.test(home) && /datastore\.js\?v=6/.test(quotes) && /datastore\.js\?v=6/.test(leads));
+ok('datastore 已统一发布戳', /datastore\.js\?v=/.test(home) && /datastore\.js\?v=/.test(quotes) && /datastore\.js\?v=/.test(leads));
 
 /* 15. 手工线索模糊查重 + 购买链路 */
-ok('线索页加载查重 helper', /lead-dedupe\.js\?v=1/.test(leads));
+ok('线索页加载查重 helper', /lead-dedupe\.js\?v=/.test(leads));
 ok('保存线索前调用模糊查重并排除自己', /LeadDedupe\.find\(S\.leads, obj, S\.editId\)/.test(leads));
 ok('查重命中可跳过或强行保存', /疑似已有类似客户/.test(leads) && /点「取消」返回修改/.test(leads) && /if \(!confirm\([\s\S]{0,260}\)\) return;/.test(leads));
 ok('查重按名称和域名匹配', /名称完全相同/.test(leadDedupe) && /网站\/邮箱域名相同/.test(leadDedupe));
@@ -177,10 +177,10 @@ ok('公共邮箱不参与域名匹配', /GENERIC_DOMAINS/.test(leadDedupe) && /g
 ok('购买入口有微信/邮箱占位', /BUY_WECHAT/.test(license) && /BUY_EMAIL/.test(license) && /buy@ftcompass\.com/.test(license));
 ok('我已购买有可用转化路径', /mailto:/.test(license) && /global\.location\.href = BUY_URL/.test(license));
 ok('激活弹窗展示联系方式', /buyContactText\(\)/.test(license) && /lic-buy/.test(license));
-ok('license 缓存版本已升级', /license\.js\?v=4/.test(home) && /license\.js\?v=4/.test(quotes));
+ok('license 已统一发布戳', /license\.js\?v=/.test(home) && /license\.js\?v=/.test(quotes));
 
 /* 16. 话术库补缺 + 占位符说明 + 默认按热度 */
-ok('话术数据缓存版本已升级', /templates_data\.js\?v=2/.test(templates));
+ok('话术数据已统一发布戳', /templates_data\.js\?v=/.test(templates));
 ok('话术库默认按使用热度排序', /<option value="hot" selected>按使用热度<\/option>/.test(templates));
 ok('占位符说明从全部话术自动收集', /var PH = \(function\(\)/.test(templates) && /function renderPlaceholders/.test(templates));
 ok('页首占位符说明包含 {展会}', /PH_TOP/.test(templates) && /\{展会\}/.test(tplData));
@@ -189,16 +189,16 @@ ok('新增 4 类话术', ['跟进序列 / Follow-up', '涨价通知 / Price upda
 ok('话术库标题显示 23 类 85 封', /23 类 · 85 封/.test(templates) && /23 类 85 封/.test(tplData));
 
 /* 17. 转线索查重 + 阶段停留 + 临期报价 + CSV 备份迁移 */
-ok('找客户加载模糊查重 helper', /lead-dedupe\.js\?v=1/.test(find));
+ok('找客户加载模糊查重 helper', /lead-dedupe\.js\?v=/.test(find));
 ok('单条转线索前查重并可强行保存', /var dups=findDupes\(obj\)/.test(find) && /疑似已有类似客户/.test(find) && /点「取消」返回修改/.test(find));
 ok('批量转线索先预演再确认', /var sim=DataStore\.list\('leads'\)\.slice\(\)/.test(find) && /批量导入发现/.test(find) && /跳过这些/.test(find));
 ok('批量导入跳过疑似重复计入 dupIds', /S\.dupIds\[x\.r\._id\]/.test(find));
 ok('搜索结果标出已在线索库', /S\.dupIds\[c\._id\]/.test(find) && /已在线索库/.test(find));
 ok('搜索历史最多 40 条', /hist\.length>40/.test(find) && /slice\(-40\)/.test(find));
 
-ok('客户 360 加载阶段分析', /stage-analytics\.js\?v=1/.test(c360));
+ok('客户 360 加载阶段分析', /stage-analytics\.js\?v=/.test(c360));
 ok('客户 360 时间线展示阶段流转与停留', /StageAnalytics\.transitions\(l\)/.test(c360) && /进入「/.test(c360) && /已停留/.test(c360));
-ok('复盘加载阶段分析并渲染平均停留', /stage-analytics\.js\?v=1/.test(review) && /id="stageDwell"/.test(review) && /function renderDwell/.test(review));
+ok('复盘加载阶段分析并渲染平均停留', /stage-analytics\.js\?v=/.test(review) && /id="stageDwell"/.test(review) && /function renderDwell/.test(review));
 ok('阶段停留只统计已完成区段', /closedCount/.test(stageAnalytics) && /ongoingCount/.test(stageAnalytics) && /closed: true/.test(stageAnalytics));
 ok('阶段分析兼容缺失 from/createdAt', /first\.from && created/.test(stageAnalytics));
 ok('阶段停留有纯函数测试', fs.existsSync(new URL('../tools/test-stage-analytics.mjs', import.meta.url)));
@@ -219,6 +219,68 @@ ok('CSV 导出 18 列结构', /'客户名', '国家', '市场', '阶段', 'Whats
 ok('CSV 导入保留来源/官网/创建时间', /rec\.createdAt = r\.createdAt \|\| new Date\(\)\.toISOString\(\)/.test(leads) && /website:'官网'/.test(leads) && /source:'来源'/.test(leads));
 ok('csv.js 识别官网/来源/创建时间', /website: \['website'/.test(csvjs) && /source: \['source'/.test(csvjs) && /createdAt: \['createdat'/.test(csvjs));
 ok('csv.js 保留 ISO 创建时间', /function stamp/.test(csvjs) && /createdAt: stamp\(cell\('createdAt'\)\)/.test(csvjs));
+
+/* 18. 外壳：CSP / 深链 / 模块保活 / 多标签 / 容量仪表 / 统一版本戳 */
+const moduleNames = ['calculator','comps','customer360','docs','find','holidays','leads','maillog','products','profile','quotes','review','templates','todos'];
+const moduleHtml = moduleNames.map(n => read('modules/' + n + '.html'));
+const agnes = read('agnes-ai.js');
+
+ok('首页有 CSP meta', /http-equiv="Content-Security-Policy"/.test(home) && /object-src 'none'/.test(home) && /base-uri 'self'/.test(home));
+ok('14 个模块都有 CSP meta', moduleHtml.every(s => s.includes('http-equiv="Content-Security-Policy"')));
+ok('CSP 允许同源 frame 与内联脚本', /frame-src 'self'/.test(home) && /script-src 'self' 'unsafe-inline'/.test(home));
+ok('深链写入 hash 并监听 hashchange', /location\.hash = target/.test(home) && /addEventListener\('hashchange'/.test(home) && /function viewFromHash/.test(home));
+ok('深链只允许 modules/*.html', /VIEW_RE = \/\^modules/.test(home));
+ok('启动时按 hash 恢复模块', /var bootView = viewFromHash\(\)/.test(home) && /go\(bootView, \{ fromHash: true \}\)/.test(home));
+ok('iframe LRU 最多 3 个', /LRU_MAX = 3/.test(home) && /function getFrame/.test(home) && /function touchView/.test(home));
+ok('保活容器与显示切换', /id="views"/.test(home) && /classList\.toggle\('on'/.test(home));
+ok('#frame 始终指向当前模块', /f\.id = 'frame'/.test(home) && /removeAttribute\('id'\)/.test(home));
+ok('提供重载当前模块入口', /function reloadView/.test(home) && /onclick="reloadView\(\)"/.test(home));
+ok('多标签 storage 监听', /addEventListener\('storage'/.test(home) && /id="syncBar"/.test(home));
+ok('多标签提示不自动覆盖', /数据已在其他窗口修改/.test(home) && /function hideSyncBar/.test(home));
+ok('首页容量仪表', /id="quotaCard"/.test(home) && /function renderQuota/.test(home) && /QUOTA_LIMIT/.test(home));
+ok('容量 70/85 双阈值', /pct >= 85/.test(home) && /pct >= 70/.test(home));
+ok('版本戳脚本存在', fs.existsSync(new URL('../tools/bump-version.mjs', import.meta.url)));
+ok('AI 密钥明文风险已提示', /localStorage（明文）/.test(agnes) && /同机/.test(agnes));
+
+const release = (home.match(/MODULE_V = '([^']+)'/) || [])[1] || '';
+ok('发布戳格式合法', /^\d{8}[a-z]?$/.test(release), release);
+const refs = [];
+[home, ...moduleHtml].forEach(s => {
+  const re = /(?:src|href)="[^"]*?[?&]v=([^"&]+)/g;
+  let m;
+  while ((m = re.exec(s))) refs.push(m[1]);
+});
+ok('全站资源戳已统一', refs.length > 20 && refs.every(v => v === release), release + ' / ' + refs.length + ' refs');
+
+/* 19. XSS 加固：客户数据 / 抓取结果 / AI 输出 / 备份恢复字段 */
+const profile = read('modules/profile.html');
+const calculator = read('modules/calculator.html');
+const brandjs = read('js/brand.js');
+const standalone = read('assets/standalone.js');
+const agnesDemo = read('agnes-ai-demo.html');
+
+ok('standalone 提供 esc/imgSrc/safeUrl/jsArg', /FT\.esc = function/.test(standalone) && /FT\.imgSrc = function/.test(standalone) && /FT\.safeUrl = function/.test(standalone) && /FT\.jsArg = function/.test(standalone));
+ok('jsArg 转义双引号与尖括号', /\\\\u0022/.test(standalone) && /\\\\u003c/.test(standalone));
+ok('imgSrc 只放行 data:image 与 http(s)', /data:image\\\/\(\?:png/.test(standalone) && /\^https\?:\\\/\\\//.test(standalone));
+ok('客户 360 竞品国家已转义', /esc\(c\.country \|\| ''\)/.test(c360));
+ok('客户 360 竞品 id 用 jsArg', squash(c360).includes("openCompEdit(\\''+FT.jsArg(c.id)") && squash(c360).includes("delComp(\\''+FT.jsArg(c.id)"));
+ok('报价线索产品名已转义', /' \/ ' \+ esc\(l\.product\)/.test(quotes));
+ok('报价商品图走 FT.imgSrc', /FT\.imgSrc\(p\.image\)/.test(quotes) && /FT\.esc\(img\)/.test(quotes));
+ok('报价币种白名单', /CUR_SYM\[item\.currency\] \? item\.currency : 'USD'/.test(quotes) && /CUR_SYM\[cur\] \|\| '\$'/.test(quotes));
+ok('报价状态文案已转义', /esc\(stLabel\)/.test(quotes) && squash(quotes).includes("loadQuote(\\''+FT.jsArg(item.id)"));
+ok('单证商品图走 FT.imgSrc', /FT\.imgSrc\(p\.image\)/.test(docs) && squash(docs).includes("pickProduct(\\''+FT.jsArg(p.id)"));
+ok('发送记录日期已转义、id 用 jsArg', /esc\(fmtDate\(o\.createdAt\)\)/.test(maillog) && squash(maillog).includes("del(\\''+FT.jsArg(o.id)"));
+ok('发送记录客户下拉 id 已转义', /<option value="' \+ esc\(l\.id\) \+ '">/.test(maillog));
+ok('待办 AI 优先级已转义', /esc\(t\.aiPriority\)/.test(todos));
+ok('待办回调 id 全部走 jsArg', !/onclick="[^"]*\\''\+t\.id\+/.test(todos) && !/toggleDone\('\\''\+t\.id/.test(todos) && /FT\.jsArg\(t\.id\)/.test(todos) && /FT\.jsArg\(lead\.id\)/.test(todos));
+ok('品牌图片走 safeImg + 属性转义', /escHtml\(safeImg\(/g.test(brandjs) && (brandjs.match(/escHtml\(safeImg\(/g) || []).length >= 4);
+ok('品牌 escHtml 转义单引号', /\[&<>"'\]/.test(brandjs));
+ok('商品库图片走 FT.imgSrc', /FT\.imgSrc\(p\.image\)/.test(products) && /FT\.imgSrc\(imgData\)/.test(products));
+ok('商品库 id 用 jsArg', squash(products).includes("openEdit(\\''+FT.jsArg(p.id)") && squash(products).includes("toQuote(\\''+FT.jsArg(p.id)"));
+ok('档案 Logo 走 FT.imgSrc', /FT\.imgSrc\(b\.logo\)/.test(profile) && /FT\.esc\(logoSrc\)/.test(profile));
+ok('计算器历史记录已转义', /FT\.esc\(item\.product \|\| '—'\)/.test(calculator) && /FT\.esc\(item\.result \|\| '—'\)/.test(calculator));
+ok('找客户外链走 FT.safeUrl', /FT\.safeUrl\(r\.website\|\|r\.linkedin\|\|''\)/.test(find) && /rel="noopener"/.test(find));
+ok('AI 测试回复用 textContent', /el\.textContent = r\.ok/.test(agnesDemo) && !/el\.innerHTML = r\.ok/.test(agnesDemo));
 
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

@@ -16,6 +16,53 @@
   window.FT = window.FT || {};
 
   /* ------------------------------------------------------------
+     FT.esc / FT.imgSrc / FT.safeUrl / FT.jsArg：统一的输出编码
+     ------------------------------------------------------------
+     模块里各自有 esc()，但漏一个字段就是一个注入点（客户名、备注、
+     AI 输出、备份恢复的图片 dataURL 都进过 innerHTML）。这里给一套
+     全局兜底：
+     - esc：文本与双引号属性安全（含单引号）
+     - imgSrc：只放行 data:image(base64) 与 http(s)，挡住
+       `" onerror="` 这类属性逃逸
+     - safeUrl：href 只放行 http(s)，挡住 javascript:
+     - jsArg：拼进内联 onclick='...' 的单引号 JS 字符串转义
+     ------------------------------------------------------------ */
+  if (!window.FT.esc) {
+    window.FT.esc = function (s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    };
+  }
+  if (!window.FT.imgSrc) {
+    window.FT.imgSrc = function (v) {
+      var s = String(v == null ? '' : v).trim();
+      if (!s) return '';
+      if (/^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
+      if (/^https?:\/\//i.test(s)) return s;
+      return '';
+    };
+  }
+  if (!window.FT.safeUrl) {
+    window.FT.safeUrl = function (v) {
+      var s = String(v == null ? '' : v).trim();
+      return /^https?:\/\//i.test(s) ? s : '';
+    };
+  }
+  if (!window.FT.jsArg) {
+    window.FT.jsArg = function (v) {
+      return String(v == null ? '' : v)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/"/g, '\\u0022')
+        .replace(/&/g, '\\u0026')
+        .replace(/[\r\n]/g, ' ')
+        .replace(/</g, '\\u003c')
+        .replace(/>/g, '\\u003e');
+    };
+  }
+
+  /* ------------------------------------------------------------
      FT.today(offset)：本地时区的 YYYY-MM-DD
      ------------------------------------------------------------
      不能用 toISOString().slice(0,10)：那是 UTC，北京时间 0:00–8:00

@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23fff' stroke-width='3.5'/%3E%3Cpath d='M32 15 L38 32 L32 49 L26 32 Z' fill='%23ffc53d'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%230b6e4f'/%3E%3C/svg%3E">
 <title>FT Compass · AI 开发控制台</title>
 <script src="agnes-ai.js"></script>
@@ -86,8 +87,9 @@
     var el = document.getElementById('pingRes');
     el.textContent = '测试中…';
     var r = await AgnesAI.ping();
-    el.innerHTML = r.ok ? '<span class="ok">✓ 连通正常 · 回复：' + r.reply + '</span>'
-                        : '<span class="bad">✗ ' + r.error + '</span>';
+    /* AI 回复不可信：用 textContent 渲染，避免模型输出里的 HTML 被执行 */
+    el.textContent = r.ok ? '✓ 连通正常 · 回复：' + (r.reply || '') : '✗ ' + (r.error || '');
+    el.className = r.ok ? 'ok' : 'bad';
     this.disabled = false;
   };
 

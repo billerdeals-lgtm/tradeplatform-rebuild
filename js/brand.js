@@ -217,7 +217,7 @@
           var name = slot.querySelector('[data-name]');
           var clr = slot.querySelector('[data-clear]');
           if (b[k]) {
-            view.innerHTML = '<img src="' + b[k] + '" alt="' + k + '">';
+            view.innerHTML = '<img src="' + escHtml(safeImg(b[k])) + '" alt="' + escHtml(k) + '">';
             name.textContent = '✓ 已设置';
             if (clr) clr.hidden = false;
           } else {
@@ -292,7 +292,7 @@
       var b = Brand.get();
       if (!b.logo && !b.brandName) return '';
       return '<div class="br-top">'
-        + (b.logo ? '<img class="br-top-logo" src="' + b.logo + '" alt="">' : '')
+        + (b.logo ? '<img class="br-top-logo" src="' + escHtml(safeImg(b.logo)) + '" alt="">' : '')
         + (b.brandName ? '<div class="br-top-name">' + escHtml(b.brandName) + '</div>' : '')
         + '</div>';
     },
@@ -302,8 +302,8 @@
       var b = Brand.get();
       if (!b.sign && !b.seal) return '';
       return '<div class="br-stamps">'
-        + (b.sign ? '<img class="br-stamp br-stamp-sign" src="' + b.sign + '" alt="sign">' : '')
-        + (b.seal ? '<img class="br-stamp br-stamp-seal" src="' + b.seal + '" alt="seal">' : '')
+        + (b.sign ? '<img class="br-stamp br-stamp-sign" src="' + escHtml(safeImg(b.sign)) + '" alt="sign">' : '')
+        + (b.seal ? '<img class="br-stamp br-stamp-seal" src="' + escHtml(safeImg(b.seal)) + '" alt="seal">' : '')
         + '</div>';
     },
 
@@ -320,9 +320,19 @@
   };
 
   function escHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c];
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
     });
+  }
+
+  /* 图片只放行 data:image(base64) 与 http(s)：品牌资料可能来自
+     备份恢复，任意字符串进 src 就等于给了 " onerror=" 一条路。 */
+  function safeImg(v) {
+    if (global.FT && typeof global.FT.imgSrc === 'function') return global.FT.imgSrc(v);
+    var s = String(v == null ? '' : v).trim();
+    if (/^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(s)) return s;
+    if (/^https?:\/\//i.test(s)) return s;
+    return '';
   }
 
   global.Brand = Brand;

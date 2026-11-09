@@ -2,10 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 商品库</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=3">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -51,9 +52,9 @@
   .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
-<script src="../assets/standalone.js?v=2"></script>
-<script src="../assets/a11y.js?v=2"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=11">
+<script src="../assets/standalone.js?v=20261109b"></script>
+<script src="../assets/a11y.js?v=20261109b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
 </head>
 <body>
 <header>
@@ -127,10 +128,10 @@
   </div>
 </dialog>
 
-<script src="../js/datastore.js?v=6"></script>
-<script src="../js/brand.js?v=3"></script>
-<script src="../js/license.js?v=4"></script>
-<script src="../js/excel.js?v=6"></script>
+<script src="../js/datastore.js?v=20261109b"></script>
+<script src="../js/brand.js?v=20261109b"></script>
+<script src="../js/license.js?v=20261109b"></script>
+<script src="../js/excel.js?v=20261109b"></script>
 <script>
 'use strict';
 var editingId = null;
@@ -181,8 +182,9 @@ function render(){
     if (p.gw) pack.push('G.W.'+p.gw+'kg');
     if (p.cbm) pack.push(p.cbm+'CBM');
     if (p.meas) pack.push(p.meas);
+    var img = FT.imgSrc(p.image);
     return '<div class="pcard">'
-      + '<div class="pimg">'+(p.image?'<img src="'+p.image+'" alt="">':'<span class="ph">📦</span>')+'</div>'
+      + '<div class="pimg">'+(img?'<img src="'+FT.esc(img)+'" alt="">':'<span class="ph">📦</span>')+'</div>'
       + '<div class="pbody">'
       + '<div class="pname">'+esc(p.name)+'</div>'
       + (p.sku?'<div class="psku">'+esc(p.sku)+'</div>':'')
@@ -191,8 +193,8 @@ function render(){
       + (pack.length?'<div class="ppack">📦 '+esc(pack.join(' · '))+'</div>':'')
       + '</div>'
       + '<div class="pacts">'
-      + '<button onclick="openEdit(\''+p.id+'\')">编辑</button>'
-      + '<button onclick="toQuote(\''+p.id+'\')" title="带着这个商品去报价管理">→ 报价</button>'
+      + '<button onclick="openEdit(\''+FT.jsArg(p.id)+'\')">编辑</button>'
+      + '<button onclick="toQuote(\''+FT.jsArg(p.id)+'\')" title="带着这个商品去报价管理">→ 报价</button>'
       + '<button class="del" onclick="delP(\''+p.id+'\')">删除</button>'
       + '</div></div>';
   }).join('');
@@ -214,7 +216,8 @@ function openEdit(id){
 }
 
 function paintImg(){
-  $('imgPrev').innerHTML = imgData ? '<img src="'+imgData+'" alt="">' : '<span>商品图片</span>';
+  var src = FT.imgSrc(imgData);
+  $('imgPrev').innerHTML = src ? '<img src="'+FT.esc(src)+'" alt="">' : '<span>商品图片</span>';
 }
 
 function pickImg(input){

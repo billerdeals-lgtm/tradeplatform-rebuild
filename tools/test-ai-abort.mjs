@@ -140,8 +140,8 @@ check('额度错误可被 isQuotaError 识别', aiFull.AgnesAI.isQuotaError(aiEr
 
 /* ---------- 3. find.html 静态检查 ---------- */
 const find = fs.readFileSync(path.join(root, 'modules/find.html'), 'utf8');
-check('find 引入 sources v6', /js\/sources\.js\?v=6/.test(find));
-check('find 引入 agnes-ai v10', /agnes-ai\.js\?v=10/.test(find));
+check('find 引入 sources', /js\/sources\.js\?v=/.test(find));
+check('find 引入 agnes-ai', /agnes-ai\.js\?v=/.test(find));
 check('启动前预检 AI 额度', /function aiQuotaMsg\(\)/.test(find) && /function stopForQuota\(/.test(find));
 const preIdx = find.indexOf('var qm=aiQuotaMsg()');
 const consumeIdx = find.indexOf("License.consume('find')");

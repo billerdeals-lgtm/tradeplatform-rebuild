@@ -2,11 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 外贸客户开发工作台</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<link rel="stylesheet" href="assets/tokens.css?v=3">
-<script src="assets/standalone.js?v=2"></script>
+<link rel="stylesheet" href="assets/tokens.css?v=20261109b">
+<script src="assets/standalone.js?v=20261109b"></script>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); display:flex; height:100vh; overflow:hidden; }
@@ -49,6 +50,11 @@
   /* ---- 内容区 ---- */
   .content { flex:1; display:flex; flex-direction:column; min-width:0; }
   iframe { flex:1; border:0; background:var(--bg-page); }
+  /* ---- 模块容器：LRU 常驻，切回不丢筛选/半填内容 ---- */
+  #views { flex:1; min-height:0; position:relative; }
+  #views[hidden] { display:none; }
+  .viewframe { position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg-page); display:none; }
+  .viewframe.on { display:block; }
   /* ---- 备份提醒条 ---- */
   .backup-bar { flex:0 0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
     padding:9px 14px; background:#fff7e6; border-bottom:1px solid #e2c98f; color:var(--warn-text); font-size:13px; }
@@ -59,6 +65,23 @@
   .backup-bar .bb-btn:hover { background:#ffefd2; }
   .backup-bar .bb-btn.primary { background:#8a5a00; border-color:#8a5a00; color:#fff; }
   .backup-bar .bb-btn.primary:hover { background:#6f4900; }
+  /* ---- 多标签页数据变更提示（与备份条同一套布局） ---- */
+  .sync-bar { background:#eaf4fb; border-bottom-color:#a9c8e2; color:#0b4a6f; }
+  .sync-bar .bb-btn { border-color:#5c8fb5; color:#0b4a6f; }
+  .sync-bar .bb-btn:hover { background:#dcecf8; }
+  .sync-bar .bb-btn.primary { background:#0b5c8a; border-color:#0b5c8a; color:#fff; }
+  .sync-bar .bb-btn.primary:hover { background:#084a70; }
+  /* ---- 本地存储容量 ---- */
+  .quota { padding:var(--sp-4); margin-top:var(--sp-4); }
+  .quota-h { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--text-2); }
+  .quota-h b { font-size:13px; color:var(--text-1); }
+  .quota-track { height:8px; background:var(--bg-inset); border-radius:4px; overflow:hidden; margin:9px 0 7px; }
+  .quota-fill { height:100%; width:0; background:var(--brand-700); border-radius:4px; transition:width .25s ease; }
+  .quota-fill.warn { background:#d97706; }
+  .quota-fill.bad { background:#dc2626; }
+  .quota-tip { font-size:11.5px; line-height:1.65; color:var(--text-3); }
+  .quota-tip.warn { color:#a35a00; }
+  .quota-tip.bad { color:#b91c1c; }
   /* ---- 首页 ---- */
   #home { flex:1; overflow:auto; padding:var(--sp-8); }
   #home h2 { margin:0 0 4px; font-size:22px; }
@@ -125,7 +148,7 @@
     .stat b { font-size:22px; }
   }
 </style>
-<link rel="stylesheet" href="assets/responsive.css?v=11">
+<link rel="stylesheet" href="assets/responsive.css?v=20261109b">
 </head>
 <body>
 <a class="skip" href="#content">跳到主要内容</a>
@@ -166,6 +189,7 @@
     <div class="footchips">
       <span id="licBadge" class="footchip">授权</span>
       <span id="aiCnt" class="footchip" onclick="dlgSettings.showModal()">AI —</span>
+      <button type="button" id="reloadChip" class="footchip" onclick="reloadView()" title="重新载入当前模块（未保存的输入会丢失）">↻ 重载</button>
     </div>
     <div class="footacts">
       <button onclick="openLicense()">🔑 授权</button>
@@ -182,6 +206,12 @@
     <span class="bb-msg" id="backupMsg" role="status">该备份了：还没有备份过</span>
     <button type="button" class="bb-btn primary" onclick="backupAll()">立即备份</button>
     <button type="button" class="bb-btn" onclick="snoozeBackup()">稍后</button>
+  </div>
+  <!-- 多标签页：其他窗口写入当前集合时提示，不自动覆盖 -->
+  <div class="backup-bar sync-bar" id="syncBar" role="region" aria-label="多窗口数据变更" hidden>
+    <span class="bb-msg" id="syncMsg" role="status">数据已在其他窗口修改，当前页面可能不是最新。</span>
+    <button type="button" class="bb-btn primary" onclick="reloadPage()">刷新页面</button>
+    <button type="button" class="bb-btn" onclick="hideSyncBar()">知道了</button>
   </div>
   <!-- 首页简报 -->
   <div id="home">
@@ -244,8 +274,16 @@
       <button class="ft-btn-ai" onclick="dlgSettings.showModal()">⚙ AI 设置</button>
     </div>
   </div>
-  <!-- 模块 iframe -->
-  <iframe id="frame" style="display:none"></iframe>
+  <!-- 本地存储容量：5MB 天花板，先预警再谈清理 -->
+  <div class="ft-card quota" id="quotaCard">
+    <div class="quota-h"><b>本地存储</b><span id="quotaText">—</span></div>
+    <div class="quota-track" role="progressbar" aria-label="本地存储使用率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="quotaTrack">
+      <div class="quota-fill" id="quotaFill"></div>
+    </div>
+    <div class="quota-tip" id="quotaTip">数据只保存在当前浏览器，建议每周备份一次。</div>
+  </div>
+  <!-- 模块 iframe：按需创建，LRU 保留最近 3 个 -->
+  <div id="views" hidden></div>
 </div>
 
 <dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置" class="dialog-wrap">
@@ -256,29 +294,107 @@
   <div style="padding:var(--sp-4)" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=10"></script>
-<script src="js/datastore.js?v=6"></script>
-<script src="js/quote-validity.js?v=2"></script>
-<script src="js/license.js?v=4"></script>
-<script src="assets/a11y.js?v=2"></script>
+<script src="agnes-ai.js?v=20261109b"></script>
+<script src="js/datastore.js?v=20261109b"></script>
+<script src="js/quote-validity.js?v=20261109b"></script>
+<script src="js/license.js?v=20261109b"></script>
+<script src="assets/a11y.js?v=20261109b"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261108c';
-function go(view){
+var MODULE_V = '20261109b';
+/* 深链：模块 id 白名单，避免把任意字符串塞进 iframe.src */
+var VIEW_RE = /^modules\/[a-z0-9_-]+\.html(?:\?[^#]*)?$/i;
+var LRU_MAX = 3;
+var viewCache = {};
+var viewOrder = [];
+var currentView = 'home';
+
+function moduleSrc(view){
+  return view + (view.indexOf('?')<0?'?':'&') + 'v=' + MODULE_V;
+}
+function viewFromHash(){
+  var h = String(location.hash || '').replace(/^#\/?/, '');
+  return VIEW_RE.test(h) ? h : 'home';
+}
+function getFrame(view){
+  var f = viewCache[view];
+  if (f) return f;
+  f = document.createElement('iframe');
+  f.className = 'viewframe';
+  f.setAttribute('title', '模块内容');
+  f.setAttribute('data-view', view);
+  f.src = moduleSrc(view);
+  $('views').appendChild(f);
+  viewCache[view] = f;
+  return f;
+}
+function touchView(view){
+  var i = viewOrder.indexOf(view);
+  if (i >= 0) viewOrder.splice(i, 1);
+  viewOrder.push(view);
+  while (viewOrder.length > LRU_MAX){
+    var old = viewOrder[0];
+    if (old === currentView) break;
+    viewOrder.shift();
+    var f = viewCache[old];
+    if (f && f.parentNode) f.parentNode.removeChild(f);
+    delete viewCache[old];
+  }
+}
+function activateView(view){
+  var f = getFrame(view);
+  Object.keys(viewCache).forEach(function(k){
+    viewCache[k].classList.toggle('on', k === view);
+    viewCache[k].removeAttribute('id');
+  });
+  f.id = 'frame'; /* 保持旧的 #frame 选择器可用：id 永远指向当前模块 */
+  $('views').hidden = false;
+  touchView(view);
+}
+function go(view, opts){
+  opts = opts || {};
+  if (view !== 'home' && !VIEW_RE.test(view)) view = 'home';
+  var baseView = view.split('?')[0];
   document.querySelectorAll('.navitem').forEach(function(n){
-    var on = n.dataset.view===view;
+    var on = n.dataset.view === baseView;
     n.classList.toggle('on', on);
     if (on) n.setAttribute('aria-current','page'); else n.removeAttribute('aria-current');
   });
-  if (view==='home'){ location.hash=''; $('frame').style.display='none'; $('home').style.display='block'; refresh(); }
-  else { $('frame').src=view + (view.indexOf('?')<0?'?':'&') + 'v=' + MODULE_V; $('frame').style.display='block'; $('home').style.display='none'; }
-  var item = document.querySelector('.navitem[data-view="' + view + '"]');
+  currentView = view;
+  if (view === 'home'){
+    $('views').hidden = true;
+    $('home').style.display = 'block';
+    if (location.hash) history.replaceState(null, '', location.pathname + location.search);
+    refresh();
+  } else {
+    activateView(view);
+    $('home').style.display = 'none';
+    if (!opts.fromHash){
+      var target = '#/' + view;
+      if (location.hash !== target) location.hash = target;
+    }
+  }
+  var item = document.querySelector('.navitem[data-view="' + baseView + '"]');
   var label = item && item.lastChild ? String(item.lastChild.textContent || '').trim() : '';
   $('mTitle').textContent = view === 'home' ? '工作台' : label;
   closeNav();
 }
+/* 浏览器前进/后退：hash 变了才切换，避免 go() 写 hash 时自己触发自己 */
+window.addEventListener('hashchange', function(){
+  var v = viewFromHash();
+  if (v !== currentView) go(v, { fromHash: true });
+});
+/* 常驻 iframe 的代价：别的模块改完数据，这里可能还是旧快照；给一个显式重载出口 */
+function reloadView(){
+  if (currentView === 'home'){ refresh(); renderQuota(); toast('工作台已刷新'); return; }
+  var f = viewCache[currentView];
+  if (!f) { activateView(currentView); return; }
+  f.src = moduleSrc(currentView) + '&r=' + Date.now();
+  toast('当前模块已重新载入');
+}
+function reloadPage(){ location.reload(); }
 /* 模块 iframe 里的 FT.go() 优先直接调用 parent.go()；
    跨域或沙箱环境会退回 postMessage，这里接住并做白名单校验。 */
 window.addEventListener('message', function(e){
@@ -416,6 +532,7 @@ function refresh(){
   }
   paintLicenseDot();
   refreshBackupBar();
+  renderQuota();
 }
 function paintLicenseDot(){
   var dot=$('mDot'); if(!dot)return;
@@ -495,7 +612,75 @@ function setBackupBar(show){
   var bar = $('backupBar');
   if (!bar) return;
   bar.hidden = !show;
-  $('content').classList.toggle('has-banner', show);
+  syncBannerClass();
+}
+/* 备份条和多标签提示条共用 .has-banner：任何一条显示，内容区就要让出高度 */
+function syncBannerClass(){
+  var b = $('backupBar'), s = $('syncBar');
+  var any = (b && !b.hidden) || (s && !s.hidden);
+  $('content').classList.toggle('has-banner', !!any);
+}
+function showSyncBar(){
+  var s = $('syncBar');
+  if (s) s.hidden = false;
+  syncBannerClass();
+}
+function hideSyncBar(){
+  var s = $('syncBar');
+  if (s) s.hidden = true;
+  syncBannerClass();
+}
+/* 多标签页：storage 事件只在「其他窗口」触发，正好用来提示而不是自动覆盖 */
+window.addEventListener('storage', function(e){
+  if (!e || !e.key || e.key.indexOf('ftc_') !== 0) return;
+  if (e.key === BACKUP_KEY || e.key === BACKUP_SNOOZE_KEY) return;
+  showSyncBar();
+  if (currentView === 'home') refresh();
+});
+
+/* ---------- 本地存储容量 ----------
+   localStorage 约 5MB（Chrome 按 UTF-16 计，字符数 × 2）。写满后新数据直接丢失，
+   所以提前在首页给仪表 + 阈值提示，而不是等 DataStore 抛异常。 */
+var QUOTA_LIMIT = 5 * 1024 * 1024;
+function storageUsage(){
+  var chars = 0, keys = 0;
+  try {
+    for (var i = 0; i < localStorage.length; i++){
+      var k = localStorage.key(i);
+      if (!k) continue;
+      chars += k.length + String(localStorage.getItem(k) || '').length;
+      keys++;
+    }
+  } catch (e) { /* 隐私模式等场景读不到就按 0 处理 */ }
+  return { bytes: chars * 2, keys: keys };
+}
+function renderQuota(){
+  var card = $('quotaCard');
+  if (!card) return;
+  var u = storageUsage();
+  var pct = Math.min(100, Math.round(u.bytes / QUOTA_LIMIT * 1000) / 10);
+  var mb = (u.bytes / 1048576).toFixed(2);
+  var txt = $('quotaText');
+  if (txt) txt.textContent = mb + ' / 5.00 MB · ' + pct + '%';
+  var fill = $('quotaFill');
+  if (fill){
+    fill.style.width = (pct > 0 ? Math.max(pct, 2) : 0) + '%';
+    fill.className = 'quota-fill' + (pct >= 85 ? ' bad' : pct >= 70 ? ' warn' : '');
+  }
+  var track = $('quotaTrack');
+  if (track) track.setAttribute('aria-valuenow', String(pct));
+  var tip = $('quotaTip');
+  if (!tip) return;
+  if (pct >= 85){
+    tip.className = 'quota-tip bad';
+    tip.textContent = '存储接近上限：请立即备份，并清理 90 天前的发送记录或搜索历史；写满后新数据将无法保存。';
+  } else if (pct >= 70){
+    tip.className = 'quota-tip warn';
+    tip.textContent = '存储已用 ' + pct + '%，建议先备份，再清理较早的发送记录。';
+  } else {
+    tip.className = 'quota-tip';
+    tip.textContent = '数据只保存在当前浏览器，建议每周备份一次。';
+  }
 }
 function refreshBackupBar(){
   DataStore.getCfg(); /* 顺带体检 cfg：损坏时同样弹隔离提示条 */
@@ -646,7 +831,11 @@ function restoreAll(input){
   reader.readAsText(f);
 }
 $('agPanel').innerHTML = AgnesAI.settingsHTML();
+/* 深链恢复：刷新/收藏/分享带 #/modules/xxx.html 时直接进对应模块 */
+var bootView = viewFromHash();
+if (bootView !== 'home') go(bootView, { fromHash: true });
 refresh();
+renderQuota();
 License.ready();
 paintLicenseDot();
 setTimeout(paintLicenseDot, 400);
