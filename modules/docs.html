@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 单证中心</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261110a">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261110b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -63,6 +63,39 @@
   .conf-hint { font-size:11px; color:#92400e; margin-top:6px; line-height:1.4; }
   .conf-sect .fgrid label { color:#92400e; }
   .conf-sect input { background:#fff; border-color:#f0b429 !important; }
+  /* ---- 多 SKU 明细 ---- */
+  .items-block { margin-top:4px; min-width:0; }
+  .items-block > label { font-size:11px; color:var(--text-2); display:block; margin-bottom:4px; }
+  .items-toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin:4px 0 6px; }
+  .items-toolbar button { font-size:12px; padding:5px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); background:var(--bg-card); cursor:pointer; }
+  .items-toolbar button:hover { border-color:var(--brand-700); color:var(--brand-700); }
+  .items-toggle { display:inline-flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-2); margin:0; }
+  .items-toggle input { width:auto; margin:0; }
+  .items-hint { font-size:11px; color:var(--text-3); }
+  .items-wrap { overflow-x:auto; border:1px solid var(--border); border-radius:var(--r-sm); }
+  .items-editor { width:100%; min-width:660px; border-collapse:collapse; font-size:12.5px; }
+  .items-editor th, .items-editor td { border-bottom:1px solid var(--border); padding:5px 6px; text-align:left; vertical-align:middle; }
+  .items-editor th { background:var(--bg-inset); font-size:11px; color:var(--text-2); font-weight:600; white-space:nowrap; }
+  .items-editor tr:last-child td { border-bottom:0; }
+  .items-editor input { width:100%; box-sizing:border-box; padding:5px 6px; border:1px solid var(--border-field); border-radius:4px; font-size:12.5px; }
+  .items-editor .num { text-align:right; font-variant-numeric:tabular-nums; }
+  .items-editor .it-img { width:46px; text-align:center; }
+  .items-editor .it-img img { width:34px; height:34px; object-fit:contain; background:var(--bg-inset); border-radius:4px; padding:2px; display:block; margin:0 auto; }
+  .items-editor .it-img span { font-size:18px; line-height:1; }
+  .items-editor .it-amt { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .items-editor .it-del { border:0; background:transparent; color:var(--danger-text,#b91c1c); cursor:pointer; font-size:15px; padding:2px 5px; }
+  .items-foot { display:flex; justify-content:flex-end; gap:6px; align-items:baseline; font-size:13px; margin-top:8px; }
+  .items-foot b { font-size:15px; font-variant-numeric:tabular-nums; }
+  /* 纸面商品图：屏幕预览按 18mm，打印在 paper.js 里再强制一次 */
+  .paper td.imgcell { text-align:center; vertical-align:middle; padding:4px; }
+  .paper .item-img { width:18mm; height:18mm; object-fit:contain; display:block; margin:0 auto; background:var(--bg-inset); border-radius:3px; padding:2px; }
+  .paper .item-img-ph { display:flex; width:18mm; height:18mm; align-items:center; justify-content:center; margin:0 auto; background:var(--bg-inset); border-radius:3px; font-size:15px; }
+  .paper .item-sub { font-size:10.5px; color:var(--text-3); margin-top:2px; line-height:1.35; }
+  .paper tr { break-inside:avoid; page-break-inside:avoid; }
+  .paper thead { display:table-header-group; }
+  @media print {
+    .paper .item-img, .paper .item-img-ph { background:none !important; border-radius:0 !important; padding:0 !important; }
+  }
   #gateBox { margin-top:var(--sp-2); }
   /* ---- 品牌：纸面顶部 / 签章（.br-stamps 是 .sig 的绝对子元素，不参与 flex，不撑高度） ---- */
   .br-top { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
@@ -108,9 +141,9 @@
   .dlg-b label { display:block; font-size:13px; color:var(--text-2); margin:var(--sp-3) 0 var(--sp-1); }
   .dlg-b select, .dlg-b textarea { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; font-family:var(--font-sans); }
 </style>
-<script src="../assets/standalone.js?v=20261110a"></script>
-<script src="../assets/a11y.js?v=20261110a"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261110a">
+<script src="../assets/standalone.js?v=20261110b"></script>
+<script src="../assets/a11y.js?v=20261110b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261110b">
 </head>
 <body>
 <header>
@@ -201,17 +234,18 @@
 <!-- 品牌资料（Logo / 电子签名 / 公司公章 + 工商银行信息） -->
 <div id="brandHost"></div>
 
-<script src="../agnes-ai.js?v=20261110a"></script>
-<script src="../js/datastore.js?v=20261110a"></script>
-<script src="../js/license.js?v=20261110a"></script>
-<script src="../js/docs_data.js"></script>
-<script src="../js/gate.js?v=20261110a"></script>
-<script src="../js/i18n.js?v=20261110a"></script>
-<script src="../js/docs_i18n.js?v=20261110a"></script>
-<script src="../js/docs_i18n_more.js?v=20261110a"></script>
-<script src="../js/brand.js?v=20261110a"></script>
-<script src="../js/excel.js?v=20261110a"></script>
-<script src="../js/paper.js?v=20261110a"></script>
+<script src="../agnes-ai.js?v=20261110b"></script>
+<script src="../js/datastore.js?v=20261110b"></script>
+<script src="../js/doc-items.js?v=20261110b"></script>
+<script src="../js/license.js?v=20261110b"></script>
+<script src="../js/docs_data.js?v=20261110b"></script>
+<script src="../js/gate.js?v=20261110b"></script>
+<script src="../js/i18n.js?v=20261110b"></script>
+<script src="../js/docs_i18n.js?v=20261110b"></script>
+<script src="../js/docs_i18n_more.js?v=20261110b"></script>
+<script src="../js/brand.js?v=20261110b"></script>
+<script src="../js/excel.js?v=20261110b"></script>
+<script src="../js/paper.js?v=20261110b"></script>
 <script>
 'use strict';
 /* ============================================================
@@ -235,6 +269,20 @@ function fill(k){ // 占位符替换，未填字段显示浅色占位
   return v ? esc(v) : '<span style="color:#c5bfae">____</span>';
 }
 function rep(t){ return t.replace(/\{\{(\w+)\}\}/g, function(m,k){ return fill(k); }); }
+
+/* ---------- 多 SKU 明细：配置 / 默认开关 ---------- */
+var ITEM_SHARED_KEYS = { product:1, qty:1, unit:1, price:1, total:1 };
+function cfgDocImages(){
+  try { return (DataStore.getCfg() || {}).docImagesDefault || 'auto'; }
+  catch (e) { return 'auto'; }
+}
+function showImagesOn(){
+  if (values.showImages != null) return !!values.showImages;
+  return DocItems.defaultShowImages(current.id, cfgDocImages());
+}
+function itemProducts(){
+  try { return DataStore.list('products'); } catch (e) { return []; }
+}
 
 /* ---------- 左侧：单证选择（feature 8：短标题走词典） ---------- */
 function renderList(){
@@ -328,6 +376,8 @@ function deriveNext(){
   var nextDef = DOCS_DEF.find(function(d){ return d.id === nextId; });
   if (!nextDef) return;
 
+  if (current.items) syncItemsToValues(); // 先把明细收进 values 再派生
+
   // 源单关键字段缺失时提醒（不阻断）
   var miss = ['buyer','product','total'].filter(function(k){ return !values[k]; });
 
@@ -350,6 +400,8 @@ function deriveNext(){
   next.no = genNo(nextId);
   next.date = todayStr();
   next.derivedFrom = lineage;
+  /* 图片开关是新单自己的默认值：PI 开、CI/PL 关，不跟着源单硬继承 */
+  if (nextDef.items) next.showImages = DocItems.defaultShowImages(nextId, cfgDocImages());
 
   // 4) 目标字段空则用 preset（不覆盖 CONFIDENTIAL 内部字段）
   var presets = policy.presets || {};
@@ -427,10 +479,123 @@ function confidentialHTML(){
 }
 function renderForm(){
   $('formTitle').textContent = String(current.title||'').split(' / ')[0];
-  var all = SHARED_FIELDS.concat((current.rows||[]).map(function(r){ return {k:r[0], label:r[1], ph:r[2]}; }));
-  $('formFields').innerHTML = all.map(fieldInput).join('') + confidentialHTML();
+  var all = SHARED_FIELDS.concat((current.rows||[]).map(function(r){ return {k:r[0], label:r[1], ph:r[2]}; }))
+    .filter(function(f){ return !(current.items && ITEM_SHARED_KEYS[f.k]); });
+  var html = '', itemsDone = false;
+  all.forEach(function(f){
+    html += fieldInput(f);
+    if (current.items && f.k === 'currency' && !itemsDone){
+      html += itemsEditorHTML();
+      itemsDone = true;
+    }
+  });
+  if (current.items && !itemsDone) html = itemsEditorHTML() + html;
+  $('formFields').innerHTML = html + confidentialHTML();
   renderQuoteHint();
   renderChain();
+}
+
+/* ---------- 多 SKU 明细：编辑区 ---------- */
+function itemsEditorHTML(){
+  var rows = DocItems.fromValues(values, { keepBlank: true });
+  if (!rows.length) rows = [DocItems.normalizeRow({})];
+  var prods = itemProducts();
+  var body = rows.map(function(r){
+    var src = DocItems.imageFor(r, prods, FT.imgSrc);
+    return '<tr data-pid="'+esc(r.productId)+'">'
+      + '<td class="it-img">'+(src ? '<img src="'+esc(src)+'" alt="">' : '<span aria-hidden="true">📦</span>')+'</td>'
+      + '<td><input class="it-name" value="'+esc(r.name)+'" placeholder="Product name" aria-label="品名"></td>'
+      + '<td><input class="it-sku" value="'+esc(r.sku)+'" placeholder="SKU" aria-label="SKU"></td>'
+      + '<td><input class="it-spec" value="'+esc(r.spec)+'" placeholder="Spec" aria-label="规格"></td>'
+      + '<td><input class="it-qty num" type="number" min="0" step="any" value="'+esc(r.qty)+'" oninput="onItemInput(this)" aria-label="数量"></td>'
+      + '<td><input class="it-unit" value="'+esc(r.unit || 'pcs')+'" oninput="onItemInput(this)" aria-label="单位"></td>'
+      + '<td><input class="it-price num" type="number" min="0" step="0.01" value="'+esc(r.price)+'" oninput="onItemInput(this)" aria-label="单价"></td>'
+      + '<td class="it-amt">'+esc(DocItems.money(r.amount))+'</td>'
+      + '<td><button type="button" class="it-del" onclick="removeItemRow(this)" aria-label="删除该行">✕</button></td>'
+      + '</tr>';
+  }).join('');
+  var total = DocItems.sum(rows);
+  return '<div class="full items-block" id="itemsBlock" data-gk-target="itemsBody" tabindex="-1">'
+    + '<label>货物明细 Items</label>'
+    + '<div class="items-toolbar">'
+    + '<button type="button" onclick="openPicker()">＋ 从商品库添加</button>'
+    + '<button type="button" onclick="addBlankItem()">＋ 添加空行</button>'
+    + '<label class="items-toggle"><input type="checkbox" id="chkShowImages" '+(showImagesOn()?'checked':'')+' onchange="toggleShowImages(this.checked)"> 纸面显示商品图片</label>'
+    + '<span class="items-hint">图片按商品库实时关联，不复制进单据</span>'
+    + '</div>'
+    + '<div class="items-wrap"><table class="items-editor" aria-label="货物明细">'
+    + '<thead><tr><th>图</th><th>品名</th><th>SKU</th><th>规格</th><th class="num">数量</th><th>单位</th><th class="num">单价</th><th class="num">金额</th><th></th></tr></thead>'
+    + '<tbody>'+body+'</tbody></table></div>'
+    + '<div class="items-foot"><span>合计 Total</span><b id="itemsTotal">'+esc(values.currency || 'USD')+' '+esc(DocItems.money(total))+'</b></div>'
+    + '</div>';
+}
+
+function readItemRows(){
+  var out = [], tbody = document.querySelector('#itemsBlock tbody');
+  if (!tbody) return out;
+  Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function(tr){
+    out.push({
+      productId: tr.getAttribute('data-pid') || '',
+      name: tr.querySelector('.it-name').value,
+      sku: tr.querySelector('.it-sku').value,
+      spec: tr.querySelector('.it-spec').value,
+      qty: tr.querySelector('.it-qty').value,
+      unit: tr.querySelector('.it-unit').value,
+      price: tr.querySelector('.it-price').value
+    });
+  });
+  return out;
+}
+function syncItemsToValues(opts){
+  if (!current.items || !document.getElementById('itemsBlock')) return false;
+  DocItems.sync(values, readItemRows(), opts);
+  return true;
+}
+function refreshItemTotals(){
+  var tbody = document.querySelector('#itemsBlock tbody');
+  if (!tbody) return;
+  var rows = [];
+  Array.prototype.forEach.call(tbody.querySelectorAll('tr'), function(tr){
+    var q = parseFloat(tr.querySelector('.it-qty').value) || 0;
+    var p = parseFloat(tr.querySelector('.it-price').value) || 0;
+    tr.querySelector('.it-amt').textContent = DocItems.money(q * p);
+    rows.push({ qty: q, price: p });
+  });
+  var totalEl = document.getElementById('itemsTotal');
+  if (totalEl) totalEl.textContent = (values.currency || 'USD') + ' ' + DocItems.money(DocItems.sum(rows));
+}
+function onItemInput(){
+  syncItemsToValues({ keepBlank: true });
+  refreshItemTotals();
+  renderPaper();
+  if (gateRan) refreshGate();
+  scheduleSave();
+}
+function addBlankItem(){
+  syncItemsToValues({ keepBlank: true });
+  var rows = DocItems.fromValues(values, { keepBlank: true });
+  rows.push(DocItems.normalizeRow({}));
+  DocItems.sync(values, rows, { keepBlank: true });
+  renderForm(); renderPaper(); refreshGate(); scheduleSave();
+}
+function removeItemRow(btn){
+  var tr = btn.closest('tr');
+  var rows = readItemRows();
+  var idx = Array.prototype.indexOf.call(tr.parentNode.children, tr);
+  if (rows.length <= 1) rows = [{}];
+  else rows.splice(idx, 1);
+  DocItems.sync(values, rows, { keepBlank: true });
+  renderForm(); renderPaper(); refreshGate(); scheduleSave();
+}
+function toggleShowImages(on){
+  values.showImages = !!on;
+  renderPaper();
+  scheduleSave();
+}
+function scheduleSave(){
+  if (!editingSavedId) return;
+  clearTimeout(window._sv);
+  window._sv = setTimeout(saveDoc, 800);
 }
 function renderQuoteHint(){
   var el = $('quoteHint'); if (!el) return;
@@ -441,21 +606,63 @@ function renderQuoteHint(){
 }
 function onVal(input){
   values[input.dataset.k] = input.value;
+  if (current.items && input.dataset.k === 'currency'){
+    var totalEl = document.getElementById('itemsTotal');
+    if (totalEl) totalEl.textContent = (input.value || 'USD') + ' ' + DocItems.money(DocItems.sum(DocItems.fromValues(values)));
+  }
   renderPaper(); // 实时联动预览
   if (gateRan) refreshGate();
   // 已保存单证的编辑态：防抖保存
-  if (editingSavedId){ clearTimeout(window._sv); window._sv = setTimeout(saveDoc, 800); }
+  scheduleSave();
 }
 
 /* ---------- 右侧：通用单证渲染（客户版：Confidential.strip + i18n 标签） ---------- */
+/* ---------- 纸面货物明细：单行兼容 + 多 SKU 循环 ---------- */
+function paperRowsHTML(d){
+  if (d.table === false) return '';
+  var qtyHead = '<th scope="col">'+esc(I18N.t('t.qty'))+'</th><th scope="col">'+esc(I18N.t('t.unitPrice'))+'</th><th scope="col">'+esc(I18N.t('t.amount'))+'</th>';
+  /* 非多 SKU 单证保持原布局，避免影响合同/产地证等旧模板 */
+  if (!d.items){
+    return '<table aria-label="货物明细"><thead><tr><th scope="col" style="width:50%">'+esc(I18N.t('t.desc'))+'</th>'+qtyHead+'</tr></thead>'
+      + '<tbody><tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></tbody></table>';
+  }
+  var rows = DocItems.fromValues(values);
+  if (!rows.length) rows = [DocItems.normalizeRow({})];
+  var prods = itemProducts();
+  var imgs = rows.map(function(r){ return DocItems.imageFor(r, prods, FT.imgSrc); });
+  var showImg = showImagesOn() && imgs.some(Boolean);
+  var cur = values.currency || 'USD';
+  var colgroup = showImg
+    ? '<colgroup><col style="width:16%"><col style="width:34%"><col style="width:14%"><col style="width:18%"><col style="width:18%"></colgroup>'
+    : '<colgroup><col style="width:50%"><col style="width:16%"><col style="width:17%"><col style="width:17%"></colgroup>';
+  var head = '<thead><tr>' + (showImg ? '<th scope="col" class="imgcol" aria-label="Product image"></th>' : '')
+    + '<th scope="col">'+esc(I18N.t('t.desc'))+'</th>' + qtyHead + '</tr></thead>';
+  var body = rows.map(function(r, i){
+    var name = String(r.name || '').trim();
+    var sub = [r.spec, r.sku].filter(function(x){ return String(x || '').trim(); }).map(esc).join(' · ');
+    var desc = (name ? esc(name) : '<span style="color:#c5bfae">____</span>')
+      + (sub ? '<div class="item-sub">'+sub+'</div>' : '');
+    var qty = (r.qty === '' ? '____' : esc(String(DocItems.money(r.qty)).replace(/\.00$/, '')))
+      + ' ' + (String(r.unit || '').trim() ? esc(r.unit) : '____');
+    var price = (r.price === '' ? '____' : esc(DocItems.money(r.price)));
+    var amount = esc(DocItems.money(r.amount));
+    var imgCell = showImg
+      ? '<td class="imgcell">'+(imgs[i] ? '<img class="item-img" src="'+esc(imgs[i])+'" alt="">' : '<span class="item-img-ph" aria-hidden="true">📦</span>')+'</td>'
+      : '';
+    return '<tr>'+imgCell+'<td>'+desc+'</td><td>'+qty+'</td><td>'+esc(cur)+' '+price+'</td><td>'+esc(cur)+' '+amount+'</td></tr>';
+  }).join('');
+  var total = DocItems.sum(rows);
+  var foot = rows.length > 1
+    ? '<tfoot><tr><td colspan="'+(showImg ? 4 : 3)+'" style="text-align:right;font-weight:600">'+esc(I18N.t('q.total'))+'</td>'
+      + '<td style="font-weight:600">'+esc(cur)+' '+esc(DocItems.money(total))+'</td></tr></tfoot>'
+    : '';
+  return '<table aria-label="货物明细">'+colgroup+head+'<tbody>'+body+'</tbody>'+foot+'</table>';
+}
+
 function renderPaper(){
   var d = current;
   var pub = Confidential.strip(values); // feature 7：纸面永不带内部字段
-  var rowsHtml = '';
-  if (d.table !== false){
-    rowsHtml = '<table aria-label="货物明细"><thead><tr><th scope="col" style="width:50%">'+esc(I18N.t('t.desc'))+'</th><th scope="col">'+esc(I18N.t('t.qty'))+'</th><th scope="col">'+esc(I18N.t('t.unitPrice'))+'</th><th scope="col">'+esc(I18N.t('t.amount'))+'</th></tr></thead>'
-      + '<tbody><tr><td>'+fill('product')+'</td><td>'+fill('qty')+' '+fill('unit')+'</td><td>'+fill('currency')+' '+fill('price')+'</td><td>'+fill('currency')+' '+fill('total')+'</td></tr></tbody></table>';
-  }
+  var rowsHtml = paperRowsHTML(d);
   var notes = I18N.docNotes(d).map(function(n){ return '<div>'+rep(n)+'</div>'; }).join('');
   // 品牌：顶部 Logo + 卖方信息增强（全称/地址/税号）
   var brandHdr = Brand.headerHTML();
@@ -561,6 +768,30 @@ function openPicker(){
 function pickProduct(id){
   var p = DataStore.get('products', id);
   if (!p) return;
+  if (current.items){
+    syncItemsToValues({ keepBlank: true });
+    var rows = DocItems.fromValues(values, { keepBlank: true });
+    var target = -1;
+    for (var i = 0; i < rows.length; i++){
+      if (!String(rows[i].name || '').trim() && !String(rows[i].productId || '').trim()){ target = i; break; }
+    }
+    var row = DocItems.normalizeRow({
+      productId: p.id,
+      name: p.name,
+      sku: p.sku,
+      spec: p.spec,
+      qty: p.moq || '',
+      unit: p.unit || 'pcs',
+      price: p.price || ''
+    });
+    if (target >= 0) rows[target] = row; else rows.push(row);
+    DocItems.sync(values, rows, { keepBlank: true });
+    if (p.currency && !values.currency) values.currency = p.currency;
+    dlgPicker.close();
+    renderForm(); renderPaper(); refreshGate(); scheduleSave();
+    toast('已添加：' + p.name);
+    return;
+  }
   values.product = p.name || values.product;
   if (p.spec && !values.productSpec) { /* 规格并入备注不覆盖 */ }
   if (p.price && !values.price) values.price = p.price;
@@ -656,13 +887,33 @@ async function doPolish(){
 function syncInput(k,v){ var el=document.querySelector('input[data-k="'+k+'"]'); if(el) el.value=v; }
 
 /* ---------- 打印（Gate 拦截；CSS @media print 只出 A4 预览区） ---------- */
+var printing = false;
 function printPaper(){
+  if (current.items) syncItemsToValues();
   if (!runGate(false)) return;
-  window.print();
+  if (printing) return;
+  printing = true;
+  /* 图片解码是异步的：直接 window.print() 会偶发印出空白图。
+     最多等 1.5 秒，坏图不阻塞打印。 */
+  var decoded = Promise.all(Array.prototype.slice.call(document.images).map(function(img){
+    return img.decode ? img.decode().catch(function(){}) : Promise.resolve();
+  }));
+  var timeout = new Promise(function(resolve){ setTimeout(resolve, 1500); });
+  Promise.race([decoded, timeout]).then(function(){
+    window.print();
+  }).catch(function(){
+    window.print();
+  }).then(function(){
+    setTimeout(function(){ printing = false; }, 500);
+  });
 }
 
 /* ---------- 保存 / 单证夹 ---------- */
 function saveDoc(){
+  if (current.items){
+    syncItemsToValues();                 // 保存前压缩空行
+    values.showImages = showImagesOn();  // 单据级开关落库
+  }
   var rec = editingSavedId ? DataStore.get('docs', editingSavedId) : null;
   var payload = {
     docId: current.id, docTitle: current.title, values: values,
@@ -770,6 +1021,11 @@ function doImport(){
     I18N.setLang('ru');
   }
 
+  /* 多 SKU 单证：线索只给一个产品时，升级成首行明细，避免表单出现空明细 */
+  if (current.items && !(Array.isArray(values.items) && values.items.length)){
+    DocItems.sync(values, DocItems.fromValues(values));
+  }
+
   renderForm(); initPaperTools(); renderPaper(); dlgImport.close();
   toast(demoRu ? '已带入俄语演示数据，单据语言已切到 Русский' : '已带入：'+l.name+'（金额/数量需手工确认）');
 }
@@ -799,11 +1055,8 @@ function openFromQuote(qid){
   }
 
   var lead = q.leadId ? DataStore.get('leads', q.leadId) : null;
-  var items = Array.isArray(q.items) ? q.items : [];
-  var it = items[0] || {};
-  var qty = Number(it.qty) || 0;
-  var price = Number(it.unitPrice) || 0;
-  var amount = it.amount != null ? Number(it.amount) : qty * price;
+  var rawItems = Array.isArray(q.items) ? q.items : [];
+  var rows = DocItems.fromQuoteItems(rawItems, itemProducts());
 
   var pi = DOCS_DEF.find(function(d){ return d.id === 'pi'; });
   if (pi) current = pi;
@@ -814,23 +1067,27 @@ function openFromQuote(qid){
   values.date = todayStr();
   values.buyer = q.leadName || (lead && lead.name) || '';
   values.buyerAddr = (lead && (lead.addr || lead.country)) || '';
-  values.product = it.name || q.product || '';
-  values.qty = qty ? String(qty) : '';
-  values.unit = it.unit || 'pcs';
-  values.price = price ? fmt2(price) : '';
   values.currency = q.currency || 'USD';
-  values.total = (amount || q.total) ? fmt2(amount || q.total) : '';
   values.payment = q.payment || '';
   values.portFrom = q.portFrom || '';
   values.portTo = q.portTo || '';
   values.delivery = q.delivery || '';
   values.valid = q.validUntil || q.validity || '';
   values.remark = q.note || '';
+  if (rows.length){
+    DocItems.sync(values, rows); // 全部明细带入，首行回写兼容字段
+    if (values.price) values.price = fmt2(values.price); // 兼容旧回归：单价固定两位
+  } else {
+    values.product = q.product || '';
+    values.total = q.total ? fmt2(q.total) : '';
+  }
+  if (!values.total && q.total) values.total = fmt2(q.total);
+  values.showImages = DocItems.defaultShowImages('pi', cfgDocImages());
 
   var note = '由报价 ' + (q.no || qid) + ' 生成';
-  if (items.length > 1){
-    note += '；报价含 ' + items.length + ' 项，本 PI 仅带入第 1 项「' + (it.name || '') + '」，请核对 PI 明细';
-  } else if (!items.length){
+  if (rows.length > 1){
+    note += '；已带入 ' + rows.length + ' 项明细';
+  } else if (!rows.length){
     note += '；报价没有明细，请手工补产品 / 数量 / 单价';
   }
   values.internalNote = note;
@@ -844,7 +1101,7 @@ function openFromQuote(qid){
   $('aiOut').style.display = 'none';
   renderList(); renderChain(); renderForm(); renderPaper(); refreshGate();
   toast('已从报价 ' + (q.no || '') + ' 带入 PI 草稿'
-    + (items.length > 1 ? '；报价含 ' + items.length + ' 项，请核对明细' : ''));
+    + (rows.length > 1 ? '；已带入 ' + rows.length + ' 项明细' : ''));
 }
 
 /** ?lead=<id>：直接带入线索，不用先打开弹窗选人 */
@@ -869,6 +1126,7 @@ function consumeParams(){
 var DOC_DRAFT = 'docs:edit';
 FT.onFlush(function(){
   if (!values) return;
+  if (current && current.items) syncItemsToValues();
   var has = Object.keys(values).some(function(k){ return values[k]; });
   if (!has) return;
   FT.saveDraft(DOC_DRAFT, {

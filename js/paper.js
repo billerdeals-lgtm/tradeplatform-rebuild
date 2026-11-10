@@ -77,6 +77,13 @@
     + '.paper{display:block!important;position:static!important;float:none!important;width:210mm!important;min-width:0!important;min-height:0!important;height:auto!important;margin:0!important;padding:16mm 18mm!important;border:0!important;border-radius:0!important;box-shadow:none!important;overflow:visible!important;box-sizing:border-box!important;background:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
     + '.paper.orient-landscape{width:297mm!important;min-height:0!important;height:auto!important;aspect-ratio:auto!important;padding:12mm 16mm!important;overflow:visible!important}'
     + '.paper::after{position:fixed!important;left:0!important;right:0!important;bottom:6mm!important;margin:0!important;padding:0!important;border-top:0!important}'
+    /* 商品图片：打印尺寸写死 18mm，去掉屏幕灰底，避免彩色打印机出灰块 */
+    + '.paper .item-img{width:18mm!important;height:18mm!important;max-width:18mm!important;max-height:18mm!important;object-fit:contain!important;background:none!important;border-radius:0!important;padding:0!important}'
+    + '.paper .item-img-ph{width:18mm!important;height:18mm!important;background:none!important;border:1px dashed #d9e2ec!important;border-radius:0!important}'
+    + '.paper td.imgcell{background:none!important}'
+    /* 行不跨页切开；长表每页重复表头 */
+    + '.paper tr{break-inside:avoid!important;page-break-inside:avoid!important}'
+    + '.paper thead{display:table-header-group!important}'
     + '}';
 
   function injectCSS() {

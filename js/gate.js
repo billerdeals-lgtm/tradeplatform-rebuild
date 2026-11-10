@@ -82,20 +82,58 @@
     if (!String(values.buyer || '').trim()) err('buyer', '缺少买方 Buyer');
 
     if (def.table !== false) {
-      if (!String(values.product || '').trim()) err('product', '缺少品名 Product');
-      if (!String(values.qty || '').trim()) warn('qty', '缺少数量 Qty');
-      if (!String(values.price || '').trim()) warn('price', '缺少单价 Unit Price');
-      if (!String(values.total || '').trim()) err('total', '缺少总金额 Total');
+      var rows = [];
+      if (def.items && Array.isArray(values.items)) {
+        rows = values.items.filter(function (it) {
+          it = it || {};
+          return String(it.name || '').trim() || String(it.productId || '').trim()
+            || String(it.sku || '').trim() || String(it.spec || '').trim()
+            || parseFloat(it.qty) > 0 || parseFloat(it.price) > 0;
+        });
+      }
+      if (def.items && rows.length) {
+        /* 多 SKU：逐行校验，错误统一定位到明细区 */
+        rows.forEach(function (it, i) {
+          var no = i + 1;
+          if (!String(it.name || '').trim()) err('itemsBody', '明细第 ' + no + ' 行缺品名');
+          if (!(parseFloat(it.qty) > 0)) warn('itemsBody', '明细第 ' + no + ' 行数量须 > 0');
+          if (!(parseFloat(it.price) > 0)) warn('itemsBody', '明细第 ' + no + ' 行单价须 > 0');
+        });
+        var expect = 0;
+        rows.forEach(function (it) {
+          var qty = parseFloat(it.qty), price = parseFloat(it.price);
+          var amt = (qty > 0 && price > 0) ? qty * price : parseFloat(it.amount);
+          if (isFinite(amt)) expect += amt;
+          else expect += (qty || 0) * (price || 0);
+        });
+        expect = Math.round(expect * 100) / 100;
+        if (!String(values.total || '').trim()) {
+          err('total', '缺少总金额 Total');
+        } else {
+          var sum = parseFloat(values.total);
+          var tolSum = Math.max(0.01, Math.abs(sum) * 0.005);
+          if (isFinite(sum) && Math.abs(expect - sum) > tolSum) {
+            warn('total', '总金额与明细合计不一致（' + fmtNum(expect) + ' ≠ ' + fmtNum(sum) + '）');
+          }
+        }
+      } else {
+        if (!String(values.product || '').trim()) err('product', '缺少品名 Product');
+        if (!String(values.qty || '').trim()) warn('qty', '缺少数量 Qty');
+        if (!String(values.price || '').trim()) warn('price', '缺少单价 Unit Price');
+        if (!String(values.total || '').trim()) err('total', '缺少总金额 Total');
+      }
     }
 
-    var q = parseFloat(values.qty);
-    var p = parseFloat(values.price);
-    var t = parseFloat(values.total);
-    if (q > 0 && p > 0 && t > 0) {
-      var expect = q * p;
-      var tol = Math.max(0.01, Math.abs(t) * 0.005);
-      if (Math.abs(expect - t) > tol) {
-        warn('total', '总金额与 数量×单价 不一致（' + fmtNum(expect) + ' ≠ ' + fmtNum(t) + '）');
+    if ((!def.items || !Array.isArray(values.items) || !values.items.length) && def.table !== false) {
+      var q = parseFloat(values.qty);
+      var p = parseFloat(values.price);
+      var t = parseFloat(values.total);
+      if (q > 0 && p > 0 && t > 0) {
+        var expected = q * p;
+        var tol = Math.max(0.01, Math.abs(t) * 0.005);
+        if (Math.abs(expected - t) > tol) {
+          warn('total', '总金额与 数量×单价 不一致（' + fmtNum(expected) + ' ≠ ' + fmtNum(t) + '）');
+        }
       }
     }
     return issues;

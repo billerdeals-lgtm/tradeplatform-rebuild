@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 报价管理</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261110a">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261110b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -114,9 +114,9 @@
   .field-hint { font-size:11px; line-height:1.45; color:var(--text-3); margin-top:3px; }
   .field-hint.warn { color:var(--warn-text); }
 </style>
-<script src="../assets/standalone.js?v=20261110a"></script>
-<script src="../assets/a11y.js?v=20261110a"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261110a">
+<script src="../assets/standalone.js?v=20261110b"></script>
+<script src="../assets/a11y.js?v=20261110b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261110b">
 </head>
 <body>
 <header>
@@ -255,15 +255,15 @@
 
 <div id="brandHost"></div>
 
-<script src="../js/datastore.js?v=20261110a"></script>
-<script src="../js/quote-validity.js?v=20261110a"></script>
-<script src="../js/license.js?v=20261110a"></script>
-<script src="../agnes-ai.js?v=20261110a"></script>
-<script src="../js/gate.js?v=20261110a"></script>
-<script src="../js/i18n.js?v=20261110a"></script>
-<script src="../js/brand.js?v=20261110a"></script>
-<script src="../js/excel.js?v=20261110a"></script>
-<script src="../js/paper.js?v=20261110a"></script>
+<script src="../js/datastore.js?v=20261110b"></script>
+<script src="../js/quote-validity.js?v=20261110b"></script>
+<script src="../js/license.js?v=20261110b"></script>
+<script src="../agnes-ai.js?v=20261110b"></script>
+<script src="../js/gate.js?v=20261110b"></script>
+<script src="../js/i18n.js?v=20261110b"></script>
+<script src="../js/brand.js?v=20261110b"></script>
+<script src="../js/excel.js?v=20261110b"></script>
+<script src="../js/paper.js?v=20261110b"></script>
 <script>
 'use strict';
 
@@ -371,7 +371,7 @@ function loadLeads() {
 function addItem() {
   var tbody = $('itemsBody');
   var tr = document.createElement('tr');
-  tr.innerHTML = '<td><input class="it-name" aria-label="产品名称" placeholder="LED Panel Light 60x60"></td>'
+  tr.innerHTML = '<td><input class="it-name" aria-label="产品名称" placeholder="LED Panel Light 60x60" oninput="clearItemPid(this)"></td>'
     + '<td><input class="it-sku" aria-label="SKU" placeholder="SKU"></td>'
     + '<td><input class="it-spec" aria-label="规格" placeholder="600x600mm, 40W"></td>'
     + '<td><input class="it-qty num" aria-label="数量" type="number" value="100" min="1" oninput="calcRow(this)"></td>'
@@ -387,6 +387,11 @@ function removeItem(btn) {
   if (tbody.children.length <= 1) return;
   btn.closest('tr').remove();
   calcTotal();
+}
+/* 手改品名后不再信任旧 productId，避免单证挂错图 */
+function clearItemPid(el) {
+  var tr = el.closest('tr');
+  if (tr) tr.removeAttribute('data-pid');
 }
 function calcRow(el) {
   var tr = el.closest('tr');
@@ -414,6 +419,7 @@ function getItems() {
     var name = tr.querySelector('.it-name').value.trim();
     if (!name) return;
     items.push({
+      productId: tr.getAttribute('data-pid') || '',
       name: name,
       sku: tr.querySelector('.it-sku') ? tr.querySelector('.it-sku').value.trim() : '',
       spec: tr.querySelector('.it-spec').value.trim(),
@@ -431,6 +437,7 @@ function setItems(items) {
   items.forEach(function(it) {
     addItem();
     var tr = $('itemsBody').lastElementChild;
+    if (it.productId) tr.setAttribute('data-pid', it.productId);
     tr.querySelector('.it-name').value = it.name || '';
     if (tr.querySelector('.it-sku') && it.sku) tr.querySelector('.it-sku').value = it.sku;
     tr.querySelector('.it-spec').value = it.spec || '';
@@ -468,6 +475,7 @@ function pickProduct(id) {
     if (!target && !tr.querySelector('.it-name').value.trim()) target = tr;
   });
   if (!target) { addItem(); target = $('itemsBody').lastElementChild; }
+  if (p.id) target.setAttribute('data-pid', p.id);
   target.querySelector('.it-name').value = p.name || '';
   if (target.querySelector('.it-sku')) target.querySelector('.it-sku').value = p.sku || '';
   target.querySelector('.it-spec').value = p.spec || '';
@@ -489,6 +497,7 @@ function consumePickedProduct() {
     if (p && !DataStore.get('products', p.id || '')) {
       var tr = $('itemsBody').querySelector('tr');
       if (tr) {
+        if (p.id) tr.setAttribute('data-pid', p.id);
         tr.querySelector('.it-name').value = p.name || '';
         tr.querySelector('.it-spec').value = p.spec || '';
         tr.querySelector('.it-unit').value = p.unit || 'pcs';
@@ -920,6 +929,7 @@ function quoteDraftItems(){
   var out = [];
   $('itemsBody').querySelectorAll('tr').forEach(function(tr){
     out.push({
+      productId: tr.getAttribute('data-pid') || '',
       name: tr.querySelector('.it-name') ? tr.querySelector('.it-name').value : '',
       sku: tr.querySelector('.it-sku') ? tr.querySelector('.it-sku').value : '',
       spec: tr.querySelector('.it-spec') ? tr.querySelector('.it-spec').value : '',

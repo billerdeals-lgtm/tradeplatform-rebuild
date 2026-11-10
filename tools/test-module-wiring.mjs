@@ -314,5 +314,41 @@ ok('报价编辑器可恢复', /QUOTE_DRAFT = 'quotes:edit'/.test(quotes) && /re
 ok('单证表单可恢复', /DOC_DRAFT = 'docs:edit'/.test(docs) && /restoreDocDraft\(\)/.test(docs) && /FT\.onFlush/.test(docs));
 ok('客户 360 备注可恢复', /customer360:note:/.test(c360) && /FT\.onFlush/.test(c360));
 
+/* 22. 单证多 SKU 明细 + 商品图片 */
+const docItems = read('js/doc-items.js');
+const docsData = read('js/docs_data.js');
+const gatejs = read('js/gate.js');
+const exceljs = read('js/excel.js');
+const paperjs = read('js/paper.js');
+
+ok('单证页加载 doc-items.js', /doc-items\.js\?v=/.test(docs));
+ok('PI/SC/CI/PL 标记 items:true', ['pi', 'sc', 'ci', 'pl']
+  .every(id => new RegExp("id:'" + id + "'[^\\n]*items:true").test(docsData)));
+ok('明细编辑器与保存同步', /function itemsEditorHTML/.test(docs) && /function syncItemsToValues/.test(docs)
+  && /DocItems\.sync\(values, readItemRows\(\)/.test(docs));
+ok('保存前压缩空行并落图片开关', /syncItemsToValues\(\);\s*\/\/ 保存前压缩空行/.test(docs)
+  && /values\.showImages = showImagesOn\(\)/.test(docs));
+ok('多 SKU 纸面按行循环', /rows\.map\(function\(r, i\)/.test(docs) && /paperRowsHTML/.test(docs));
+ok('整单无图不出图片列', /showImagesOn\(\) && imgs\.some\(Boolean\)/.test(docs));
+ok('缺图行显示 📦', /item-img-ph/.test(docs) && /📦/.test(docs));
+ok('打印前等待图片 decode', /img\.decode\(\)/.test(docs) && /Promise\.race\(\[decoded, timeout\]\)/.test(docs)
+  && /setTimeout\(resolve, 1500\)/.test(docs));
+ok('打印样式图片 18mm 且无灰底', /item-img\{width:18mm!important;height:18mm!important/.test(paperjs)
+  && /item-img\{[^}]*background:none!important/.test(paperjs));
+ok('打印样式行不跨页/表头重复', /break-inside:avoid!important/.test(paperjs) && /display:table-header-group!important/.test(paperjs));
+ok('Gate 逐行校验明细并核对合计', /def\.items && rows\.length/.test(gatejs)
+  && /明细第 ' \+ no \+ ' 行缺品名/.test(gatejs) && /总金额与明细合计不一致/.test(gatejs));
+ok('Excel 客户版多行输出且不加图', /Array\.isArray\(pub\.items\)/.test(exceljs) && /I\('q\.total', 'TOTAL'\)/.test(exceljs));
+ok('报价明细写入 productId', /tr\.getAttribute\('data-pid'\)/.test(quotes)
+  && /setAttribute\('data-pid', p\.id\)/.test(quotes) && /productId: tr\.getAttribute\('data-pid'\)/.test(quotes));
+ok('报价转 PI 带入全部明细', /DocItems\.fromQuoteItems\(rawItems, itemProducts\(\)\)/.test(docs)
+  && /DocItems\.sync\(values, rows\)/.test(docs));
+ok('profile 提供图片默认设置并写 cfg', /id="p_docImagesDefault"/.test(profile)
+  && /docImagesDefault/.test(profile) && /DataStore\.setCfg\(\{ docImagesDefault/.test(profile));
+ok('单据默认开关读 profile 配置', /docImagesDefault \|\| 'auto'/.test(docs) && /DocItems\.defaultShowImages/.test(docs));
+ok('明细逻辑有纯函数测试', fs.existsSync(new URL('../tools/test-doc-items.mjs', import.meta.url)));
+ok('图片只按 productId 渲染，不复制 base64', /imageFor,/.test(docItems) && /function imageFor/.test(docItems)
+  && !/values\.image\s*=/.test(docs));
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

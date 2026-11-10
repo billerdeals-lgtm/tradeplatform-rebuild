@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 我的资料</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261110a">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261110b">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -23,6 +23,11 @@
     width:100%; box-sizing:border-box; padding:10px 2px; border:0; border-bottom:1.5px solid var(--border-field);
     font-size:14.5px; font-family:var(--font-sans); background:transparent; color:var(--text-1); transition:border-color .15s;
   }
+  select {
+    width:100%; box-sizing:border-box; padding:9px 2px; border:0; border-bottom:1.5px solid var(--border-field);
+    font-size:14px; font-family:var(--font-sans); background:transparent; color:var(--text-1);
+  }
+  select:focus { border-bottom-color:var(--brand-700); }
   input:focus, textarea:focus { border-bottom-color:var(--brand-700); }
   textarea { resize:vertical; min-height:56px; line-height:1.6; }
   ::placeholder { color:var(--text-3); opacity:1; }
@@ -32,9 +37,9 @@
   .saved { color:var(--ok-text); font-size:13px; display:none; }
   .ft-ai-output { white-space:pre-wrap; font-size:13.5px; margin-top:var(--sp-3); display:none; }
 </style>
-<script src="../assets/standalone.js?v=20261110a"></script>
-<script src="../assets/a11y.js?v=20261110a"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261110a">
+<script src="../assets/standalone.js?v=20261110b"></script>
+<script src="../assets/a11y.js?v=20261110b"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261110b">
 </head>
 <body>
 <header>
@@ -71,6 +76,15 @@
       <div><label for="p_payment">常用付款方式</label><input id="p_payment"></div>
       <div><label for="p_moq">MOQ 政策</label><input id="p_moq"></div>
       <div><label for="p_site">公司网站</label><input id="p_site"></div>
+      <div class="full">
+        <label for="p_docImagesDefault">单证商品图片默认（只影响新建单据）</label>
+        <select id="p_docImagesDefault">
+          <option value="auto">跟随类型：PI 显示，CI / PL 隐藏</option>
+          <option value="on">全部显示</option>
+          <option value="off">全部隐藏</option>
+        </select>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">已保存单据仍按每张单自己的开关，不会被动改。</div>
+      </div>
     </div>
   </section>
 
@@ -99,9 +113,9 @@
 
 <div id="brandHost"></div>
 
-<script src="../js/datastore.js?v=20261110a"></script>
-<script src="../agnes-ai.js?v=20261110a"></script>
-<script src="../js/brand.js?v=20261110a"></script>
+<script src="../js/datastore.js?v=20261110b"></script>
+<script src="../agnes-ai.js?v=20261110b"></script>
+<script src="../js/brand.js?v=20261110b"></script>
 <script>
 /* 我的资料：单条记录（固定 id 'my'）存 profile 集合 */
 var FIELDS = ['p_name','p_role','p_company','p_wa','p_email','p_products','p_selling','p_port','p_payment','p_moq','p_site'];
@@ -111,11 +125,19 @@ function me() { return DataStore.list('profile')[0] || null; }
 function fill() {
   var m = me() || {};
   FIELDS.forEach(function(f, i) { document.getElementById(f).value = m[K[i]] || ''; });
+  var mode = 'auto';
+  try { mode = (DataStore.getCfg() || {}).docImagesDefault || 'auto'; } catch (e) {}
+  var sel = document.getElementById('p_docImagesDefault');
+  if (sel) sel.value = mode === 'on' || mode === 'off' ? mode : 'auto';
 }
 function save() {
   var rec = me() || { id: 'my' };
   FIELDS.forEach(function(f, i) { rec[K[i]] = document.getElementById(f).value.trim(); });
   if (me()) DataStore.update('profile', 'my', rec); else DataStore.add('profile', rec);
+  var sel = document.getElementById('p_docImagesDefault');
+  if (sel) {
+    try { DataStore.setCfg({ docImagesDefault: sel.value }); } catch (e) {}
+  }
   var s = document.getElementById('saved'); s.style.display = 'inline';
   setTimeout(function(){ s.style.display = 'none'; }, 2500);
 }

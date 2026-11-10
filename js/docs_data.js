@@ -32,14 +32,14 @@ var DOCS_DEF = [
    notes:['Price basis: {{currency}} {{price}}/{{unit}}, FOB {{portFrom}}',
           'Payment: {{payment}}','Delivery: {{delivery}}','Validity: {{valid}}']},
 
-  {id:'sc', title:'销售合同 / Sales Contract', cat:'成交单据',
+  {id:'sc', title:'销售合同 / Sales Contract', cat:'成交单据', items:true,
    rows:[['quality','质量标准 Quality','As per confirmed sample'],
          ['claim','索赔条款 Claims','Within 30 days after arrival']],
    notes:['This contract is made between {{seller}} (Seller) and {{buyer}} (Buyer).',
           'Quality: {{quality}}','Payment: {{payment}}','Delivery: {{delivery}} from {{portFrom}} to {{portTo}}',
           'Claims: {{claim}}']},
 
-  {id:'pi', title:'形式发票 / Proforma Invoice', cat:'成交单据',
+  {id:'pi', title:'形式发票 / Proforma Invoice', cat:'成交单据', items:true,
    rows:[['valid','报价有效期 Validity','15 days'],
          ['bank','收款账户 Bank Info','Bank Name / A/C No. / SWIFT']],
    notes:['Proforma Invoice No. {{no}} dated {{date}}','Payment: {{payment}}',
@@ -57,13 +57,13 @@ var DOCS_DEF = [
          ['deduct','大货抵扣 Deductible','Deductible from bulk order']],
    notes:['Sample fee: {{sampleFee}} ({{deduct}})','Courier: {{courier}}','ETA: 5-7 working days after payment.']},
 
-  {id:'ci', title:'商业发票 / Commercial Invoice', cat:'物流单据',
+  {id:'ci', title:'商业发票 / Commercial Invoice', cat:'物流单据', items:true,
    rows:[['lcNo','信用证号 L/C No.（如适用）',''],
          ['hsCode','HS 编码 HS Code','']],
    notes:['Invoice of {{product}}','HS Code: {{hsCode}}','Shipment from {{portFrom}} to {{portTo}}',
           'Payment: {{payment}}']},
 
-  {id:'pl', title:'装箱单 / Packing List', cat:'物流单据',
+  {id:'pl', title:'装箱单 / Packing List', cat:'物流单据', items:true,
    rows:[['ctns','箱数 Cartons',''],
          ['gw','毛重 G.W. (kg)',''],
          ['nw','净重 N.W. (kg)',''],

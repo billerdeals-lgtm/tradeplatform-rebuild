@@ -294,12 +294,38 @@
         { v: I('f.buyerAddr', 'Buyer Addr'), style: 'lbl' }, pub.buyerAddr || '']));
       rows.push(blankRow(4));
       rows.push(row([I('t.desc', 'Description'), I('t.qty', 'Qty'), I('t.unitPrice', 'Unit Price'), I('t.amount', 'Amount')], { style: 'th' }));
-      rows.push(row([
-        pub.product || '',
-        (pub.qty || '') + ' ' + (pub.unit || ''),
-        (pub.currency || '') + ' ' + (pub.price || ''),
-        (pub.currency || '') + ' ' + (pub.total || '')
-      ], { style: 'td' }));
+      var cur = pub.currency || '';
+      var itemRows = (def.items && Array.isArray(pub.items)) ? pub.items.filter(function (it) {
+        it = it || {};
+        return String(it.name || '').trim() || String(it.sku || '').trim()
+          || parseFloat(it.qty) > 0 || parseFloat(it.amount) > 0;
+      }) : [];
+      if (itemRows.length) {
+        var sum = 0;
+        itemRows.forEach(function (it) {
+          var qty = parseFloat(it.qty), price = parseFloat(it.price), amt = parseFloat(it.amount);
+          if (!(qty > 0 && price > 0)) amt = isFinite(amt) ? amt : (qty || 0) * (price || 0);
+          else amt = qty * price;
+          sum += amt || 0;
+          var sub = [it.spec, it.sku].filter(function (x) { return String(x || '').trim(); }).join(' · ');
+          rows.push(row([
+            String(it.name || '') + (sub ? ' (' + sub + ')' : ''),
+            String(it.qty || '') + ' ' + String(it.unit || ''),
+            cur + ' ' + (isFinite(price) ? price.toFixed(2) : ''),
+            cur + ' ' + (amt || 0).toFixed(2)
+          ], { style: 'td' }));
+        });
+        if (itemRows.length > 1) {
+          rows.push(row(['', '', I('q.total', 'TOTAL'), cur + ' ' + (Math.round(sum * 100) / 100).toFixed(2)], { style: 'td' }));
+        }
+      } else {
+        rows.push(row([
+          pub.product || '',
+          (pub.qty || '') + ' ' + (pub.unit || ''),
+          cur + ' ' + (pub.price || ''),
+          cur + ' ' + (pub.total || '')
+        ], { style: 'td' }));
+      }
       rows.push(blankRow(8));
       ['payment', 'portFrom', 'portTo', 'delivery', 'bank', 'remark'].forEach(function (k) {
         if (!pub[k]) return;
