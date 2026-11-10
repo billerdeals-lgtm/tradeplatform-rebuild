@@ -2,12 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://apihub.agnes-ai.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 外贸客户开发工作台</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<link rel="stylesheet" href="assets/tokens.css?v=20261109b">
-<script src="assets/standalone.js?v=20261109b"></script>
+<link rel="stylesheet" href="assets/tokens.css?v=20261110a">
+<script src="assets/standalone.js?v=20261110a"></script>
 <style>
   * { box-sizing:border-box; }
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); display:flex; height:100vh; overflow:hidden; }
@@ -148,7 +148,7 @@
     .stat b { font-size:22px; }
   }
 </style>
-<link rel="stylesheet" href="assets/responsive.css?v=20261109b">
+<link rel="stylesheet" href="assets/responsive.css?v=20261110a">
 </head>
 <body>
 <a class="skip" href="#content">跳到主要内容</a>
@@ -294,16 +294,16 @@
   <div style="padding:var(--sp-4)" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=20261109b"></script>
-<script src="js/datastore.js?v=20261109b"></script>
-<script src="js/quote-validity.js?v=20261109b"></script>
-<script src="js/license.js?v=20261109b"></script>
-<script src="assets/a11y.js?v=20261109b"></script>
+<script src="agnes-ai.js?v=20261110a"></script>
+<script src="js/datastore.js?v=20261110a"></script>
+<script src="js/quote-validity.js?v=20261110a"></script>
+<script src="js/license.js?v=20261110a"></script>
+<script src="assets/a11y.js?v=20261110a"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261109b';
+var MODULE_V = '20261110a';
 /* 深链：模块 id 白名单，避免把任意字符串塞进 iframe.src */
 var VIEW_RE = /^modules\/[a-z0-9_-]+\.html(?:\?[^#]*)?$/i;
 var LRU_MAX = 3;
@@ -339,10 +339,28 @@ function touchView(view){
     if (old === currentView) break;
     viewOrder.shift();
     var f = viewCache[old];
+    /* 淘汰前先把模块里「填了一半、还没点保存」的草稿落库。
+       postMessage 是约定协议；同源再直接调一次，避免消息还没投递
+       iframe 就被移除。两边都做 80ms 去重，不会重复写。 */
+    flushFrame(f);
     if (f && f.parentNode) f.parentNode.removeChild(f);
     delete viewCache[old];
   }
 }
+function flushFrame(f){
+  if (!f) return;
+  try {
+    if (f.contentWindow) f.contentWindow.postMessage({ type: 'ft:flush' }, location.origin);
+  } catch (e) {}
+  try {
+    var w = f.contentWindow;
+    if (w && w.FT && typeof w.FT.flushNow === 'function') w.FT.flushNow();
+  } catch (e) {}
+}
+function flushAllFrames(){
+  Object.keys(viewCache).forEach(function(k){ flushFrame(viewCache[k]); });
+}
+window.addEventListener('pagehide', flushAllFrames);
 function activateView(view){
   var f = getFrame(view);
   Object.keys(viewCache).forEach(function(k){
@@ -391,6 +409,7 @@ function reloadView(){
   if (currentView === 'home'){ refresh(); renderQuota(); toast('工作台已刷新'); return; }
   var f = viewCache[currentView];
   if (!f) { activateView(currentView); return; }
+  flushFrame(f);
   f.src = moduleSrc(currentView) + '&r=' + Date.now();
   toast('当前模块已重新载入');
 }
@@ -713,6 +732,8 @@ function backupAll(auto, reason){
   var badAt = {};
   DataStore.corruptions().forEach(function(c){ badAt[c.name] = c.at; });
   Object.keys(keys).forEach(function(name){
+    /* 未保存草稿是临时数据，不进备份：备份只保留用户已确认落库的内容 */
+    if (name === 'drafts') return;
     var r = DataStore.readRaw(name);
     if (!r.ok){
       /* 损坏集合绝不能写成空数组，否则备份/恢复会把原始内容永久抹掉。
@@ -737,7 +758,7 @@ function backupAll(auto, reason){
     schema: 'ftc-backup-v2',
     version: 2,
     exportedAt: new Date().toISOString(),
-    keys: Object.keys(keys),
+    keys: Object.keys(keys).filter(function(n){ return n !== 'drafts'; }),
     counts: counts,
     corrupt: corrupts
   };
@@ -774,6 +795,7 @@ function restoreAll(input){
     var keys = DataStore.KEYS;
     var toRestore = [], skipped = 0;
     Object.keys(keys).forEach(function(name){
+      if (name === 'drafts') return; /* 草稿不随备份恢复，避免把旧临时内容带回线上 */
       if (!Object.prototype.hasOwnProperty.call(data, name)) return;
       var val = data[name];
       if (name === 'cfg'){

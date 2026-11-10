@@ -106,6 +106,53 @@
     };
   }
 
+  /* ------------------------------------------------------------
+     FT.onFlush / FT.flushNow：iframe 被 LRU 淘汰前的草稿落库
+     ------------------------------------------------------------
+     外壳在 removeChild() 之前发 {type:'ft:flush'}。模块把当前
+     「填了一半、还没点保存」的内容写进 DataStore.drafts。
+     同源时外壳还会直接调 flushNow()，保证消息还没投递、iframe
+     已经被移除时也能同步保存。重复触发由 80ms 去重挡住。 */
+  var flushHandlers = [];
+  var lastFlushAt = 0;
+  window.FT.onFlush = function (fn) {
+    if (typeof fn === 'function') flushHandlers.push(fn);
+  };
+  window.FT.flushNow = function () {
+    var now = Date.now();
+    if (now - lastFlushAt < 80) return 0;
+    lastFlushAt = now;
+    var n = 0;
+    for (var i = 0; i < flushHandlers.length; i++) {
+      try { flushHandlers[i](); n++; } catch (e) { /* 单个模块失败不能影响其他模块 */ }
+    }
+    return n;
+  };
+  window.FT.saveDraft = function (key, data) {
+    try {
+      if (window.DataStore && typeof DataStore.saveDraft === 'function') return DataStore.saveDraft(key, data);
+    } catch (e) { /* 存储满/损坏时静默失败，不影响页面继续用 */ }
+    return false;
+  };
+  window.FT.getDraft = function (key) {
+    try {
+      if (window.DataStore && typeof DataStore.getDraft === 'function') return DataStore.getDraft(key);
+    } catch (e) {}
+    return null;
+  };
+  window.FT.clearDraft = function (key) {
+    try {
+      if (window.DataStore && typeof DataStore.clearDraft === 'function') return DataStore.clearDraft(key);
+    } catch (e) {}
+    return false;
+  };
+  window.addEventListener('message', function (e) {
+    if (e.origin !== window.location.origin) return;
+    if (e.data && e.data.type === 'ft:flush') window.FT.flushNow();
+  });
+  /* 直接关标签/刷新时也尽量落一次；localStorage 写入是同步的 */
+  window.addEventListener('pagehide', function () { window.FT.flushNow(); });
+
   try {
     if (window.self !== window.top) return;
     /* 首页（外壳）也加载本脚本，只为拿 FT.today；独立打开补丁只对模块页生效 */

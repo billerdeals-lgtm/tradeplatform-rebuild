@@ -282,5 +282,37 @@ ok('计算器历史记录已转义', /FT\.esc\(item\.product \|\| '—'\)/.test(
 ok('找客户外链走 FT.safeUrl', /FT\.safeUrl\(r\.website\|\|r\.linkedin\|\|''\)/.test(find) && /rel="noopener"/.test(find));
 ok('AI 测试回复用 textContent', /el\.textContent = r\.ok/.test(agnesDemo) && !/el\.innerHTML = r\.ok/.test(agnesDemo));
 
+/* 20. 找客户数据质量：国家、邮箱、目录清洗、Zauba 导入 */
+const sources = read('js/sources.js');
+ok('国家只按完整后缀识别', /function countryFromDomain/.test(sources) && /parts\.slice\(-n\)\.join\('\.'\)/.test(sources) && /'co\.ke': 'Kenya'/.test(sources));
+ok('不再用城市/裸国家词推断', !/COUNTRY_MAP/.test(sources) && /function detectCountryExplicit/.test(sources) && /裸国家词/.test(sources));
+ok('AI 国家字段不再直接采用', !/a\.country&&!c\.country/.test(find) && /AI 的国家字段不作为证据/.test(find));
+ok('找不到国家显示未知', /esc\(r\.country\|\|'未知'\)/.test(find));
+ok('抓页后按官网后缀识别国家', /Sources\.countryFromDomain\(c\.website\)/.test(find) && /Sources\.countryFromDomain\(r\.website\)/.test(find));
+ok('目录详情页正文不作为国家证据', /c\.profileUrl\?'':Sources\.detectCountryExplicit/.test(find) && /r\.profileUrl\?'':Sources\.detectCountryExplicit/.test(find));
+ok('CDN 图床不当作公司官网', /cloudfront\.net/.test(sources) && /function isBlocked/.test(sources));
+ok('邮箱过滤器存在并被提取流程调用', /function isJunkEmail/.test(sources) && /isJunkEmail\(low\)/.test(sources) && /duckduckgo\.com/.test(sources));
+ok('结果清洗存在并用于合并结果', /function isJunkName/.test(sources) && /Sources\.isJunkName\(c\.name\)/.test(find) && /isJunkName\(name\)/.test(sources));
+ok('Zauba 解析结果带 _inquiry', /_inquiry: true,\s*source: 'Zauba'/.test(sources) && /parseZauba/.test(sources));
+ok('数据质量单测存在', fs.existsSync(new URL('../tools/test-find-quality.mjs', import.meta.url)));
+
+/* 21. CSP 收紧 + LRU 淘汰前 flush 草稿 */
+const indexHtml = read('index.html');
+ok('外壳 CSP 只放行自身与 AI 端点', /connect-src 'self' https:\/\/apihub\.agnes-ai\.com;/.test(indexHtml));
+ok('find CSP 只额外放行两个抓取代理', /connect-src 'self' https:\/\/apihub\.agnes-ai\.com https:\/\/r\.jina\.ai https:\/\/api\.allorigins\.win;/.test(find));
+ok('所有页面都不再使用 connect-src *', [indexHtml, find, docs, leads, quotes, c360, profilesSafe()].every(function(s){ return !/connect-src \*/.test(s); }));
+function profilesSafe(){ return read('modules/profile.html'); }
+ok('DataStore 增加草稿集合', /drafts:\s*'ftc_drafts_v1'/.test(datastore) && /saveDraft: function/.test(datastore) && /getDraft: function/.test(datastore) && /clearDraft: function/.test(datastore));
+ok('草稿不进备份 exportAll', /n === 'cfg' \|\| n === 'drafts'/.test(datastore));
+ok('FT 提供 onFlush/flushNow 并监听 ft:flush', /FT\.onFlush = function/.test(standalone) && /FT\.flushNow = function/.test(standalone) && /type === 'ft:flush'/.test(standalone));
+ok('外壳淘汰前先 flushFrame 再 removeChild', /flushFrame\(f\);\s*if \(f && f\.parentNode\) f\.parentNode\.removeChild\(f\)/.test(indexHtml));
+ok('外壳 flush 同时用 postMessage 与同源直调', /postMessage\(\{ type: 'ft:flush' \}, location\.origin\)/.test(indexHtml) && /FT\.flushNow === 'function'/.test(indexHtml));
+ok('reloadView 先 flush 再换 src', /flushFrame\(f\);\s*f\.src = moduleSrc\(currentView\)/.test(indexHtml));
+ok('find 筛选条件可恢复', /FIND_DRAFT = 'find:filters'/.test(find) && /restoreFindDraft\(\)/.test(find) && /FT\.onFlush/.test(find));
+ok('线索编辑弹窗可恢复', /LEAD_DRAFT = 'leads:edit'/.test(leads) && /restoreLeadDraft\(\)/.test(leads) && /FT\.onFlush/.test(leads));
+ok('报价编辑器可恢复', /QUOTE_DRAFT = 'quotes:edit'/.test(quotes) && /restoreQuoteDraft\(\)/.test(quotes) && /FT\.onFlush/.test(quotes));
+ok('单证表单可恢复', /DOC_DRAFT = 'docs:edit'/.test(docs) && /restoreDocDraft\(\)/.test(docs) && /FT\.onFlush/.test(docs));
+ok('客户 360 备注可恢复', /customer360:note:/.test(c360) && /FT\.onFlush/.test(c360));
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

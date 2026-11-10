@@ -64,7 +64,8 @@
     products:'ftc_products_v1', // 商品库（一次建档，报价/单证复用）
     searches:'ftc_searches_v1', // 找客户搜索历史
     calculations:'ftc_calculations_v1', // 利润计算器历史
-    cfg:     'ftc_cfg_v1'       // 全局配置（AI 设置等）
+    cfg:     'ftc_cfg_v1',      // 全局配置（AI 设置等）
+    drafts:  'ftc_drafts_v1'    // 未落库的表单草稿（LRU 淘汰前 flush）
   };
 
   /* 迁移：早期计算器调用 DataStore.add('calculations') 时 KEYS 还没有这个键，
@@ -104,8 +105,13 @@
   var NAME_LABEL = {
     leads:'线索', todos:'待办', outreach:'触达', quotes:'报价', docs:'单证',
     reviews:'复盘', comps:'竞品', profile:'资料', products:'商品',
-    searches:'搜索历史', calculations:'计算历史', cfg:'配置'
+    searches:'搜索历史', calculations:'计算历史', cfg:'配置', drafts:'草稿'
   };
+
+  /* 草稿是对象（key → {data, at}），不是数组；和 cfg 一样单独校验 */
+  function isObjectCollection(name) {
+    return name === 'cfg' || name === 'drafts';
+  }
   var corrupt = {};
   var bannerScheduled = false;
   var warnedCorrupt = {};
@@ -223,7 +229,7 @@
         throw e;
       }
       if (value !== null && value !== undefined) {
-        var bad = (name === 'cfg')
+        var bad = isObjectCollection(name)
           ? (typeof value !== 'object' || Array.isArray(value))
           : !Array.isArray(value);
         if (bad) {
@@ -371,7 +377,7 @@
     exportAll: function () {
       var out = {}, bad = null, self = this;
       Object.keys(KEYS).forEach(function (n) {
-        if (n === 'cfg') return;
+        if (n === 'cfg' || n === 'drafts') return;
         var r = self._read(n);
         if (!r.ok) {
           bad = bad || {};
@@ -394,6 +400,47 @@
     setCfg: function (obj) {
       if (isCorrupt('cfg')) throw corruptLockError('cfg');
       this._adapter.write(KEYS.cfg, Object.assign(this.getCfg(), obj));
+    },
+
+    /* ---------- 草稿（未落库的表单内容） ----------
+       LRU 淘汰 iframe 前由 FT.flushNow() 调用。草稿是临时数据：
+       - 不进 exportAll，不参与备份/CSV；
+       - 成功保存后由模块自己 clearDraft；
+       - 每个模块用自己的 key，互不覆盖。 */
+    listDrafts: function () {
+      var r = this._read('drafts');
+      if (!r.ok) return {};
+      var v = r.value;
+      return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+    },
+    getDraft: function (key) {
+      var all = this.listDrafts();
+      return all[key] ? all[key].data : null;
+    },
+    saveDraft: function (key, data) {
+      if (isCorrupt('drafts')) return false;
+      if (!key || data == null) return false;
+      var all = this.listDrafts();
+      all[key] = { data: data, at: new Date().toISOString() };
+      this._adapter.write(KEYS.drafts, all);
+      return true;
+    },
+    clearDraft: function (key) {
+      if (isCorrupt('drafts')) return false;
+      var all = this.listDrafts();
+      if (!(key in all)) return false;
+      delete all[key];
+      this._adapter.write(KEYS.drafts, all);
+      return true;
+    },
+    clearDrafts: function (prefix) {
+      if (isCorrupt('drafts')) return false;
+      var self = this, all = this.listDrafts(), changed = false;
+      Object.keys(all).forEach(function (k) {
+        if (!prefix || k.indexOf(prefix) === 0) { delete all[k]; changed = true; }
+      });
+      if (changed) self._adapter.write(KEYS.drafts, all);
+      return changed;
     }
   };
 

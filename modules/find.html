@@ -2,11 +2,11 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://apihub.agnes-ai.com https://r.jina.ai https://api.allorigins.win; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 找客户</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261110a">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -84,9 +84,9 @@
   .dx { background:var(--bg-inset); color:var(--text-2); }
   .srcnote { font-size:11.5px; color:var(--text-3); padding:0 var(--sp-4) var(--sp-4); line-height:1.55; }
 </style>
-<script src="../assets/standalone.js?v=20261109b"></script>
-<script src="../assets/a11y.js?v=20261109b"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
+<script src="../assets/standalone.js?v=20261110a"></script>
+<script src="../assets/a11y.js?v=20261110a"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261110a">
 </head>
 <body>
 <header><img src="../assets/logo.svg" alt=""><h1>找客户</h1></header>
@@ -141,7 +141,7 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js?v=20261109b"></script><script src="../js/sources.js?v=20261109b"></script><script src="../js/lead-dedupe.js?v=20261109b"></script><script src="../agnes-ai.js?v=20261109b"></script><script src="../js/license.js?v=20261109b"></script><script>
+<script src="../js/datastore.js?v=20261110a"></script><script src="../js/sources.js?v=20261110a"></script><script src="../js/lead-dedupe.js?v=20261110a"></script><script src="../agnes-ai.js?v=20261110a"></script><script src="../js/license.js?v=20261110a"></script><script>
 'use strict';
 var S={all:[],results:[],convIds:{},dupIds:{},round:0,seq:0,_p:null};
 
@@ -294,6 +294,7 @@ async function runPipeline(append){
     var merged=dedupe(all).filter(function(c){
       /* 兜底：AI 来源必须带核验标记，防止未核验公司漏进结果 */
       if(c.source==='AI'&&!c._aiVerified)return false;
+      if(Sources.isJunkName(c.name))return false;
       return c.name.length>2&&ctx.exclude.indexOf((c.name||'').toLowerCase())<0;
     });
     if(!merged.length)throw new Error('所有来源均未找到公司，请换个关键词或增加来源');
@@ -324,7 +325,9 @@ async function runPipeline(append){
           var w=Sources.pickWebsite(info.links,Sources.domainOf(c.profileUrl));
           if(w)c.website=w;
         }
-        if(!c.country)c.country=Sources.detectCountry(info.text,'');
+        /* 只信官网完整后缀与页面明确地址，不用搜索片段/城市名猜。
+           目录详情页（Europages 等）的正文混有多家公司/筛选器国家，不能当证据。 */
+        if(!c.country)c.country=Sources.countryFromDomain(c.website)||(c.profileUrl?'':Sources.detectCountryExplicit(info.text));
         var ct=info.contacts;
         if(ct.emails.length&&!c.email)c.email=ct.emails[0];
         if(!c.phone){if(ct.was.length)c.phone='+'+ct.was[0];else if(ct.phones.length)c.phone=ct.phones[0]}
@@ -372,7 +375,7 @@ async function runPipeline(append){
       c.score=Sources.compositeScore(aiScore,c._price);
       c.tier=Sources.tierOf(c.score);
       if(a){
-        if(a.country&&!c.country)c.country=a.country;
+        /* AI 的国家字段不作为证据：拿不到可靠国家就留空显示「未知」 */
         if(a.type&&!c.type)c.type=a.type;
         if(a.why)c.why=a.why;
         if(a.approach)c.approach=a.approach;
@@ -475,7 +478,7 @@ function render(){
     var link=FT.safeUrl(r.website||r.linkedin||'');
     var tip='理由：'+(r.why||'—')+(r.approach?' ｜ 建议：'+r.approach:'');
     return '<tr><td><div class="cn">'+(link?'<a href="'+esc(link)+'" target="_blank" rel="noopener">'+esc(r.name)+'</a>':esc(r.name))+'</div>'+(r.desc?'<div class="cd" title="'+esc(r.desc)+'">'+esc(r.desc.slice(0,80))+'</div>':'')+'</td>'
-      +'<td>'+esc(r.country||'—')+'</td>'
+      +'<td>'+esc(r.country||'未知')+'</td>'
       +'<td><span class="score" title="'+esc(tip)+'">'+r.score+'<small>/12</small></span><span class="tier t-'+(r.tier?r.tier.key:'d')+'">'+(r.tier?r.tier.label:'低')+'</span>'+(flagsOf(r)?'<div class="flags">'+flagsOf(r)+'</div>':'')+'</td>'
       +'<td class="cc">'+ch+'</td>'
       +'<td>'+badges+'</td>'
@@ -494,7 +497,7 @@ async function digOne(id){
     var info=await Sources.pageInfo(r.website,15000);
     if(info.contacts.emails.length)r.email=info.contacts.emails[0];
     if(!r.phone){if(info.contacts.was.length)r.phone='+'+info.contacts.was[0];else if(info.contacts.phones.length)r.phone=info.contacts.phones[0]}
-    if(!r.country)r.country=Sources.detectCountry(info.text,'');
+    if(!r.country)r.country=Sources.countryFromDomain(r.website)||(r.profileUrl?'':Sources.detectCountryExplicit(info.text));
     r._verified=true;
   }catch(e){}
   $('st').textContent=hasC(r)?'✓ 挖到联系方式':'未提取到';render();
@@ -575,5 +578,43 @@ function markExistingLeads(){
   }catch(e){}
 }
 renderSrcList();
+/* LRU 淘汰前把筛选条件写进 DataStore.drafts；切回来时恢复。
+   搜索结果本身不落草稿（体积大且可能过期），只保住用户填的条件。 */
+var FIND_DRAFT = 'find:filters';
+function findDraftData(){
+  var srcs = {};
+  Sources.META.forEach(function(s){ var el = $('src_' + s.id); if (el) srcs[s.id] = !!el.checked; });
+  var en = $('optEnrich');
+  return { prod: v('k_prod'), region: v('k_region'), type: v('k_type'), sources: srcs, enrich: en ? !!en.checked : true };
+}
+function findDraftDirty(){
+  if (v('k_prod').trim() || v('k_region') || v('k_type') !== 'wholesaler') return true;
+  var en = $('optEnrich');
+  if (en && !en.checked) return true;
+  return Sources.META.some(function(s){
+    var el = $('src_' + s.id);
+    return el && !!el.checked !== !!s.def;
+  });
+}
+FT.onFlush(function(){
+  if (!findDraftDirty()) return;
+  FT.saveDraft(FIND_DRAFT, findDraftData());
+});
+function restoreFindDraft(){
+  var d = FT.getDraft(FIND_DRAFT);
+  if (!d) return;
+  if (d.prod != null) $('k_prod').value = d.prod;
+  if (d.region != null) $('k_region').value = d.region;
+  if (d.type != null) $('k_type').value = d.type;
+  if (d.sources) Object.keys(d.sources).forEach(function(id){
+    var el = $('src_' + id);
+    if (el) el.checked = !!d.sources[id];
+  });
+  var en = $('optEnrich');
+  if (en && d.enrich != null) en.checked = !!d.enrich;
+  FT.clearDraft(FIND_DRAFT);
+  $('st').textContent = '已恢复上次未保存的筛选条件';
+}
+restoreFindDraft();
 render();
 </script></body></html>

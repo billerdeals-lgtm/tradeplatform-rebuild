@@ -2,15 +2,15 @@
 <html lang="zh">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src *; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://apihub.agnes-ai.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230b6e4f'/%3E%3Ccircle cx='32' cy='32' r='17' fill='none' stroke='%23fff' stroke-width='3.5'/%3E%3Cpath d='M32 15 L38 32 L32 49 L26 32 Z' fill='%23ffc53d'/%3E%3Ccircle cx='32' cy='32' r='3.2' fill='%230b6e4f'/%3E%3C/svg%3E">
 <title>FT Compass · 外贸线索工作台</title>
-<link rel="stylesheet" href="../assets/tokens.css?v=20261109b">
-<script src="../agnes-ai.js?v=20261109b"></script>
-<script src="../js/datastore.js?v=20261109b"></script>
-<script src="../js/csv.js?v=20261109b"></script>
-<script src="../js/lead-dedupe.js?v=20261109b"></script>
+<link rel="stylesheet" href="../assets/tokens.css?v=20261110a">
+<script src="../agnes-ai.js?v=20261110a"></script>
+<script src="../js/datastore.js?v=20261110a"></script>
+<script src="../js/csv.js?v=20261110a"></script>
+<script src="../js/lead-dedupe.js?v=20261110a"></script>
 <style>
   /* FT Compass 视觉体系（tokens.css 为准）：翡翠绿 / 琥珀 AI 规范 / 米白纸面 */
   * { box-sizing: border-box; margin: 0; }
@@ -78,9 +78,9 @@
   .iradio { display: flex; gap: 16px; flex-wrap: wrap; margin: 8px 0 0; font-size: 13px; }
   .iradio label { display: inline-flex; align-items: center; gap: 5px; margin: 0; }
 </style>
-<script src="../assets/standalone.js?v=20261109b"></script>
-<script src="../assets/a11y.js?v=20261109b"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261109b">
+<script src="../assets/standalone.js?v=20261110a"></script>
+<script src="../assets/a11y.js?v=20261110a"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261110a">
 </head>
 <body>
 
@@ -459,6 +459,7 @@ function saveEdit() {
     S.leads.push(obj);
   }
   if (!save()) return;
+  FT.clearDraft('leads:edit');
   hide('mEdit'); render();
 }
 function delLead(id) {
@@ -871,6 +872,43 @@ function exportCsv() {
 }
 
 load(); render();
+
+/* ---------- 未保存草稿（LRU 淘汰前 flush） ---------- */
+var LEAD_DRAFT = 'leads:edit';
+var LEAD_DRAFT_FIELDS = ['name', 'country', 'market', 'stage', 'wa', 'email', 'product', 'amount', 'note', 'last'];
+function saveLeadDraft(){
+  var d = document.getElementById('mEdit');
+  if (!d || !d.open) return;
+  var fields = {};
+  LEAD_DRAFT_FIELDS.forEach(function(k){
+    var el = document.getElementById('e_' + k);
+    if (el) fields[k] = el.value;
+  });
+  FT.saveDraft(LEAD_DRAFT, { editId: S.editId, fields: fields });
+}
+FT.onFlush(saveLeadDraft);
+(function(){
+  var d = document.getElementById('mEdit');
+  if (d) d.addEventListener('close', function(){ FT.clearDraft(LEAD_DRAFT); });
+})();
+function restoreLeadDraft(){
+  /* 首页「导入客户 CSV」是明确的新动作，先把旧草稿让掉，避免弹窗挡住文件选择 */
+  if (/[?&]import=1\b/.test(location.search)) {
+    FT.clearDraft(LEAD_DRAFT);
+    return;
+  }
+  var d = FT.getDraft(LEAD_DRAFT);
+  if (!d) return;
+  var id = d.editId && S.leads.some(function(x){ return x.id === d.editId; }) ? d.editId : null;
+  openEdit(id);
+  Object.keys(d.fields || {}).forEach(function(k){
+    var el = document.getElementById('e_' + k);
+    if (el) el.value = d.fields[k];
+  });
+  FT.clearDraft(LEAD_DRAFT);
+  toast('已恢复上次未保存的线索草稿');
+}
+restoreLeadDraft();
 /* 首页空态的「导入客户 CSV」带 ?import=1 进来：
    先尝试直接打开文件选择；浏览器若因为缺少用户手势拦截，就高亮按钮把人引过去。 */
 try {

@@ -208,7 +208,12 @@
     'faire.com', 'qogita.com', 'supplyleader.com', 'merkandi.',
     'trademo.com', 'exporthub.com', 'tradewheel.com', 'tradeford.',
     'volza.com', 'importgenius', 'panjiva', 'seair.co', 'exportgenius',
-    'tradeatlas', '52wmb', 'tradesparq', 'b2bmit', 'ecplaza'
+    'tradeatlas', '52wmb', 'tradesparq', 'b2bmit', 'ecplaza',
+    /* CDN / 图床：Europages 等目录页最容易把第一张图片的域名当成公司官网 */
+    'cloudfront.net', 'cloudinary.com', 'imgix.net', 'akamaized.net',
+    'wixstatic.com', 'amazonaws.com', 'azureedge.net', 'fastly.net',
+    'jsdelivr.net', 'unpkg.com', 'bootstrapcdn.com', 'fontawesome.com',
+    'gravatar.com', 'wp.com', 'visable.com'
   ];
   function isBlocked(d) {
     if (!d) return true;
@@ -224,6 +229,20 @@
     var t = s.toLowerCase();
     if (s.length < 3 || s.length > 70) return true;
     return /\b(log ?in|sign ?in|sign ?up|register|menu|home|about|contact|privacy|cookie|terms|search|next|previous|more|read more|show more|add to cart|categories|products|services|countries|regions|follow us|share|newsletter|download|sitemap|copyright|all rights)\b/.test(t);
+  }
+
+  /* 目录站常把「Privacy Policy / Cookie Policy / 未解析 Markdown」当公司名。
+     这里做统一清洗，Europages 和最终合并结果都会用。 */
+  var JUNK_NAME = /^(?:privacy|cookie|cookies|terms|legal|imprint|sitemap|newsletter|subscribe|login|log ?in|sign ?in|sign ?up|register|home|homepage|search|menu|language|currency|cart|checkout|account|my account|help|faq|support|careers|jobs|press|news|blog|events|partners|products|services|categories|brands|companies|suppliers|buyers|request a quote|get a quote|catalog|download|downloads|follow us|share|next|previous|more|view all|read more|show more|about us|contact us)$/i;
+  function isJunkName(v) {
+    var s = String(v == null ? '' : v).replace(/\s+/g, ' ').trim();
+    if (s.length < 2 || s.length > 90) return true;
+    if (/\](?:\(|\[)|https?:\/\/|www\.|\*\*|__|<\/?[a-z]|^\s*[#|]/.test(s)) return true;
+    if (/\|/.test(s) && s.split('|').length > 2) return true;
+    var core = s.replace(/\s*[|·\-–—]\s*(?:Europages|DuckDuckGo|Bing|LinkedIn|Zauba|go4WorldBusiness|ExportersIndia|ThomasNet)\s*$/i, '').trim();
+    if (JUNK_NAME.test(core)) return true;
+    if (/\b(?:privacy policy|cookie policy|cookie settings|terms (?:and|&) conditions|terms of (?:use|service)|general conditions|(?:general )?(?:conditions|terms) of (?:use|service|sale)|legal notice|all rights reserved|copyright)\b/i.test(core)) return true;
+    return false;
   }
 
   /* ---------- 3. 链接解析（markdown / html 统一） ---------- */
@@ -280,12 +299,34 @@
   }
 
   /* ---------- 4. 联系方式提取（复用原 find 逻辑） ---------- */
+  /* 明显不是业务邮箱的串：代理错址、占位域、noreply 类角色地址 */
+  var EMAIL_BAD_DOMAIN = [
+    'duckduckgo.com', 'bing.com', 'google.com', 'sentry.io', 'sentry-next.wixpress.com',
+    'wixpress.com', 'example.com', 'example.org', 'example.net', 'test.com',
+    'domain.com', 'yourdomain.com', 'your-domain.com', 'localhost'
+  ];
+  var EMAIL_BAD_LOCAL = /^(?:error(?:s)?|noreply|no[-_.]?reply|do[-_.]?not[-_.]?reply|mailer[-_.]?daemon|postmaster|abuse|sentry)(?:[+._-].*)?$/i;
+  function isJunkEmail(e) {
+    var s = String(e == null ? '' : e).trim().toLowerCase();
+    if (!/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(s)) return true;
+    if (s.length > 254 || s.indexOf('..') >= 0) return true;
+    var at = s.lastIndexOf('@');
+    var local = s.slice(0, at), domain = s.slice(at + 1);
+    if (!local || !domain || local.length > 64 || local.charAt(0) === '.' || local.charAt(local.length - 1) === '.') return true;
+    if (EMAIL_BAD_LOCAL.test(local)) return true;
+    if (/\.(png|jpe?g|gif|webp|svg|css|js|ico|woff2?|ttf|eot)$/i.test(domain)) return true;
+    for (var i = 0; i < EMAIL_BAD_DOMAIN.length; i++) {
+      var d = EMAIL_BAD_DOMAIN[i];
+      if (domain === d || domain.slice(-(d.length + 1)) === '.' + d) return true;
+    }
+    return false;
+  }
   function extractContacts(t) {
     var c = { emails: [], phones: [], was: [] };
     if (!t) return c;
-    var bad = /\.(png|jpe?g|gif|webp|svg|css|js|ico|woff2?)\b/i;
     (t.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []).forEach(function (e) {
-      if (!bad.test(e) && c.emails.indexOf(e.toLowerCase()) < 0 && c.emails.length < 3) c.emails.push(e.toLowerCase());
+      var low = e.toLowerCase();
+      if (!isJunkEmail(low) && c.emails.indexOf(low) < 0 && c.emails.length < 3) c.emails.push(low);
     });
     var m;
     var wr = /(?:wa\.me\/|whatsapp:\/\/send\?phone=|api\.whatsapp\.com\/send\?phone=)(\+?\d[\d\s]{6,16})/gi;
@@ -460,57 +501,185 @@
     return { key: 'd', label: '低' };
   }
 
-  /* ---------- 5.7 国家识别（城市 + 域名后缀） ---------- */
-  var COUNTRY_MAP = {
-    'Peru': ['peru', 'perú', 'lima', 'arequipa', '.pe'],
-    'Chile': ['chile', 'santiago', '.cl'],
-    'Colombia': ['colombia', 'bogota', 'bogotá', '.co'],
-    'Mexico': ['mexico', 'méxico', 'cdmx', 'monterrey', '.mx'],
-    'Brazil': ['brazil', 'brasil', 'sao paulo', 'são paulo', '.br'],
-    'Argentina': ['argentina', 'buenos aires', '.ar'],
-    'Ecuador': ['ecuador', 'quito', 'guayaquil', '.ec'],
-    'Indonesia': ['indonesia', 'jakarta', 'surabaya', '.id'],
-    'Vietnam': ['vietnam', 'hanoi', 'ho chi minh', '.vn'],
-    'Thailand': ['thailand', 'bangkok', '.th'],
-    'Malaysia': ['malaysia', 'kuala lumpur', '.my'],
-    'Philippines': ['philippines', 'manila', '.ph'],
-    'India': ['india', 'mumbai', 'delhi', 'chennai', '.in'],
-    'Pakistan': ['pakistan', 'karachi', 'lahore', '.pk'],
-    'Bangladesh': ['bangladesh', 'dhaka', '.bd'],
-    'Sri Lanka': ['sri lanka', 'colombo', '.lk'],
-    'UAE': ['united arab emirates', 'dubai', 'abu dhabi', '.ae'],
-    'Saudi Arabia': ['saudi arabia', 'riyadh', 'jeddah', '.sa'],
-    'Turkey': ['turkey', 'türkiye', 'istanbul', '.tr'],
-    'Egypt': ['egypt', 'cairo', '.eg'],
-    'Nigeria': ['nigeria', 'lagos', 'abuja', '.ng'],
-    'Ghana': ['ghana', 'accra', '.gh'],
-    'Kenya': ['kenya', 'nairobi', '.ke'],
-    'South Africa': ['south africa', 'johannesburg', 'cape town', '.za'],
-    'Morocco': ['morocco', 'casablanca', '.ma'],
-    'Poland': ['poland', 'warsaw', '.pl'],
-    'Germany': ['germany', 'deutschland', 'berlin', 'hamburg', '.de'],
-    'France': ['france', 'paris', 'lyon', '.fr'],
-    'Italy': ['italy', 'italia', 'milan', 'milano', '.it'],
-    'Spain': ['spain', 'españa', 'madrid', 'barcelona', '.es'],
-    'Netherlands': ['netherlands', 'amsterdam', 'rotterdam', '.nl'],
-    'Belgium': ['belgium', 'brussels', '.be'],
-    'United Kingdom': ['united kingdom', 'england', 'london', 'manchester', '.uk'],
-    'USA': ['united states', 'u.s.a', 'usa', 'new york', 'houston', 'chicago', '.us'],
-    'Canada': ['canada', 'toronto', 'vancouver', '.ca'],
-    'Australia': ['australia', 'sydney', 'melbourne', '.au'],
-    'Japan': ['japan', 'tokyo', 'osaka', '.jp'],
-    'South Korea': ['south korea', 'seoul', '.kr']
+  /* ---------- 5.7 国家识别（只认可靠信号） ----------
+     以前用城市名和裸国家词匹配，`.co` 还会命中 `.co.ke`，把肯尼亚
+     公司标成哥伦比亚。现在只保留两类证据：
+     1) 官网的完整 ccTLD 后缀（co.ke / co.uk / com.br …）；
+     2) 页面里明确的 Country: / 国家： / based in 等写法。
+     拿不到就返回空，由界面显示「未知」，不猜。 */
+  var COUNTRY_NAMES = {
+    'peru': 'Peru', 'chile': 'Chile', 'colombia': 'Colombia', 'mexico': 'Mexico',
+    'brazil': 'Brazil', 'argentina': 'Argentina', 'ecuador': 'Ecuador',
+    'indonesia': 'Indonesia', 'vietnam': 'Vietnam', 'thailand': 'Thailand',
+    'malaysia': 'Malaysia', 'philippines': 'Philippines', 'india': 'India',
+    'pakistan': 'Pakistan', 'bangladesh': 'Bangladesh', 'sri lanka': 'Sri Lanka',
+    'uae': 'UAE', 'saudi arabia': 'Saudi Arabia', 'turkey': 'Turkey',
+    'egypt': 'Egypt', 'nigeria': 'Nigeria', 'ghana': 'Ghana', 'kenya': 'Kenya',
+    'south africa': 'South Africa', 'morocco': 'Morocco', 'poland': 'Poland',
+    'germany': 'Germany', 'france': 'France', 'italy': 'Italy', 'spain': 'Spain',
+    'netherlands': 'Netherlands', 'belgium': 'Belgium', 'united kingdom': 'United Kingdom',
+    'usa': 'USA', 'canada': 'Canada', 'australia': 'Australia', 'japan': 'Japan',
+    'south korea': 'South Korea', 'china': 'China', 'hong kong': 'Hong Kong',
+    'taiwan': 'Taiwan', 'singapore': 'Singapore', 'new zealand': 'New Zealand',
+    'ireland': 'Ireland', 'portugal': 'Portugal', 'sweden': 'Sweden',
+    'norway': 'Norway', 'denmark': 'Denmark', 'finland': 'Finland',
+    'switzerland': 'Switzerland', 'austria': 'Austria', 'czech republic': 'Czech Republic',
+    'greece': 'Greece', 'israel': 'Israel', 'russia': 'Russia', 'ukraine': 'Ukraine',
+    'romania': 'Romania', 'hungary': 'Hungary', 'bulgaria': 'Bulgaria',
+    'croatia': 'Croatia', 'serbia': 'Serbia', 'slovakia': 'Slovakia',
+    'slovenia': 'Slovenia', 'lithuania': 'Lithuania', 'latvia': 'Latvia',
+    'estonia': 'Estonia', 'azerbaijan': 'Azerbaijan', 'georgia': 'Georgia',
+    'armenia': 'Armenia', 'kazakhstan': 'Kazakhstan', 'uzbekistan': 'Uzbekistan',
+    'qatar': 'Qatar', 'kuwait': 'Kuwait', 'bahrain': 'Bahrain', 'oman': 'Oman',
+    'jordan': 'Jordan', 'lebanon': 'Lebanon', 'iraq': 'Iraq', 'iran': 'Iran',
+    'cambodia': 'Cambodia', 'myanmar': 'Myanmar', 'nepal': 'Nepal',
+    'tunisia': 'Tunisia', 'algeria': 'Algeria', 'ethiopia': 'Ethiopia',
+    'tanzania': 'Tanzania', 'uganda': 'Uganda', 'zambia': 'Zambia',
+    'zimbabwe': 'Zimbabwe', 'mozambique': 'Mozambique', 'angola': 'Angola',
+    'cameroon': 'Cameroon', 'ivory coast': 'Ivory Coast', 'senegal': 'Senegal'
   };
-  function detectCountry(text, fallback) {
-    var s = String(text || '').toLowerCase();
-    for (var k in COUNTRY_MAP) {
-      if (!COUNTRY_MAP.hasOwnProperty(k)) continue;
-      var words = COUNTRY_MAP[k];
-      for (var i = 0; i < words.length; i++) {
-        if (s.indexOf(words[i]) >= 0) return k;
+  var COUNTRY_ALIASES = {
+    'us': 'USA', 'u.s.': 'USA', 'u.s.a': 'USA', 'u.s.a.': 'USA',
+    'u s': 'USA', 'u s a': 'USA', 'u k': 'United Kingdom', 'u a e': 'UAE',
+    'united states': 'USA', 'united states of america': 'USA', 'america': 'USA',
+    'uk': 'United Kingdom', 'u.k.': 'United Kingdom', 'great britain': 'United Kingdom',
+    'england': 'United Kingdom', 'scotland': 'United Kingdom', 'wales': 'United Kingdom',
+    'uae': 'UAE', 'u.a.e.': 'UAE', 'united arab emirates': 'UAE',
+    'south korea': 'South Korea', 'korea': 'South Korea', 'republic of korea': 'South Korea',
+    'viet nam': 'Vietnam', 'turkiye': 'Turkey', 'türkiye': 'Turkey',
+    'russian federation': 'Russia', 'czechia': 'Czech Republic', 'ksa': 'Saudi Arabia',
+    'hongkong': 'Hong Kong',
+    '肯尼亚': 'Kenya', '哥伦比亚': 'Colombia', '秘鲁': 'Peru', '智利': 'Chile',
+    '墨西哥': 'Mexico', '巴西': 'Brazil', '阿根廷': 'Argentina', '厄瓜多尔': 'Ecuador',
+    '印度尼西亚': 'Indonesia', '越南': 'Vietnam', '泰国': 'Thailand', '马来西亚': 'Malaysia',
+    '菲律宾': 'Philippines', '印度': 'India', '巴基斯坦': 'Pakistan', '孟加拉国': 'Bangladesh',
+    '斯里兰卡': 'Sri Lanka', '阿联酋': 'UAE', '沙特阿拉伯': 'Saudi Arabia',
+    '土耳其': 'Turkey', '埃及': 'Egypt', '尼日利亚': 'Nigeria', '加纳': 'Ghana',
+    '南非': 'South Africa', '摩洛哥': 'Morocco', '波兰': 'Poland', '德国': 'Germany',
+    '法国': 'France', '意大利': 'Italy', '西班牙': 'Spain', '荷兰': 'Netherlands',
+    '比利时': 'Belgium', '英国': 'United Kingdom', '美国': 'USA', '加拿大': 'Canada',
+    '澳大利亚': 'Australia', '日本': 'Japan', '韩国': 'South Korea', '中国': 'China'
+  };
+  /* 完整后缀 → 国家。必须按最长后缀匹配，避免 .co 抢走 .co.ke。 */
+  var CC_TLD = {
+    'pe': 'Peru', 'cl': 'Chile', 'co': 'Colombia', 'com.co': 'Colombia',
+    'mx': 'Mexico', 'com.mx': 'Mexico', 'br': 'Brazil', 'com.br': 'Brazil',
+    'ar': 'Argentina', 'com.ar': 'Argentina', 'ec': 'Ecuador', 'com.ec': 'Ecuador',
+    'id': 'Indonesia', 'co.id': 'Indonesia', 'vn': 'Vietnam',
+    'th': 'Thailand', 'co.th': 'Thailand', 'my': 'Malaysia', 'com.my': 'Malaysia',
+    'ph': 'Philippines', 'com.ph': 'Philippines', 'in': 'India', 'co.in': 'India',
+    'pk': 'Pakistan', 'com.pk': 'Pakistan', 'bd': 'Bangladesh', 'com.bd': 'Bangladesh',
+    'lk': 'Sri Lanka', 'ae': 'UAE', 'sa': 'Saudi Arabia', 'com.sa': 'Saudi Arabia',
+    'tr': 'Turkey', 'com.tr': 'Turkey', 'eg': 'Egypt', 'com.eg': 'Egypt',
+    'ng': 'Nigeria', 'com.ng': 'Nigeria', 'gh': 'Ghana', 'com.gh': 'Ghana',
+    'ke': 'Kenya', 'co.ke': 'Kenya', 'za': 'South Africa', 'co.za': 'South Africa',
+    'ma': 'Morocco', 'pl': 'Poland', 'de': 'Germany', 'fr': 'France', 'it': 'Italy',
+    'es': 'Spain', 'nl': 'Netherlands', 'be': 'Belgium',
+    'uk': 'United Kingdom', 'co.uk': 'United Kingdom', 'org.uk': 'United Kingdom',
+    'me.uk': 'United Kingdom', 'ltd.uk': 'United Kingdom', 'plc.uk': 'United Kingdom',
+    'us': 'USA', 'ca': 'Canada', 'au': 'Australia', 'com.au': 'Australia',
+    'net.au': 'Australia', 'org.au': 'Australia', 'jp': 'Japan', 'co.jp': 'Japan',
+    'kr': 'South Korea', 'co.kr': 'South Korea', 'cn': 'China', 'com.cn': 'China',
+    'hk': 'Hong Kong', 'com.hk': 'Hong Kong', 'tw': 'Taiwan', 'com.tw': 'Taiwan',
+    'sg': 'Singapore', 'com.sg': 'Singapore', 'nz': 'New Zealand', 'co.nz': 'New Zealand',
+    'ie': 'Ireland', 'pt': 'Portugal', 'se': 'Sweden', 'no': 'Norway', 'dk': 'Denmark',
+    'fi': 'Finland', 'ch': 'Switzerland', 'at': 'Austria', 'cz': 'Czech Republic',
+    'gr': 'Greece', 'il': 'Israel', 'ru': 'Russia', 'ua': 'Ukraine', 'ro': 'Romania',
+    'hu': 'Hungary', 'bg': 'Bulgaria', 'hr': 'Croatia', 'rs': 'Serbia',
+    'sk': 'Slovakia', 'si': 'Slovenia', 'lt': 'Lithuania', 'lv': 'Latvia', 'ee': 'Estonia',
+    'az': 'Azerbaijan', 'ge': 'Georgia', 'am': 'Armenia', 'kz': 'Kazakhstan',
+    'uz': 'Uzbekistan', 'qa': 'Qatar', 'kw': 'Kuwait', 'bh': 'Bahrain', 'om': 'Oman',
+    'jo': 'Jordan', 'lb': 'Lebanon', 'iq': 'Iraq', 'ir': 'Iran', 'kh': 'Cambodia',
+    'mm': 'Myanmar', 'np': 'Nepal', 'tn': 'Tunisia', 'dz': 'Algeria', 'et': 'Ethiopia',
+    'tz': 'Tanzania', 'ug': 'Uganda', 'zm': 'Zambia', 'zw': 'Zimbabwe', 'mz': 'Mozambique',
+    'ao': 'Angola', 'cm': 'Cameroon', 'ci': 'Ivory Coast', 'sn': 'Senegal'
+  };
+
+  function normalizeCountry(v) {
+    var s = String(v == null ? '' : v).toLowerCase()
+      .replace(/[._/]+/g, ' ').replace(/\s+/g, ' ').trim();
+    if (!s) return '';
+    if (COUNTRY_NAMES[s]) return COUNTRY_NAMES[s];
+    if (COUNTRY_ALIASES[s]) return COUNTRY_ALIASES[s];
+    return '';
+  }
+
+  function hostLoose(u) {
+    var s = String(u || '').trim();
+    if (!s) return '';
+    try { return new URL(/^https?:\/\//i.test(s) ? s : 'https://' + s).hostname.toLowerCase().replace(/^www\./, ''); }
+    catch (e) {
+      return s.toLowerCase().replace(/^https?:\/\//, '').split('/')[0].split(':')[0].replace(/^www\./, '');
+    }
+  }
+
+  /** 只按完整后缀识别；example.co.ke 命中 co.ke，不会命中 co。 */
+  function countryFromDomain(u) {
+    var h = hostLoose(u);
+    if (!h || h.indexOf('.') < 0) return '';
+    var parts = h.split('.');
+    for (var n = Math.min(3, parts.length - 1); n >= 1; n--) {
+      var suffix = parts.slice(-n).join('.');
+      if (CC_TLD[suffix]) return CC_TLD[suffix];
+    }
+    return '';
+  }
+
+  function countryInPhrase(phrase) {
+    var p = String(phrase || '').replace(/\s+/g, ' ').trim().replace(/[.;]+$/, '');
+    if (!p) return '';
+    var direct = normalizeCountry(p);
+    if (direct) return direct;
+    var parts = p.split(/\s*[,，|/]\s*/);
+    for (var i = parts.length - 1; i >= 0; i--) {
+      var x = parts[i].replace(/\s+\d[\d\s-]*$/, '').trim();
+      var c = normalizeCountry(x);
+      if (c) return c;
+    }
+    /* 明确上下文里允许国家名后面跟其它说明，如 “Vietnam and import solar panels” */
+    var padded = ' ' + p.toLowerCase().replace(/[._]/g, ' ') + ' ';
+    var keys = Object.keys(COUNTRY_NAMES).concat(Object.keys(COUNTRY_ALIASES))
+      .filter(function (k) { return k.length >= 3; })
+      .sort(function (a, b) { return b.length - a.length; });
+    for (var j = 0; j < keys.length; j++) {
+      var k2 = keys[j];
+      if (padded.indexOf(' ' + k2 + ' ') >= 0) {
+        return COUNTRY_NAMES[k2] || COUNTRY_ALIASES[k2] || '';
       }
     }
-    return fallback || '';
+    return '';
+  }
+
+  /** 明确写法才认：Country: Kenya / 国家：肯尼亚 / based in Vietnam */
+  function detectCountryExplicit(text) {
+    var s = String(text || '');
+    if (!s) return '';
+    var res = [
+      /(?:country|国家\/地区|国家|country\/region)\s*[:：]\s*([A-Za-z\u00c0-\u024f\u4e00-\u9fff .'\-]{2,50})/i,
+      /(?:based|located|headquartered|hq)\s+in\s+([A-Za-z\u00c0-\u024f\u4e00-\u9fff .'\-]{2,50})/i,
+      /(?:address|地址)\s*[:：][^\n]{0,100}/i
+    ];
+    for (var i = 0; i < res.length; i++) {
+      var m = s.match(res[i]);
+      if (!m) continue;
+      var c = countryInPhrase(m[1]);
+      if (c) return c;
+      if (i === 2) {
+        /* 地址行没有捕获组：取整行末尾的国家 */
+        var line = m[0].replace(/^(?:address|地址)\s*[:：]\s*/i, '');
+        var parts = line.split(/\s*[,，]\s*/);
+        for (var j = parts.length - 1; j >= 0; j--) {
+          var c2 = normalizeCountry(parts[j].replace(/\s+\d[\d\s-]*$/, '').trim());
+          if (c2) return c2;
+        }
+      }
+    }
+    return '';
+  }
+
+  /** 兼容旧调用：不再做城市/裸国家词推断 */
+  function detectCountry(text, fallback) {
+    return detectCountryExplicit(text) || normalizeCountry(fallback) || '';
   }
 
   /* ---------- 5.8 抓页 / 二次补全 ---------- */
@@ -549,7 +718,8 @@
     }
     var joined = texts.join(' ');
     var c = extractContacts(joined);
-    return { emails: c.emails, phones: c.phones, was: c.was, country: detectCountry(joined, '') };
+    /* 搜索结果片段不作为国家证据，避免把代理站/其他国家的片段算到这家公司头上 */
+    return { emails: c.emails, phones: c.phones, was: c.was, country: '' };
   }
 
   /* ---------- 5.9 AI 批量买家意向评分 ---------- */
@@ -674,8 +844,8 @@
     var out = [], seen = {};
     function add(name, link) {
       name = String(name || '').replace(/\s+/g, ' ').trim();
-      if (!name || name.length < 2 || name.length > 90) return;
-      if (/^(view|portfolio|next|previous|more|contact|home|all )/i.test(name)) return;
+      if (isJunkName(name)) return;
+      if (/^(view|portfolio|all )/i.test(name)) return;
       var key = name.toLowerCase();
       if (seen[key]) return;
       seen[key] = 1;
@@ -710,8 +880,11 @@
     for (var i = 1; i < parts.length; i++) {
       var chunk = parts[i];
       var nl = chunk.indexOf('\n');
-      var country = (nl > 0 ? chunk.slice(0, nl) : chunk).replace(/[*_]/g, '').trim();
-      if (!country || country.length > 40) continue;
+      var rawCountry = (nl > 0 ? chunk.slice(0, nl) : chunk).replace(/[*_]/g, '').trim();
+      if (!rawCountry || rawCountry.length > 40) continue;
+      /* 这是目录明确给出的 "Buyer From"，属于可信字段；
+         "California, United States" 这类要收敛成 USA，而不是整段州名 */
+      var country = countryInPhrase(rawCountry) || normalizeCountry(rawCountry) || rawCountry;
       if (keys.length) {
         var low = chunk.toLowerCase();
         var hit = false;
@@ -751,6 +924,7 @@
         country: 'USA',
         desc: '美国进口商（Zauba 海关记录）· ' + (fallbackProduct || ''),
         type: 'importer',
+        _inquiry: true,
         source: 'Zauba'
       });
     }
@@ -824,7 +998,8 @@
     c._text = info.text;
     c._aiVerified = true;
     if (!c.desc) c.desc = text.slice(0, 160);
-    if (!c.country) c.country = detectCountry(text, '');
+    /* 模型给的国家可能是猜的：只保留官网后缀或页面明确地址 */
+    c.country = countryFromDomain(c.website) || detectCountryExplicit(text) || '';
     var ct = info.contacts || { emails: [], phones: [], was: [] };
     if (ct.emails.length && !c.email) c.email = ct.emails[0];
     if (!c.phone) {
@@ -965,6 +1140,11 @@
     compositeScore: compositeScore,
     tierOf: tierOf,
     detectCountry: detectCountry,
+    detectCountryExplicit: detectCountryExplicit,
+    countryFromDomain: countryFromDomain,
+    normalizeCountry: normalizeCountry,
+    isJunkName: isJunkName,
+    isJunkEmail: isJunkEmail,
     pageInfo: pageInfo,
     pickWebsite: pickWebsite,
     enrichContacts: enrichContacts,
