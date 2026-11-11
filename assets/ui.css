@@ -51,6 +51,16 @@
     width: 30px; height: 30px; border-radius: 9px;
     box-shadow: 0 0 0 1px rgba(9, 9, 11, .05);
   }
+  /* 模块顶栏图标：与侧栏同一套线性图标，放在浅翡翠色方形底上 */
+  header .mod-ico {
+    width: 34px; height: 34px; flex: 0 0 34px;
+    display: grid; place-items: center;
+    border-radius: 10px;
+    background: var(--brand-50);
+    border: 1px solid #d1fae5;
+    color: var(--brand-700);
+  }
+  header .mod-ico svg { width: 18px; height: 18px; }
   header h1 {
     font-size: 16px; font-weight: 600; line-height: 1.4;
   }
@@ -61,6 +71,7 @@
     font-size: 12px !important;
   }
   header button, .hbtn {
+    display: inline-flex; align-items: center; gap: 6px;
     background: #fff !important;
     color: var(--text-1) !important;
     border: 1px solid var(--border) !important;
@@ -72,6 +83,8 @@
     cursor: pointer;
     box-shadow: var(--shadow-xs);
   }
+  header button svg, .hbtn svg { width: 14px; height: 14px; flex: 0 0 14px; }
+  header button svg.ico-ai, .hbtn svg.ico-ai { color: #b45309; }
   header button:hover, .hbtn:hover {
     background: var(--bg-inset) !important;
     border-color: var(--border-strong) !important;
@@ -507,6 +520,10 @@
 
   /* ---------- 11. 触控与动效 ---------- */
   .btn, .ft-btn-primary, .ft-btn-ai, .iconbtn, .btn-main { min-height: 32px; }
+  /* 移动端模块顶栏只保留操作按钮，图标让位给标题空间 */
+  @media (max-width: 860px) {
+    html:not(.ft-standalone) header .mod-ico { display: none; }
+  }
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
   }

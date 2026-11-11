@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 节假日问候</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261111b">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261111c">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -34,16 +34,18 @@
   .dlg-b select { width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border-field); border-radius:var(--r-sm); font-size:14px; }
   .ai-out { white-space:pre-wrap; font-size:14px; line-height:1.7; }
 </style>
-<script src="../assets/standalone.js?v=20261111b"></script>
-<script src="../assets/a11y.js?v=20261111b"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261111b">
-<link rel="stylesheet" href="../assets/ui.css?v=20261111b">
+<script src="../assets/standalone.js?v=20261111c"></script>
+<script src="../assets/a11y.js?v=20261111c"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261111c">
+<link rel="stylesheet" href="../assets/ui.css?v=20261111c">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="">
+  <span class="mod-ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+  </span>
   <h1>复购 · 节假日问候 <span style="font-size:12px;opacity:.7;font-weight:400">节日不缺席，关系不掉线</span></h1>
-  <button onclick="dlgSettings.showModal()">⚙ AI 设置</button>
+  <button onclick="dlgSettings.showModal()"><svg class="ico-ai" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>AI 设置</button>
 </header>
 <main>
   <h2>📅 即将到来的节日（未来 60 天）</h2>
@@ -80,8 +82,8 @@
   <div class="dlg-b" id="agPanel"></div>
 </dialog>
 
-<script src="../agnes-ai.js?v=20261111b"></script>
-<script src="../js/datastore.js?v=20261111b"></script>
+<script src="../agnes-ai.js?v=20261111c"></script>
+<script src="../js/datastore.js?v=20261111c"></script>
 <script src="../js/holidays_data.js"></script>
 <script>
 'use strict';

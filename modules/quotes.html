@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 报价管理</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261111b">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261111c">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -114,14 +114,16 @@
   .field-hint { font-size:11px; line-height:1.45; color:var(--text-3); margin-top:3px; }
   .field-hint.warn { color:var(--warn-text); }
 </style>
-<script src="../assets/standalone.js?v=20261111b"></script>
-<script src="../assets/a11y.js?v=20261111b"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261111b">
-<link rel="stylesheet" href="../assets/ui.css?v=20261111b">
+<script src="../assets/standalone.js?v=20261111c"></script>
+<script src="../assets/a11y.js?v=20261111c"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261111c">
+<link rel="stylesheet" href="../assets/ui.css?v=20261111c">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="">
+  <span class="mod-ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+  </span>
   <h1>报价管理</h1>
 </header>
 <main>
@@ -217,7 +219,7 @@
         <button class="btn-sm btn-primary" onclick="saveQuote()">💾 保存</button>
         <button class="btn-sm btn-primary" onclick="saveAndPreview()">💾 保存并预览</button>
         <button class="btn-sm btn-primary" onclick="toPI()" title="保存报价并带入单证中心生成 PI">📄 转 PI</button>
-        <button class="btn-sm btn-ghost" onclick="printQuote()">🖨 打印</button>
+        <button class="btn-sm btn-ghost" onclick="printQuote()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>打印</button>
         <button class="btn-sm btn-ghost" onclick="exportClientXls()" title="客户可改数量的单 sheet">⬇ Excel 客户版</button>
         <button class="btn-sm btn-ghost" onclick="exportDataXls()" title="多 sheet：报价头/明细/商品/客户">⬇ Excel 数据版</button>
         <button class="btn-sm btn-ghost" onclick="runGate(true)" title="Formal Output Gate">🔎 输出校验</button>
@@ -256,15 +258,15 @@
 
 <div id="brandHost"></div>
 
-<script src="../js/datastore.js?v=20261111b"></script>
-<script src="../js/quote-validity.js?v=20261111b"></script>
-<script src="../js/license.js?v=20261111b"></script>
-<script src="../agnes-ai.js?v=20261111b"></script>
-<script src="../js/gate.js?v=20261111b"></script>
-<script src="../js/i18n.js?v=20261111b"></script>
-<script src="../js/brand.js?v=20261111b"></script>
-<script src="../js/excel.js?v=20261111b"></script>
-<script src="../js/paper.js?v=20261111b"></script>
+<script src="../js/datastore.js?v=20261111c"></script>
+<script src="../js/quote-validity.js?v=20261111c"></script>
+<script src="../js/license.js?v=20261111c"></script>
+<script src="../agnes-ai.js?v=20261111c"></script>
+<script src="../js/gate.js?v=20261111c"></script>
+<script src="../js/i18n.js?v=20261111c"></script>
+<script src="../js/brand.js?v=20261111c"></script>
+<script src="../js/excel.js?v=20261111c"></script>
+<script src="../js/paper.js?v=20261111c"></script>
 <script>
 'use strict';
 

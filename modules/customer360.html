@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 客户 360°</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261111b">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261111c">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -122,14 +122,16 @@
   .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
-<script src="../assets/standalone.js?v=20261111b"></script>
-<script src="../assets/a11y.js?v=20261111b"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261111b">
-<link rel="stylesheet" href="../assets/ui.css?v=20261111b">
+<script src="../assets/standalone.js?v=20261111c"></script>
+<script src="../assets/a11y.js?v=20261111c"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261111c">
+<link rel="stylesheet" href="../assets/ui.css?v=20261111c">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="">
+  <span class="mod-ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+  </span>
   <h1>客户 360°</h1>
 </header>
 <main>
@@ -173,9 +175,9 @@
   <div class="df"><button class="dx" onclick="dlgComp.close()">取消</button><button class="ds" onclick="saveComp()">保存竞品</button></div>
 </dialog>
 
-<script src="../js/datastore.js?v=20261111b"></script>
-<script src="../js/stage-analytics.js?v=20261111b"></script>
-<script src="../agnes-ai.js?v=20261111b"></script>
+<script src="../js/datastore.js?v=20261111c"></script>
+<script src="../js/stage-analytics.js?v=20261111c"></script>
+<script src="../agnes-ai.js?v=20261111c"></script>
 <script>
 'use strict';
 

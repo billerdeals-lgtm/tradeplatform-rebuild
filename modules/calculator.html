@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 利润计算器</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261111b">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261111c">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -62,14 +62,16 @@
   .hist-item .hi-margin.bad { background:#fee2e2; color:#991b1b; }
   @media(max-width:700px) { .grid2 { grid-template-columns:1fr; } }
 </style>
-<script src="../assets/standalone.js?v=20261111b"></script>
-<script src="../assets/a11y.js?v=20261111b"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261111b">
-<link rel="stylesheet" href="../assets/ui.css?v=20261111b">
+<script src="../assets/standalone.js?v=20261111c"></script>
+<script src="../assets/a11y.js?v=20261111c"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261111c">
+<link rel="stylesheet" href="../assets/ui.css?v=20261111c">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="">
+  <span class="mod-ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+  </span>
   <h1>利润计算器</h1>
 </header>
 <main>
@@ -188,9 +190,9 @@
   </div>
 </main>
 
-<script src="../js/datastore.js?v=20261111b"></script>
-<script src="../js/pricing.js?v=20261111b"></script>
-<script src="../agnes-ai.js?v=20261111b"></script>
+<script src="../js/datastore.js?v=20261111c"></script>
+<script src="../js/pricing.js?v=20261111c"></script>
+<script src="../agnes-ai.js?v=20261111c"></script>
 <script>
 'use strict';
 

@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 商品库</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261111b">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261111c">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -52,17 +52,19 @@
   .df button { padding:9px 20px; border-radius:var(--r-sm); border:0; font-size:14px; font-weight:600; cursor:pointer; }
   .ds { background:var(--brand-700); color:#fff; } .dx { background:var(--bg-inset); color:var(--text-2); border:1px solid var(--border) !important; }
 </style>
-<script src="../assets/standalone.js?v=20261111b"></script>
-<script src="../assets/a11y.js?v=20261111b"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261111b">
-<link rel="stylesheet" href="../assets/ui.css?v=20261111b">
+<script src="../assets/standalone.js?v=20261111c"></script>
+<script src="../assets/a11y.js?v=20261111c"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261111c">
+<link rel="stylesheet" href="../assets/ui.css?v=20261111c">
 </head>
 <body>
 <header>
-  <img src="../assets/logo.svg" alt="">
+  <span class="mod-ico" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+  </span>
   <h1>商品库 <span style="font-size:12px;opacity:.7;font-weight:400">商品只建一次 · 报价/单证/目录复用 · 装箱数据直出</span></h1>
-  <button onclick="dlgXls.showModal()">⬇ Excel</button>
-  <button onclick="openEdit()">＋ 新建商品</button>
+  <button onclick="dlgXls.showModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>Excel</button>
+  <button onclick="openEdit()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14"/><path d="M5 12h14"/></svg>新建商品</button>
 </header>
 <main>
   <div class="stats s3">
@@ -129,10 +131,10 @@
   </div>
 </dialog>
 
-<script src="../js/datastore.js?v=20261111b"></script>
-<script src="../js/brand.js?v=20261111b"></script>
-<script src="../js/license.js?v=20261111b"></script>
-<script src="../js/excel.js?v=20261111b"></script>
+<script src="../js/datastore.js?v=20261111c"></script>
+<script src="../js/brand.js?v=20261111c"></script>
+<script src="../js/license.js?v=20261111c"></script>
+<script src="../js/excel.js?v=20261111c"></script>
 <script>
 'use strict';
 var editingId = null;
