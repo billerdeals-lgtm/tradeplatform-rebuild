@@ -1,77 +1,135 @@
 /* ============================================================
-   FT Compass · Design Tokens v1.0
-   视觉体系独立自研，不参考原版 tradeplatform 的任何样式。
-   主色翡翠绿 #0b6e4f / 点缀琥珀 #ffc53d / 米白纸面底 #faf9f5
+   FT Compass · Design Tokens v2.0
+   设计语言：shadcn/ui（neutral + emerald），工作台场景。
+   - 中性色负责信息层级，翡翠绿只做品牌主色与选中态
+   - 琥珀色仍是 AI 专属色，一眼识别 AI 入口 / AI 输出
+   - 变量同时保留 v1 名称，老模块无需改 JS 即可换肤
    ============================================================ */
 
 :root {
-  /* ---- 品牌色 ---- */
-  --brand-900: #084c38;      /* 深翡翠：侧边栏/页头 */
-  --brand-800: #0a5a42;      /* 悬停加深 */
-  --brand-700: #0b6e4f;      /* 主色：主按钮/链接/选中态 */
-  --brand-600: #0c7f5a;      /* 描边/时间线节点 */
-  --brand-500: #17936c;      /* hover/次强调 */
-  --brand-100: #dff2ea;      /* 浅底：标签/选中底 */
-  --brand-50: #f2fbf7;       /* 极浅底：选中行 */
-  --accent-500: #ffc53d;     /* 琥珀点缀：AI 专属色！所有 AI 入口/输出用琥珀，一眼识别 */
-  --accent-100: #fff3d6;     /* AI 输出卡片浅底 */
+  /* ---- shadcn/ui 语义变量（HSL 三元组）---- */
+  --background: 0 0% 100%;
+  --foreground: 240 10% 4%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 4%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 4%;
+  --primary: 160 84% 24%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 5% 96%;
+  --secondary-foreground: 240 6% 10%;
+  --muted: 240 5% 96%;
+  --muted-foreground: 240 4% 46%;
+  --accent: 160 60% 95%;
+  --accent-foreground: 160 84% 20%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 0 0% 100%;
+  --border-hsl: 240 6% 90%;
+  --input: 240 6% 84%;
+  --ring: 160 84% 28%;
+  --radius: 0.625rem;
 
-  /* ---- 中性色（米白纸面风）---- */
-  --bg-page: #faf9f5;        /* 页面底 */
-  --bg-card: #ffffff;        /* 卡片底 */
-  --bg-inset: #f3f1ea;       /* 内嵌区/表头底 */
-  --border: #e4e0d4;         /* 常规边框 */
-  --border-strong: #cfc9b8;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 240 6% 25%;
+  --sidebar-muted: 240 5% 50%;
+  --sidebar-accent: 160 60% 96%;
+  --sidebar-accent-foreground: 160 84% 24%;
+  --sidebar-border: 240 6% 91%;
+
+  /* ---- 图表色（复盘 / 漏斗 / 趋势）---- */
+  --chart-1: 160 84% 30%;
+  --chart-2: 199 89% 48%;
+  --chart-3: 38 92% 50%;
+  --chart-4: 262 83% 58%;
+  --chart-5: 347 77% 50%;
+
+  /* ---- 品牌色（兼容 v1 变量名）---- */
+  --brand-900: #064e3b;      /* 深翡翠 */
+  --brand-800: #065f46;
+  --brand-700: #047857;      /* 主色 */
+  --brand-600: #059669;
+  --brand-500: #10b981;
+  --brand-100: #d1fae5;
+  --brand-50: #ecfdf5;
+  --accent-500: #f59e0b;     /* 琥珀：AI 专属 */
+  --accent-100: #fffbeb;
+
+  /* ---- 中性色 ---- */
+  --bg-page: #f7f8fa;
+  --bg-card: #ffffff;
+  --bg-inset: #f4f4f5;
+  --border: #e4e4e7;
+  --border-strong: #d4d4d8;
 
   /* ---- 文字 ---- */
-  --text-1: #1f2933;         /* 主文字 */
-  --text-2: #52606d;         /* 次文字 */
-  --text-3: #646f7b;         /* 占位/辅助：压在 4.5:1 以上（旧值 #9aa5b1 只有 2.2） */
+  --text-1: #18181b;
+  --text-2: #52525b;
+  --text-3: #71717a;
 
-  /* ---- 语义色 ----
-     基础色用于图形（图标、圆点、左边条、边框），保持原饱和度；
-     *-text 是专用的文字色，比基础色深一档，保证 ≥4.5:1。
-     用色规则：写 color 用 *-text，写 background / border 用基础色。 */
-  --ok: #17936c;  --ok-bg: #dff2ea;       /* 成功/高分 */
-  --warn: #d97706; --warn-bg: #fdf0d5;    /* 中分/临期 */
-  --danger: #c2410c; --danger-bg: #fbe4d5; /* 逾期/低分 */
-  --info: #2563eb; --info-bg: #dbeafe;
-  --ok-text: #0f7a58;
-  --warn-text: #ae5008;
-  --danger-text: #b02f0b;
+  /* ---- 语义色 ---- */
+  --ok: #059669;  --ok-bg: #ecfdf5;
+  --warn: #d97706; --warn-bg: #fffbeb;
+  --danger: #dc2626; --danger-bg: #fef2f2;
+  --info: #2563eb; --info-bg: #eff6ff;
+  --ok-text: #047857;
+  --warn-text: #b45309;
+  --danger-text: #b91c1c;
   --info-text: #1d4ed8;
 
-  /* ---- 控件边框 ----
-     表单控件的边界是识别输入框的唯一线索，WCAG 要求 3:1；
-     --border-strong 只有 1.57:1，保留给胶囊/虚线区等装饰性描边。 */
-  --border-field: #8b8577;
+  /* ---- 控件边框：WCAG 3:1 ---- */
+  --border-field: #8f8f98;
 
-  /* ---- AI 专属规范 ----
-     所有 AI 生成内容容器：--accent-100 底 + 3px 琥珀左条
-     所有 AI 触发按钮：琥珀底深字，区别于常规绿色主按钮 */
+  /* ---- AI 专属规范 ---- */
   --ai-card-bg: var(--accent-100);
   --ai-card-border: 3px solid var(--accent-500);
-  --ai-btn-bg: var(--accent-500);
-  --ai-btn-text: #4a3200;
+  --ai-btn-bg: #fbbf24;
+  --ai-btn-text: #451a03;
 
   /* ---- 字体 ---- */
-  --font-sans: -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
-  --font-mono: "Cascadia Code", Consolas, monospace;
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+  --font-mono: "Cascadia Code", "SFMono-Regular", Consolas, monospace;
 
-  /* ---- 圆角/阴影/间距 ---- */
-  --r-sm: 6px; --r-md: 10px; --r-lg: 14px;
-  --shadow-card: 0 1px 3px rgba(31, 41, 51, .08);
-  --shadow-pop: 0 8px 24px rgba(31, 41, 51, .16);
-  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 28px; --sp-8: 32px;
+  /* ---- 圆角 / 阴影 / 间距 ---- */
+  --r-sm: 8px; --r-md: 10px; --r-lg: 14px;
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, .04);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, .05);
+  --shadow-pop: 0 18px 45px -12px rgba(16, 24, 40, .22);
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-7: 28px; --sp-8: 32px;
 }
 
-/* ---- 常用基类 ---- */
-.ft-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-md); box-shadow: var(--shadow-card); }
-.ft-btn-primary { background: var(--brand-700); color: #fff; border: 0; border-radius: var(--r-sm); padding: 8px 18px; cursor: pointer; }
-.ft-btn-primary:hover { background: var(--brand-500); }
-.ft-btn-ai { background: var(--ai-btn-bg); color: var(--ai-btn-text); border: 0; border-radius: var(--r-sm); padding: 8px 18px; cursor: pointer; font-weight: 600; }
-.ft-btn-ai:hover { filter: brightness(1.06); }
-.ft-ai-output { background: var(--ai-card-bg); border-left: var(--ai-card-border); border-radius: var(--r-sm); padding: var(--sp-3) var(--sp-4); }
-.ft-tag { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 12px; }
-.iconbtn { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 5px 10px; cursor: pointer; font-size: 12.5px; color: var(--text-2); }
-.iconbtn:hover { border-color: var(--brand-500); color: var(--brand-700); }
+/* ---- 常用基类（v1 兼容）---- */
+.ft-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-card);
+}
+.ft-btn-primary {
+  background: var(--brand-700); color: #fff; border: 0;
+  border-radius: var(--r-sm); padding: 8px 18px; cursor: pointer;
+}
+.ft-btn-primary:hover { background: var(--brand-800); }
+.ft-btn-ai {
+  background: var(--ai-btn-bg); color: var(--ai-btn-text); border: 0;
+  border-radius: var(--r-sm); padding: 8px 18px; cursor: pointer; font-weight: 600;
+}
+.ft-btn-ai:hover { filter: brightness(1.04); }
+.ft-ai-output {
+  background: var(--ai-card-bg);
+  border: 1px solid #fde68a;
+  border-left: var(--ai-card-border);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+}
+.ft-tag {
+  display: inline-block; padding: 2px 10px; border-radius: 999px;
+  font-size: 12px; background: var(--bg-inset); color: var(--text-2);
+}
+.iconbtn {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--r-sm); padding: 5px 10px; cursor: pointer;
+  font-size: 12.5px; color: var(--text-2); line-height: 1.5;
+}
+.iconbtn:hover { border-color: var(--brand-500); color: var(--brand-700); background: var(--brand-50); }

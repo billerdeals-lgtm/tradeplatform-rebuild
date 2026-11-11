@@ -4,151 +4,368 @@
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://apihub.agnes-ai.com; frame-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#047857">
 <title>FT Compass · 外贸客户开发工作台</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<link rel="stylesheet" href="assets/tokens.css?v=20261111a">
-<script src="assets/standalone.js?v=20261111a"></script>
+<link rel="stylesheet" href="assets/tokens.css?v=20261111b">
+<link rel="stylesheet" href="assets/responsive.css?v=20261111b">
+<link rel="stylesheet" href="assets/ui.css?v=20261111b">
+<script src="assets/standalone.js?v=20261111b"></script>
 <style>
-  * { box-sizing:border-box; }
-  body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); display:flex; height:100vh; overflow:hidden; }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font: 13.5px/1.6 var(--font-sans);
+    background: var(--bg-page);
+    color: var(--text-1);
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font-family: inherit; }
+  :focus-visible { outline: 2px solid var(--brand-700); outline-offset: 2px; border-radius: 6px; }
+
   /* ---- 侧边栏 ---- */
-  nav { width:200px; background:var(--brand-900); color:#fff; display:flex; flex-direction:column; flex-shrink:0; }
-  .logo { display:flex; align-items:center; gap:10px; height:60px; padding:0 12px; box-sizing:border-box; }
-  .logo img { width:34px; height:34px; }
-  .logo b { font-size:16px; letter-spacing:.5px; }
-  .logo span { font-size:10px; opacity:.65; display:block; }
-  .navlist { flex:1; min-height:0; overflow-y:auto; padding:6px 12px;
-    scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.22) transparent; }
-  .navlist::-webkit-scrollbar { width:8px; }
-  .navlist::-webkit-scrollbar-track { background:transparent; }
-  .navlist::-webkit-scrollbar-thumb { background:rgba(255,255,255,.22); border-radius:4px; }
-  .navlist::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,.34); }
-  .navitem { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:var(--r-sm); cursor:pointer; font-size:14px; color:rgba(255,255,255,.85); margin-bottom:2px; }
-  .navitem:hover { background:rgba(255,255,255,.08); }
-  .navitem.on { background:var(--brand-700); color:#fff; font-weight:600; }
-  .navitem .em { width:20px; text-align:center; }
-  /* 导航项与统计卡是 <button>：清掉浏览器默认外观，保持原来的块状样式 */
-  button.navitem { width:100%; background:none; border:0; font-family:inherit; text-align:left; line-height:inherit; }
-  button.stat { width:100%; font:inherit; color:inherit; }
-  .skip { position:absolute; left:-9999px; top:0; z-index:200; padding:10px 16px;
-    background:var(--brand-700); color:#fff; border-radius:0 0 var(--r-sm) 0; font-size:13px; }
-  .skip:focus { left:0; }
-  .navgroup { padding:12px 12px 4px; font-size:10px; letter-spacing:.14em; color:rgba(255,255,255,.62); }
-  .navgroup + .navitem { margin-top:0; }
-  .homeempty { padding:var(--sp-4); border:1px dashed rgba(11,110,79,.35); background:rgba(11,110,79,.04); }
-  .navfoot { padding:12px; border-top:1px solid rgba(255,255,255,.12); }
-  .footchips { display:flex; gap:6px; }
-  .footchip { flex:1 1 0; min-width:0; text-align:center; font-size:11px; line-height:1; padding:6px; border-radius:var(--r-sm);
-    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); color:rgba(255,255,255,.82);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; }
-  .footchip:hover { background:rgba(255,255,255,.16); }
-  .footacts { display:flex; gap:8px; margin-top:8px; }
-  .footacts button { flex:1; min-width:0; padding:6px 0; font-size:11.5px; line-height:1.2; cursor:pointer;
-    color:#fff; background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.3); border-radius:var(--r-sm); }
-  .footacts button:hover { background:rgba(255,255,255,.2); }
-  .footacts button:first-child { background:rgba(255,255,255,.22); border-color:rgba(255,255,255,.45); }
+  nav {
+    width: 252px; flex: 0 0 252px;
+    background: #fff;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .logo {
+    display: flex; align-items: center; gap: 10px;
+    height: 64px; padding: 0 16px; flex: 0 0 64px;
+    border-bottom: 1px solid var(--border);
+  }
+  .logo img { width: 34px; height: 34px; border-radius: 10px; flex: 0 0 34px; }
+  .logo .lg-name { font-size: 14.5px; font-weight: 650; letter-spacing: -.015em; line-height: 1.2; }
+  .logo .lg-sub { font-size: 10.5px; color: var(--text-3); margin-top: 1px; }
+
+  .navlist {
+    flex: 1; min-height: 0; overflow-y: auto;
+    padding: 10px; scrollbar-width: thin;
+  }
+  .navgroup {
+    padding: 14px 10px 6px;
+    font-size: 10.5px; font-weight: 600;
+    letter-spacing: .08em; text-transform: uppercase;
+    color: #a1a1aa;
+  }
+  .navgroup:first-child { padding-top: 4px; }
+  button.navitem {
+    width: 100%; display: flex; align-items: center; gap: 10px;
+    padding: 8px 10px; margin-bottom: 1px;
+    background: none; border: 0; border-radius: 8px;
+    font-size: 13.5px; font-weight: 450; line-height: 1.45;
+    color: var(--text-2); text-align: left; cursor: pointer;
+    transition: background .14s ease, color .14s ease;
+  }
+  .navitem svg {
+    width: 17px; height: 17px; flex: 0 0 17px;
+    color: #71717a; stroke-width: 1.8;
+  }
+  .navitem:hover { background: #f4f4f5; color: var(--text-1); }
+  .navitem:hover svg { color: var(--text-1); }
+  .navitem.on {
+    background: var(--brand-50); color: var(--brand-800); font-weight: 600;
+  }
+  .navitem.on svg { color: var(--brand-700); }
+  .navitem .em { display: none; }
+
+  .navfoot { flex: 0 0 auto; padding: 12px; border-top: 1px solid var(--border); }
+  .ai-card {
+    display: block; width: 100%; text-align: left;
+    padding: 10px 12px; margin-bottom: 10px;
+    background: linear-gradient(135deg, #fffbeb, #fff);
+    border: 1px solid #fde68a; border-radius: 10px;
+    cursor: pointer; transition: border-color .15s, box-shadow .15s;
+  }
+  .ai-card:hover { border-color: #fcd34d; box-shadow: 0 6px 18px -14px rgba(180, 83, 9, .5); }
+  .ai-title { display: flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 600; color: #92400e; }
+  .ai-title svg { width: 14px; height: 14px; }
+  .ai-val { margin-top: 2px; font-size: 12.5px; color: #78350f; }
+  .footchips { display: flex; gap: 6px; }
+  .footchip {
+    flex: 1 1 0; min-width: 0; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 7px;
+    background: #fff; color: var(--text-2);
+    font-size: 11.5px; line-height: 1.3; text-align: center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    cursor: pointer;
+  }
+  .footchip:hover { background: #fafafa; border-color: var(--border-strong); color: var(--text-1); }
+  .footacts { display: flex; gap: 6px; margin-top: 8px; }
+  .footacts button {
+    flex: 1; min-width: 0; padding: 6px 0;
+    border: 1px solid var(--border); border-radius: 7px;
+    background: #fff; color: var(--text-2);
+    font-size: 11.5px; line-height: 1.3; cursor: pointer;
+  }
+  .footacts button:hover { background: #fafafa; border-color: var(--border-strong); color: var(--text-1); }
+  .footacts button:first-child { color: var(--brand-800); border-color: #a7f3d0; background: var(--brand-50); }
+
   /* ---- 内容区 ---- */
-  .content { flex:1; display:flex; flex-direction:column; min-width:0; }
-  iframe { flex:1; border:0; background:var(--bg-page); }
-  /* ---- 模块容器：LRU 常驻，切回不丢筛选/半填内容 ---- */
-  #views { flex:1; min-height:0; position:relative; }
-  #views[hidden] { display:none; }
-  .viewframe { position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg-page); display:none; }
-  .viewframe.on { display:block; }
-  /* ---- 备份提醒条 ---- */
-  .backup-bar { flex:0 0 auto; display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-    padding:9px 14px; background:#fff7e6; border-bottom:1px solid #e2c98f; color:var(--warn-text); font-size:13px; }
-  .backup-bar[hidden] { display:none; }
-  .backup-bar .bb-msg { flex:1 1 auto; min-width:12em; }
-  .backup-bar .bb-btn { flex:0 0 auto; font:inherit; font-size:12.5px; line-height:1.2; padding:6px 14px;
-    border-radius:999px; border:1px solid #9a6b16; background:#fff; color:var(--warn-text); cursor:pointer; }
-  .backup-bar .bb-btn:hover { background:#ffefd2; }
-  .backup-bar .bb-btn.primary { background:#8a5a00; border-color:#8a5a00; color:#fff; }
-  .backup-bar .bb-btn.primary:hover { background:#6f4900; }
-  /* ---- 多标签页数据变更提示（与备份条同一套布局） ---- */
-  .sync-bar { background:#eaf4fb; border-bottom-color:#a9c8e2; color:#0b4a6f; }
-  .sync-bar .bb-btn { border-color:#5c8fb5; color:#0b4a6f; }
-  .sync-bar .bb-btn:hover { background:#dcecf8; }
-  .sync-bar .bb-btn.primary { background:#0b5c8a; border-color:#0b5c8a; color:#fff; }
-  .sync-bar .bb-btn.primary:hover { background:#084a70; }
-  /* ---- 本地存储容量 ---- */
-  .quota { padding:var(--sp-4); margin-top:var(--sp-4); }
-  .quota-h { display:flex; align-items:baseline; justify-content:space-between; gap:10px; font-size:12.5px; color:var(--text-2); }
-  .quota-h b { font-size:13px; color:var(--text-1); }
-  .quota-track { height:8px; background:var(--bg-inset); border-radius:4px; overflow:hidden; margin:9px 0 7px; }
-  .quota-fill { height:100%; width:0; background:var(--brand-700); border-radius:4px; transition:width .25s ease; }
-  .quota-fill.warn { background:#d97706; }
-  .quota-fill.bad { background:#dc2626; }
-  .quota-tip { font-size:11.5px; line-height:1.65; color:var(--text-3); }
-  .quota-tip.warn { color:#a35a00; }
-  .quota-tip.bad { color:#b91c1c; }
+  .content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .topbar {
+    flex: 0 0 60px; height: 60px;
+    display: flex; align-items: center; gap: 12px;
+    padding: 0 24px;
+    background: rgba(255, 255, 255, .86);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 30;
+  }
+  .crumb { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-3); min-width: 0; }
+  .crumb b { color: var(--text-1); font-weight: 600; font-size: 13.5px; }
+  .crumb .sep { color: #d4d4d8; }
+  .top-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  .topbtn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 11px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text-2); font-size: 12.5px; cursor: pointer;
+    box-shadow: var(--shadow-xs);
+  }
+  .topbtn svg { width: 14px; height: 14px; }
+  .topbtn:hover { background: #fafafa; border-color: var(--border-strong); color: var(--text-1); }
+  .topbtn.primary { background: var(--brand-700); border-color: var(--brand-700); color: #fff; }
+  .topbtn.primary:hover { background: var(--brand-800); border-color: var(--brand-800); color: #fff; }
+  .top-avatar {
+    width: 30px; height: 30px; border-radius: 50%;
+    border: 0; background: #064e3b; color: #fff;
+    font-size: 11.5px; font-weight: 650; letter-spacing: .02em;
+    display: grid; place-items: center; cursor: pointer;
+  }
+  .top-avatar:hover { background: var(--brand-800); }
+
+  iframe { flex: 1; border: 0; background: var(--bg-page); }
+  #views { flex: 1; min-height: 0; position: relative; }
+  #views[hidden] { display: none; }
+  .viewframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: var(--bg-page); display: none; }
+  .viewframe.on { display: block; }
+
+  /* ---- 提醒条 ---- */
+  .backup-bar {
+    flex: 0 0 auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 8px 24px;
+    background: #fffbeb; border-bottom: 1px solid #fde68a;
+    color: #92400e; font-size: 12.5px;
+  }
+  .backup-bar[hidden] { display: none; }
+  .backup-bar .bb-msg { flex: 1 1 auto; min-width: 12em; }
+  .backup-bar .bb-btn {
+    flex: 0 0 auto; font: inherit; font-size: 11.5px; line-height: 1.2;
+    padding: 5px 12px; border-radius: 7px;
+    border: 1px solid #f59e0b; background: #fff; color: #92400e; cursor: pointer;
+  }
+  .backup-bar .bb-btn:hover { background: #fef3c7; }
+  .backup-bar .bb-btn.primary { background: #b45309; border-color: #b45309; color: #fff; }
+  .backup-bar .bb-btn.primary:hover { background: #92400e; }
+  .sync-bar { background: #eff6ff; border-bottom-color: #bfdbfe; color: #1e40af; }
+  .sync-bar .bb-btn { border-color: #93c5fd; color: #1e40af; }
+  .sync-bar .bb-btn:hover { background: #dbeafe; }
+  .sync-bar .bb-btn.primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+  .sync-bar .bb-btn.primary:hover { background: #1e40af; }
+
   /* ---- 首页 ---- */
-  #home { flex:1; overflow:auto; padding:var(--sp-8); }
-  #home h2 { margin:0 0 4px; font-size:22px; }
-  #home .sub { color:var(--text-2); font-size:13px; margin-bottom:var(--sp-6); }
-  .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:var(--sp-3); margin-bottom:var(--sp-6); }
-  .stat { padding:var(--sp-4); text-align:center; cursor:pointer; }
-  .stat:hover { border-color:var(--brand-500); }
-  .stat b { display:block; font-size:28px; margin-bottom:2px; }
-  .stat span { font-size:12px; color:var(--text-2); }
-  .brief { margin-bottom:var(--sp-6); }
-  .brief .ft-ai-output { font-size:14px; line-height:1.8; }
-  .quick { display:flex; gap:var(--sp-3); flex-wrap:wrap; }
-  /* ---- 今日工作台：有数据时填满下半屏 ---- */
-  .dash { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:var(--sp-3); margin-bottom:var(--sp-6); }
-  .dash[hidden] { display:none; }
-  .dash-card { padding:var(--sp-4); min-width:0; }
-  .dash-h { display:flex; align-items:baseline; justify-content:space-between; gap:8px; margin-bottom:6px; }
-  .dash-h b { font-size:13.5px; }
-  .dash-h .dash-more { font:inherit; font-size:11.5px; color:var(--brand-700); background:none; border:0; padding:0; cursor:pointer; }
-  .dash-h .dash-more:hover { text-decoration:underline; }
-  .dash-row { display:flex; align-items:center; gap:8px; width:100%; text-align:left; font:inherit; color:inherit;
-    background:none; border:0; border-top:1px dashed var(--border); padding:9px 0; cursor:pointer; }
-  .dash-row:first-child { border-top:0; }
-  .dash-row:hover .dr-t { color:var(--brand-700); }
-  .dash-row .dr-main { flex:1; min-width:0; }
-  .dash-row .dr-t { display:block; font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dash-row .dr-s { display:block; font-size:11.5px; color:var(--text-2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px; }
-  .dr-badge { flex:0 0 auto; font-size:10.5px; line-height:1.5; padding:1px 8px; border-radius:999px; white-space:nowrap; }
-  .dr-badge.bad { background:#fee2e2; color:#991b1b; }
-  .dr-badge.warn { background:#fef3c7; color:#92400e; }
-  .dr-badge.ok { background:#d1fae5; color:#065f46; }
-  .dr-badge.info { background:#e0f2fe; color:#075985; }
-  .dash-empty { font-size:12.5px; color:var(--text-3); padding:8px 0; line-height:1.6; }
-  .dialog-wrap { padding:0; }
-  /* ---- 移动端抽屉 ---- */
-  .mbar { display:none; }
-  .mcover { display:none; }
-  .mdot { display:none; }
-  @media (max-width:860px) {
-    body { display:block; height:100vh; height:100dvh; overflow:hidden; }
-    .mbar { display:flex; position:fixed; top:0; left:0; right:0; height:52px; z-index:60; background:var(--brand-900); color:#fff; align-items:center; gap:10px; padding:0 12px; box-sizing:border-box; }
-    .mbar .mburger { width:36px; height:36px; flex:0 0 36px; border-radius:8px; border:1px solid rgba(255,255,255,.28); background:rgba(255,255,255,.14); color:#fff; font-size:18px; line-height:1; cursor:pointer; }
-    .mbar b { font-size:14px; letter-spacing:.3px; }
-    .mbar #mTitle { margin-left:auto; font-size:12px; opacity:.75; max-width:44%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-    .mbar .mdot { display:inline-block; width:8px; height:8px; flex:0 0 8px; border-radius:50%; margin-left:6px; background:rgba(255,255,255,.45); cursor:pointer; }
-    nav { position:fixed; top:0; bottom:0; left:0; width:268px; max-width:84vw; z-index:70; transform:translateX(-100%); transition:transform .22s ease; box-shadow:8px 0 30px rgba(0,0,0,.25); overflow:hidden; }
-    nav.open { transform:none; }
-    .mcover { position:fixed; inset:0; z-index:65; background:rgba(0,0,0,.45); }
-    .mcover.show { display:block; }
-    .content { height:100%; padding-top:52px; box-sizing:border-box; }
-    iframe { width:100%; height:100%; }
-    #home { padding:16px 12px; height:calc(100vh - 52px); height:calc(100dvh - 52px); }
-    /* 备份条出现时让内容区自己分配高度，避免 100dvh 计算溢出 */
-    .content.has-banner iframe, .content.has-banner #home { height:auto; min-height:0; }
-    .backup-bar { padding:8px 12px; font-size:12px; gap:8px; }
-    .backup-bar .bb-msg { flex:1 1 100%; }
-    #home h2 { font-size:19px; }
-    #home .sub { font-size:12px; margin-bottom:14px; }
-    #home .grid { grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
-    #home .dash { grid-template-columns:1fr; gap:8px; margin-bottom:14px; }
-    .dash-card { padding:var(--sp-3); }
-    .quick { gap:8px; }
-    .quick button { flex:1 1 46%; }
-    .stat b { font-size:22px; }
+  #home { flex: 1; overflow: auto; padding: 28px 32px 48px; }
+  .home-wrap { max-width: 1180px; margin: 0 auto; }
+  .hero { display: flex; align-items: flex-start; gap: 18px; margin-bottom: 24px; flex-wrap: wrap; }
+  .eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--brand-700); margin-bottom: 4px; }
+  .hero h2 { margin: 0 0 5px; font-size: 24px; line-height: 1.25; font-weight: 650; letter-spacing: -.025em; }
+  .hero .sub { margin: 0; color: var(--text-3); font-size: 12.5px; }
+  .hero-actions { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn-outline {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text-1); font-size: 12.5px; font-weight: 500;
+    cursor: pointer; box-shadow: var(--shadow-xs);
+  }
+  .btn-outline:hover { background: #fafafa; border-color: var(--border-strong); }
+  .btn-solid {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px; border: 1px solid var(--brand-700); border-radius: 8px;
+    background: var(--brand-700); color: #fff; font-size: 12.5px; font-weight: 500;
+    cursor: pointer; box-shadow: var(--shadow-xs);
+  }
+  .btn-solid:hover { background: var(--brand-800); border-color: var(--brand-800); }
+
+  .grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .stat {
+    position: relative; display: flex; flex-direction: column; align-items: flex-start;
+    padding: 16px 18px; text-align: left;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    cursor: pointer; box-shadow: var(--shadow-xs);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .stat:hover { border-color: var(--border-strong); box-shadow: 0 8px 24px -18px rgba(9, 9, 11, .35); }
+  .stat-ico {
+    width: 32px; height: 32px; border-radius: 8px;
+    display: grid; place-items: center; margin-bottom: 10px;
+    background: var(--brand-50); color: var(--brand-700);
+  }
+  .stat-ico svg { width: 16px; height: 16px; }
+  .stat b { display: block; font-size: 26px; line-height: 1.15; font-weight: 650; letter-spacing: -.03em; color: var(--text-1); }
+  .stat span { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+  .stat .stat-hint { font-size: 11px; color: #a1a1aa; margin-top: 6px; }
+
+  .dash { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .dash[hidden] { display: none; }
+  .dash-card {
+    padding: 16px 16px 6px; min-width: 0;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow-xs);
+  }
+  .dash-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px; }
+  .dash-h b { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .dash-h .dash-more { font: inherit; font-size: 11.5px; color: var(--brand-700); background: none; border: 0; padding: 0; cursor: pointer; }
+  .dash-h .dash-more:hover { text-decoration: underline; }
+  .dash-row {
+    display: flex; align-items: center; gap: 8px; width: 100%; text-align: left;
+    font: inherit; color: inherit; background: none; border: 0;
+    border-top: 1px solid #f4f4f5; padding: 10px 0; cursor: pointer;
+  }
+  .dash-row:first-child { border-top: 0; }
+  .dash-row:hover .dr-t { color: var(--brand-700); }
+  .dash-row .dr-main { flex: 1; min-width: 0; }
+  .dash-row .dr-t { display: block; font-size: 12.5px; font-weight: 550; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: color .12s; }
+  .dash-row .dr-s { display: block; font-size: 11.5px; color: var(--text-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+  .dr-badge { flex: 0 0 auto; font-size: 10.5px; line-height: 1.5; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+  .dr-badge.bad { background: #fee2e2; color: #b91c1c; }
+  .dr-badge.warn { background: #fef3c7; color: #b45309; }
+  .dr-badge.ok { background: #d1fae5; color: #047857; }
+  .dr-badge.info { background: #dbeafe; color: #1d4ed8; }
+  .dash-empty { font-size: 12px; color: var(--text-3); padding: 10px 0; line-height: 1.6; }
+
+  .home-cols { display: grid; grid-template-columns: minmax(0, 1.65fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+  .brief-card {
+    padding: 18px 20px;
+    background: linear-gradient(135deg, #ecfdf5 0%, #fff 55%);
+    border: 1px solid #d1fae5; border-radius: 12px;
+    box-shadow: var(--shadow-xs);
+  }
+  .brief-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .brief-ico {
+    width: 38px; height: 38px; flex: 0 0 38px; border-radius: 10px;
+    display: grid; place-items: center;
+    background: #d1fae5; color: var(--brand-800);
+  }
+  .brief-ico svg { width: 19px; height: 19px; }
+  .brief-head b { display: block; font-size: 14px; font-weight: 650; }
+  .brief-sub { font-size: 12px; color: var(--text-3); margin-top: 1px; }
+  .brief-head .btn-solid { margin-left: auto; }
+  .brief-body { margin-top: 14px; font-size: 13px; line-height: 1.75; }
+  .brief-body:empty { display: none; }
+
+  .quick-card, .tip-card {
+    margin-top: 12px; padding: 16px;
+    background: #fff; border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow-xs);
+  }
+  .card-title { font-size: 12.5px; font-weight: 600; color: var(--text-1); margin-bottom: 10px; }
+  .quick { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .quick button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text-2); font-size: 12px; font-weight: 500;
+    cursor: pointer; white-space: nowrap;
+  }
+  .quick button:hover { background: #fafafa; border-color: var(--border-strong); color: var(--text-1); }
+  .quick button.ai { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+  .quick button.ai:hover { background: #fef3c7; }
+
+  .side-col .quota { margin-top: 0; padding: 16px; }
+  .quota-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--text-3); }
+  .quota-h b { font-size: 12.5px; color: var(--text-1); }
+  .quota-track { height: 8px; background: var(--bg-inset); border-radius: 999px; overflow: hidden; margin: 10px 0 8px; }
+  .quota-fill { height: 100%; width: 0; background: var(--brand-600); border-radius: 999px; transition: width .25s ease; }
+  .quota-fill.warn { background: #d97706; }
+  .quota-fill.bad { background: #dc2626; }
+  .quota-tip { font-size: 11.5px; line-height: 1.65; color: var(--text-3); }
+  .quota-tip.warn { color: #a35a00; }
+  .quota-tip.bad { color: #b91c1c; }
+  .tip-card { background: #fafafa; box-shadow: none; }
+  .tip-card p { margin: 0; font-size: 11.5px; line-height: 1.7; color: var(--text-3); }
+
+  .homeempty {
+    padding: 24px;
+    border: 1px dashed var(--border-strong);
+    background: #fff; border-radius: 12px; margin-bottom: 20px;
+  }
+  .homeempty b { font-size: 14px; }
+  .homeempty p { font-size: 12.5px; color: var(--text-3); line-height: 1.7; margin: 6px 0 14px; }
+  .homeempty .empty-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .homeempty .empty-actions button {
+    padding: 8px 14px; border: 1px solid var(--border); border-radius: 8px;
+    background: #fff; color: var(--text-1); font-size: 12.5px; cursor: pointer;
+  }
+  .homeempty .empty-actions button:first-child { background: var(--brand-700); border-color: var(--brand-700); color: #fff; }
+  .homeempty .empty-actions button:hover { filter: brightness(.98); }
+
+  .skip { position: absolute; left: -9999px; top: 0; z-index: 200; padding: 10px 16px;
+    background: var(--brand-700); color: #fff; border-radius: 0 0 8px 0; font-size: 13px; }
+  .skip:focus { left: 0; }
+
+  /* ---- 移动端 ---- */
+  .mbar { display: none; }
+  .mcover { display: none; }
+  .mdot { display: none; }
+  @media (max-width: 1100px) {
+    .home-cols { grid-template-columns: 1fr; }
+    .side-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+    .side-col .tip-card { margin-top: 0; }
+  }
+  @media (max-width: 860px) {
+    body { display: block; height: 100vh; height: 100dvh; overflow: hidden; }
+    .mbar {
+      display: flex; position: fixed; top: 0; left: 0; right: 0; height: 52px; z-index: 60;
+      background: linear-gradient(180deg, #065f46, #064e3b); color: #fff;
+      align-items: center; gap: 10px; padding: 0 12px; box-sizing: border-box;
+    }
+    .mbar .mburger {
+      width: 34px; height: 34px; flex: 0 0 34px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.24); background: rgba(255,255,255,.12);
+      color: #fff; font-size: 17px; line-height: 1; cursor: pointer;
+    }
+    .mbar b { font-size: 14px; letter-spacing: .2px; }
+    .mbar #mTitle { margin-left: auto; font-size: 12px; opacity: .78; max-width: 44%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mbar .mdot { display: inline-block; width: 8px; height: 8px; flex: 0 0 8px; border-radius: 50%; margin-left: 6px; background: rgba(255,255,255,.45); cursor: pointer; }
+    nav {
+      position: fixed; top: 52px; bottom: 0; left: 0; width: 276px; max-width: 84vw; z-index: 70;
+      transform: translateX(-100%); transition: transform .22s ease;
+      box-shadow: 12px 0 40px rgba(9,9,11,.18); border-right: 1px solid var(--border);
+    }
+    nav.open { transform: none; }
+    .logo { display: none; }
+    .navlist { padding-top: 12px; }
+    .mcover { position: fixed; inset: 0; z-index: 65; background: rgba(9,9,11,.4); }
+    .mcover.show { display: block; }
+    .content { height: 100%; padding-top: 52px; box-sizing: border-box; }
+    .topbar { display: none; }
+    iframe { width: 100%; height: 100%; }
+    #home { padding: 20px 14px; height: calc(100vh - 52px); height: calc(100dvh - 52px); }
+    .content.has-banner #home { height: auto; min-height: 0; }
+    .backup-bar { padding: 8px 14px; font-size: 12px; gap: 8px; }
+    .backup-bar .bb-msg { flex: 1 1 100%; }
+    .hero { margin-bottom: 18px; }
+    .hero h2 { font-size: 20px; }
+    .hero-actions { margin-left: 0; width: 100%; }
+    .hero-actions > * { flex: 1 1 auto; justify-content: center; }
+    .grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+    .stat { padding: 14px; }
+    .stat b { font-size: 22px; }
+    .stat-ico { width: 28px; height: 28px; margin-bottom: 8px; }
+    .dash { grid-template-columns: 1fr; gap: 10px; margin-bottom: 16px; }
+    .home-cols { gap: 12px; }
+    .side-col { grid-template-columns: 1fr; }
+    .quick { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) {
+    .quick { grid-template-columns: 1fr; }
   }
 </style>
-<link rel="stylesheet" href="assets/responsive.css?v=20261111a">
 </head>
 <body>
 <a class="skip" href="#content">跳到主要内容</a>
@@ -159,151 +376,274 @@
   <span id="mDot" class="mdot" title="授权状态" onclick="openLicense()"></span>
 </div>
 <div class="mcover" id="mcover" aria-hidden="true" onclick="closeNav()"></div>
-<nav id="appnav">
+
+<nav id="appnav" aria-label="主导航">
   <div class="logo">
     <img src="assets/logo.svg" alt="">
-    <div><b>FT Compass</b><span>外贸客户开发工作台</span></div>
+    <div>
+      <div class="lg-name">FT Compass</div>
+      <div class="lg-sub">外贸客户开发工作台</div>
+    </div>
   </div>
+
   <div class="navlist" id="nav">
-    <button type="button" class="navitem on" aria-current="page" data-view="home"><span class="em">🏠</span>工作台</button>
+    <div class="navgroup">概览</div>
+    <button type="button" class="navitem on" aria-current="page" data-view="home">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>工作台</span>
+    </button>
+
     <div class="navgroup">开发</div>
-    <button type="button" class="navitem" data-view="modules/find.html"><span class="em">🔍</span>找客户</button>
-    <button type="button" class="navitem" data-view="modules/leads.html"><span class="em">👤</span>线索 Pipeline</button>
-    <button type="button" class="navitem" data-view="modules/customer360.html"><span class="em">🎯</span>客户 360°</button>
-    <button type="button" class="navitem" data-view="modules/comps.html"><span class="em">⚔️</span>竞品库</button>
+    <button type="button" class="navitem" data-view="modules/find.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+      <span>找客户</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/leads.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg>
+      <span>线索 Pipeline</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/customer360.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      <span>客户 360°</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/comps.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 2 9 5-9 5-9-5 9-5Z"/><path d="m3 12 9 5 9-5"/><path d="m3 17 9 5 9-5"/></svg>
+      <span>竞品库</span>
+    </button>
+
     <div class="navgroup">跟进</div>
-    <button type="button" class="navitem" data-view="modules/todos.html"><span class="em">✅</span>待办任务</button>
-    <button type="button" class="navitem" data-view="modules/templates.html"><span class="em">🗨</span>话术库</button>
-    <button type="button" class="navitem" data-view="modules/maillog.html"><span class="em">📧</span>发送记录</button>
+    <button type="button" class="navitem" data-view="modules/todos.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span>待办任务</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/templates.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span>话术库</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/maillog.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+      <span>发送记录</span>
+    </button>
+
     <div class="navgroup">成交</div>
-    <button type="button" class="navitem" data-view="modules/quotes.html"><span class="em">💰</span>报价管理</button>
-    <button type="button" class="navitem" data-view="modules/products.html"><span class="em">📦</span>商品库</button>
-    <button type="button" class="navitem" data-view="modules/calculator.html"><span class="em">🧮</span>利润计算器</button>
-    <button type="button" class="navitem" data-view="modules/docs.html"><span class="em">📄</span>单证中心</button>
+    <button type="button" class="navitem" data-view="modules/quotes.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>
+      <span>报价管理</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/products.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+      <span>商品库</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/calculator.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></svg>
+      <span>利润计算器</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/docs.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="m9 15 2 2 4-4"/></svg>
+      <span>单证中心</span>
+    </button>
+
     <div class="navgroup">经营</div>
-    <button type="button" class="navitem" data-view="modules/review.html"><span class="em">📊</span>复盘增长</button>
-    <button type="button" class="navitem" data-view="modules/holidays.html"><span class="em">🎁</span>复购 · 节假日</button>
-    <button type="button" class="navitem" data-view="modules/profile.html"><span class="em">📇</span>我的资料</button>
+    <button type="button" class="navitem" data-view="modules/review.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="12" x2="12" y1="20" y2="10"/><line x1="18" x2="18" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="16"/></svg>
+      <span>复盘增长</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/holidays.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13"/><path d="M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7"/><path d="M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5"/></svg>
+      <span>复购 · 节假日</span>
+    </button>
+    <button type="button" class="navitem" data-view="modules/profile.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M14 9h4"/><path d="M14 13h4"/></svg>
+      <span>我的资料</span>
+    </button>
   </div>
+
   <div class="navfoot">
+    <button type="button" class="ai-card" onclick="dlgSettings.showModal()" title="打开 AI 设置">
+      <span class="ai-title">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg>
+        AI 助手
+      </span>
+      <span class="ai-val" id="aiCnt">AI —</span>
+    </button>
     <div class="footchips">
       <span id="licBadge" class="footchip">授权</span>
-      <span id="aiCnt" class="footchip" onclick="dlgSettings.showModal()">AI —</span>
-      <button type="button" id="reloadChip" class="footchip" onclick="reloadView()" title="重新载入当前模块（未保存的输入会丢失）">↻ 重载</button>
+      <button type="button" id="reloadChip" class="footchip" onclick="reloadView()" title="重新载入当前模块（未保存的输入会丢失）">重载</button>
     </div>
     <div class="footacts">
-      <button onclick="openLicense()">🔑 授权</button>
-      <button onclick="backupAll()">⬇ 备份</button>
-      <button onclick="document.getElementById('restoreFile').click()">⬆ 恢复</button>
+      <button onclick="openLicense()">授权</button>
+      <button onclick="backupAll()">备份</button>
+      <button onclick="document.getElementById('restoreFile').click()">恢复</button>
     </div>
     <input type="file" id="restoreFile" aria-label="选择备份文件" accept=".json" style="display:none" onchange="restoreAll(this)">
   </div>
 </nav>
 
 <div class="content" id="content" tabindex="-1">
-  <!-- 备份逾期提醒：有业务数据且从未备份 / 超过 7 天时出现 -->
+  <div class="topbar">
+    <div class="crumb">
+      <span>FT Compass</span>
+      <span class="sep">/</span>
+      <b id="topTitle">工作台</b>
+    </div>
+    <div class="top-actions">
+      <button type="button" class="topbtn" onclick="reloadView()" title="重新载入当前模块">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+        重载
+      </button>
+      <button type="button" class="topbtn primary" onclick="backupAll()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+        备份
+      </button>
+      <button type="button" class="top-avatar" onclick="openLicense()" title="查看授权状态">FT</button>
+    </div>
+  </div>
+
+  <!-- 备份逾期提醒 -->
   <div class="backup-bar" id="backupBar" role="region" aria-label="备份提醒" hidden>
     <span class="bb-msg" id="backupMsg" role="status">该备份了：还没有备份过</span>
     <button type="button" class="bb-btn primary" onclick="backupAll()">立即备份</button>
     <button type="button" class="bb-btn" onclick="snoozeBackup()">稍后</button>
   </div>
-  <!-- 多标签页：其他窗口写入当前集合时提示，不自动覆盖 -->
+  <!-- 多标签页提示 -->
   <div class="backup-bar sync-bar" id="syncBar" role="region" aria-label="多窗口数据变更" hidden>
     <span class="bb-msg" id="syncMsg" role="status">数据已在其他窗口修改，当前页面可能不是最新。</span>
     <button type="button" class="bb-btn primary" onclick="reloadPage()">刷新页面</button>
     <button type="button" class="bb-btn" onclick="hideSyncBar()">知道了</button>
   </div>
-  <!-- 首页简报 -->
+
   <div id="home">
-    <h2><span id="greet">早上好</span> 🧭</h2>
-    <div class="sub">FT Compass 自研版 · 8 步闭环第一步已就绪（线索 → 触达 → 成交）</div>
-    <div class="grid">
-      <button type="button" class="ft-card stat" onclick="go('modules/leads.html')"><b id="hLeads" style="color:var(--brand-700)">0</b><span>线索总数</span></button>
-      <button type="button" class="ft-card stat" onclick="go('modules/leads.html')"><b id="hScored" style="color:var(--accent-500)">0</b><span>已 AI 评分</span></button>
-      <button type="button" class="ft-card stat" onclick="go('modules/quotes.html')"><b id="hQuotes" style="color:var(--ok-text)">0</b><span>报价中</span></button>
-      <button type="button" class="ft-card stat" onclick="go('modules/todos.html')"><b id="hTodos" style="color:var(--warn-text)">0</b><span>待办</span></button>
-    </div>
-    <!-- 今日工作台：有业务数据后显示，避免首页下半屏空白 -->
-    <div class="dash" id="dash" hidden>
-      <section class="ft-card dash-card" aria-labelledby="dashFollowH">
-        <div class="dash-h">
-          <b id="dashFollowH">📞 今天该跟进</b>
-          <button type="button" class="dash-more" onclick="go('modules/leads.html')">查看全部 →</button>
+    <div class="home-wrap">
+      <div class="hero">
+        <div>
+          <div class="eyebrow" id="todayLabel">今日工作台</div>
+          <h2><span id="greet">早上好</span>，今天先做最重要的事</h2>
+          <p class="sub">线索、跟进、报价与单证集中在一个工作台 · 数据只保存在本机浏览器</p>
         </div>
-        <div id="dashFollow"></div>
-      </section>
-      <section class="ft-card dash-card" aria-labelledby="dashTodoH">
-        <div class="dash-h">
-          <b id="dashTodoH">✅ 临期待办</b>
-          <button type="button" class="dash-more" onclick="go('modules/todos.html')">查看全部 →</button>
+        <div class="hero-actions">
+          <button type="button" class="btn-outline" onclick="dlgSettings.showModal()">AI 设置</button>
+          <button type="button" class="btn-solid" onclick="go('modules/find.html')">去找客户</button>
         </div>
-        <div id="dashTodo"></div>
-      </section>
-      <section class="ft-card dash-card" aria-labelledby="dashQuoteH">
-        <div class="dash-h">
-          <b id="dashQuoteH">💰 最近报价</b>
-          <button type="button" class="dash-more" onclick="go('modules/quotes.html')">查看全部 →</button>
+      </div>
+
+      <div class="grid">
+        <button type="button" class="stat" onclick="go('modules/leads.html')">
+          <span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></span>
+          <b id="hLeads">0</b><span>线索总数</span>
+        </button>
+        <button type="button" class="stat" onclick="go('modules/leads.html')">
+          <span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+          <b id="hScored">0</b><span>已 AI 评分</span>
+        </button>
+        <button type="button" class="stat" onclick="go('modules/quotes.html')">
+          <span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/></svg></span>
+          <b id="hQuotes">0</b><span>报价中</span>
+        </button>
+        <button type="button" class="stat" onclick="go('modules/todos.html')">
+          <span class="stat-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 11 3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></span>
+          <b id="hTodos">0</b><span>待办任务</span>
+        </button>
+      </div>
+
+      <div class="dash" id="dash" hidden>
+        <section class="dash-card" aria-labelledby="dashFollowH">
+          <div class="dash-h">
+            <b id="dashFollowH">今天该跟进</b>
+            <button type="button" class="dash-more" onclick="go('modules/leads.html')">查看全部</button>
+          </div>
+          <div id="dashFollow"></div>
+        </section>
+        <section class="dash-card" aria-labelledby="dashTodoH">
+          <div class="dash-h">
+            <b id="dashTodoH">临期待办</b>
+            <button type="button" class="dash-more" onclick="go('modules/todos.html')">查看全部</button>
+          </div>
+          <div id="dashTodo"></div>
+        </section>
+        <section class="dash-card" aria-labelledby="dashQuoteH">
+          <div class="dash-h">
+            <b id="dashQuoteH">最近报价</b>
+            <button type="button" class="dash-more" onclick="go('modules/quotes.html')">查看全部</button>
+          </div>
+          <div id="dashQuote"></div>
+        </section>
+      </div>
+
+      <div class="homeempty" id="homeEmpty" style="display:none">
+        <b>还没有客户数据</b>
+        <p>先去找客户，或手工录入第一条线索。数据只保存在你自己的浏览器里，不会上传。</p>
+        <div class="empty-actions">
+          <button type="button" onclick="go('modules/find.html')">去找客户</button>
+          <button type="button" onclick="go('modules/leads.html?import=1')">导入客户 CSV</button>
+          <button type="button" onclick="go('modules/leads.html')">录入线索</button>
         </div>
-        <div id="dashQuote"></div>
-      </section>
-    </div>
-    <div class="ft-card homeempty" id="homeEmpty" style="display:none">
-      <b>还没有客户数据</b>
-      <div style="font-size:13px;color:var(--text-2);line-height:1.7;margin:6px 0 12px">先去找客户，或手工录入第一条线索。数据只保存你自己的浏览器里。</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="ft-btn-primary" onclick="go('modules/find.html')">🔍 去找客户</button>
-        <button class="ft-btn-primary" onclick="go('modules/leads.html?import=1')">⬆ 导入客户 CSV</button>
-        <button class="ft-btn-primary" onclick="go('modules/leads.html')">＋ 录入线索</button>
+      </div>
+
+      <div class="home-cols">
+        <div class="brief">
+          <div class="brief-card">
+            <div class="brief-head">
+              <span class="brief-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/></svg></span>
+              <div>
+                <b>AI 今日简报</b>
+                <div class="brief-sub">汇总待办与线索评分，生成今天的工作重点</div>
+              </div>
+              <button type="button" class="btn-solid" id="btnBrief" onclick="aiBrief()">生成简报</button>
+            </div>
+            <div class="ft-ai-output brief-body" id="briefBody" aria-live="polite" style="display:none"></div>
+          </div>
+
+          <div class="quick-card">
+            <div class="card-title">快捷操作</div>
+            <div class="quick">
+              <button type="button" onclick="go('modules/leads.html')">录入线索</button>
+              <button type="button" onclick="go('modules/quotes.html')">新建报价</button>
+              <button type="button" onclick="go('modules/calculator.html')">利润计算器</button>
+              <button type="button" onclick="go('modules/products.html')">商品库</button>
+              <button type="button" onclick="go('modules/templates.html')">翻开话术库</button>
+              <button type="button" class="ai" onclick="dlgSettings.showModal()">AI 设置</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="side-col">
+          <div class="ft-card quota" id="quotaCard">
+            <div class="quota-h"><b>本地存储</b><span id="quotaText">—</span></div>
+            <div class="quota-track" role="progressbar" aria-label="本地存储使用率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="quotaTrack">
+              <div class="quota-fill" id="quotaFill"></div>
+            </div>
+            <div class="quota-tip" id="quotaTip">数据只保存在当前浏览器，建议每周备份一次。</div>
+          </div>
+          <div class="tip-card">
+            <div class="card-title">数据说明</div>
+            <p>所有客户、报价与单证都存在本机 localStorage。换浏览器或清理站点数据会丢失，重要数据请定期用「备份」导出 JSON。</p>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="brief" id="briefWrap">
-      <div class="ft-card" style="padding:var(--sp-4);display:flex;align-items:center;gap:var(--sp-3)">
-        <div style="flex:1"><b>AI 今日简报</b><div style="font-size:12px;color:var(--text-2)">汇总待办与线索评分，生成今天的工作重点</div></div>
-        <button class="ft-btn-ai" id="btnBrief" onclick="aiBrief()">🧭 生成简报</button>
-      </div>
-      <!-- 结果单独占一个容器：不能覆盖包含按钮的卡片，否则按钮消失且后续访问空引用 -->
-      <div class="ft-ai-output ft-card" id="briefBody" aria-live="polite"
-        style="padding:var(--sp-4);margin-top:var(--sp-3);display:none"></div>
-    </div>
-    <div class="quick">
-      <button class="ft-btn-primary" onclick="go('modules/leads.html')">＋ 录入线索</button>
-      <button class="ft-btn-primary" onclick="go('modules/quotes.html')">💰 新建报价</button>
-      <button class="ft-btn-primary" onclick="go('modules/calculator.html')">🧮 利润计算器</button>
-      <button class="ft-btn-primary" onclick="go('modules/products.html')">📦 商品库</button>
-      <button class="ft-btn-primary" onclick="go('modules/templates.html')">翻开话术库</button>
-      <button class="ft-btn-ai" onclick="dlgSettings.showModal()">⚙ AI 设置</button>
-    </div>
   </div>
-  <!-- 本地存储容量：5MB 天花板，先预警再谈清理 -->
-  <div class="ft-card quota" id="quotaCard">
-    <div class="quota-h"><b>本地存储</b><span id="quotaText">—</span></div>
-    <div class="quota-track" role="progressbar" aria-label="本地存储使用率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="quotaTrack">
-      <div class="quota-fill" id="quotaFill"></div>
-    </div>
-    <div class="quota-tip" id="quotaTip">数据只保存在当前浏览器，建议每周备份一次。</div>
-  </div>
-  <!-- 模块 iframe：按需创建，LRU 保留最近 3 个 -->
+
   <div id="views" hidden></div>
 </div>
 
 <dialog role="dialog" aria-modal="true" id="dlgSettings" aria-label="AI 设置" class="dialog-wrap">
-  <div class="dlg-h" style="background:var(--bg-inset);padding:var(--sp-3) var(--sp-4);font-weight:600;display:flex;justify-content:space-between">
-    <span>AI 设置（Agnes 3.0 Flash）</span>
+  <div class="dlg-h">
+    <span>AI 设置</span>
     <button class="iconbtn" onclick="dlgSettings.close()" aria-label="关闭">✕</button>
   </div>
-  <div style="padding:var(--sp-4)" id="agPanel"></div>
+  <div style="padding:18px" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=20261111a"></script>
-<script src="js/datastore.js?v=20261111a"></script>
-<script src="js/quote-validity.js?v=20261111a"></script>
-<script src="js/license.js?v=20261111a"></script>
-<script src="assets/a11y.js?v=20261111a"></script>
+<script src="agnes-ai.js?v=20261111b"></script>
+<script src="js/datastore.js?v=20261111b"></script>
+<script src="js/quote-validity.js?v=20261111b"></script>
+<script src="js/license.js?v=20261111b"></script>
+<script src="assets/a11y.js?v=20261111b"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261111a';
+var MODULE_V = '20261111b';
 /* 深链：模块 id 白名单，避免把任意字符串塞进 iframe.src */
 var VIEW_RE = /^modules\/[a-z0-9_-]+\.html(?:\?[^#]*)?$/i;
 var LRU_MAX = 3;
@@ -395,8 +735,11 @@ function go(view, opts){
     }
   }
   var item = document.querySelector('.navitem[data-view="' + baseView + '"]');
-  var label = item && item.lastChild ? String(item.lastChild.textContent || '').trim() : '';
+  var labelEl = item && item.querySelector('span');
+  var label = labelEl ? String(labelEl.textContent || '').trim() : '';
   $('mTitle').textContent = view === 'home' ? '工作台' : label;
+  var topTitle = $('topTitle');
+  if (topTitle) topTitle.textContent = view === 'home' ? '工作台' : label;
   closeNav();
 }
 /* 浏览器前进/后退：hash 变了才切换，避免 go() 写 hash 时自己触发自己 */
@@ -535,6 +878,8 @@ function refresh(){
     if (!t.done) open++;
   });
   $('greet').textContent=greetingText();
+  var todayLabel=$('todayLabel');
+  if (todayLabel) todayLabel.textContent=(today.getMonth()+1)+' 月 '+today.getDate()+' 日 · 今日工作台';
   $('hLeads').textContent=leads.length;
   var he=$('homeEmpty'); if(he) he.style.display = (leads.length || todos.length || quotes.length) ? 'none' : 'block';
   $('hScored').textContent=leads.filter(function(l){return l.score!=null;}).length;

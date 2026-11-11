@@ -440,16 +440,16 @@
     var s = _status;
     el.style.cursor = 'pointer';
     if (s.pro) {
-      el.textContent = '✅ 已授权';
-      el.style.color = '#7ee2b8';
+      el.textContent = '已授权';
+      el.style.color = '#047857';
       el.title = '已授权 · ' + (s.company || '') + ' · 数据仅存本机 · 点击查看授权信息';
     } else if (s.state === 'trial_over') {
-      el.textContent = '⛔ 试用已结束';
-      el.style.color = '#ffb4a2';
+      el.textContent = '试用已结束';
+      el.style.color = '#b91c1c';
       el.title = '试用已结束，点击激活';
     } else {
       el.textContent = '试用 · ' + s.daysLeft + ' 天';
-      el.style.color = 'rgba(255,255,255,.85)';
+      el.style.color = '#52525b';
       el.title = '试用 · 剩 ' + s.daysLeft + ' 天 / ' + s.usesLeft + ' 次 · 数据仅存本机 · 点击激活或查看';
     }
     el.onclick = function () { showLock('manual'); };
