@@ -97,5 +97,25 @@ const g4b = S.parseGo4World('Buyer From\nCalifornia, United States\nProduct Name
 ok('go4World 州名收敛为国家', g4b.length && g4b[0].country, 'USA');
 ok('Azerbaijan 能规范化', S.normalizeCountry('Azerbaijan'), 'Azerbaijan');
 
+/* 6. DDG 风控挑战页：必须报抓取失败，不能当成「确实 0 家」 */
+const CHALLENGE = 'Unfortunately, bots use DuckDuckGo too. '
+  + '<div class="anomaly-modal"><form class="challenge-form"></form></div>'
+  + 'x'.repeat(200);
+const DDG_OK = '[Acme Solar - panel distributor](https://acme-solar.com/catalog)\n'
+  + 'Solar panel distributor catalog and company profile. '.repeat(4);
+let challengeMode = true;
+ctx.fetch = async function () {
+  const text = challengeMode ? CHALLENGE : DDG_OK;
+  return { ok: true, status: 200, text: async function () { return text; } };
+};
+let ddgErr = null;
+try {
+  await S.run('ddg', { product: 'solar panel', queries: [{ q: 'solar panel distributor' }] });
+} catch (e) { ddgErr = e; }
+ok('DDG 挑战页判为抓取失败（带 FETCH_FAILED）', ddgErr && ddgErr.code, 'FETCH_FAILED');
+challengeMode = false;
+const ddgOk = await S.run('ddg', { product: 'solar panel', queries: [{ q: 'solar panel distributor' }] });
+ok('DDG 正常结果仍能解析', ddgOk.length && ddgOk[0].website, 'https://acme-solar.com');
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);

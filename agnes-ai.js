@@ -163,8 +163,13 @@
   var LS_CNT = 'agnes_ai_cnt'; // {date:'2026-09-15', n:3}
 
   function loadCfg() {
-    try { return Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); }
-    catch (e) { return Object.assign({}, DEFAULTS); }
+    var cfg;
+    try { cfg = Object.assign({}, DEFAULTS, JSON.parse(localStorage.getItem(LS_KEY) || '{}')); }
+    catch (e) { cfg = Object.assign({}, DEFAULTS); }
+    /* 全站 CSP 只放行内置 Agnes 域名。旧版本允许自定义接口地址，用户改过之后
+       只会得到 Failed to fetch；这里强制回退，避免历史配置把 AI 打成不可用。 */
+    cfg.base = DEFAULTS.base;
+    return cfg;
   }
   function saveCfg(cfg) { localStorage.setItem(LS_KEY, JSON.stringify(cfg)); }
 
@@ -477,8 +482,8 @@
     }
     var isDefault = c.base === DEFAULTS.base && !c.key;
     return '<div style="font:14px/1.6 system-ui;max-width:420px">'
-      + '<div style="margin-bottom:10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534">✅ 已预填 Agnes AI 配置，开箱即用。如需切换其它 OpenAI 兼容服务，修改下方内容并保存即可。</div>'
-      + '<label>接口地址（/v1 结尾）</label><input id="ag_base" value="' + escAttr(c.base) + '" placeholder="https://你的网关/v1" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
+      + '<div style="margin-bottom:10px;padding:8px 12px;background:#f0fdf4;border-radius:6px;font-size:13px;color:#166534">✅ AI 已预填内置服务，开箱即用。接口地址固定为内置服务（全站 CSP 仅放行该域名）；如需接入自建网关，必须同步修改各页 CSP 后才能开放编辑。</div>'
+      + '<label>接口地址（内置服务，只读）</label><input id="ag_base" value="' + escAttr(DEFAULTS.base) + '" readonly title="全站 CSP 仅放行内置 Agnes 域名，自建网关需同步修改 CSP" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #e5e7eb;border-radius:6px;background:#f9fafb;color:#6b7280;cursor:not-allowed">'
       + '<label style="display:block;margin-top:8px">API 密钥</label><input id="ag_key" value="' + escAttr(c.key || '') + '" placeholder="留空 = 使用内置密钥" type="password" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
       + '<div style="margin-top:6px;padding:6px 9px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;font-size:11.5px;line-height:1.6;color:#92400e">🔒 密钥只保存在本机 localStorage（明文），同机的浏览器扩展或脚本可以读取。公用电脑建议留空使用内置密钥，用完后清空此栏并保存。</div>'
       + '<label style="display:block;margin-top:8px">模型名</label><input id="ag_model" value="' + escAttr(c.model) + '" placeholder="agnes-3.0-flash" style="width:100%;box-sizing:border-box;padding:8px;border:1px solid #ccc;border-radius:6px">'
@@ -496,7 +501,8 @@
   }
   function saveFromPanel() {
     saveCfg({
-      base: document.getElementById('ag_base').value.trim(),
+      /* 接口地址固定内置，忽略只读输入框（防止脚本改 DOM 写入不可达地址） */
+      base: DEFAULTS.base,
       key: document.getElementById('ag_key').value.trim(),
       model: document.getElementById('ag_model').value.trim(),
       dailyLimit: parseInt(document.getElementById('ag_limit').value, 10) || 100

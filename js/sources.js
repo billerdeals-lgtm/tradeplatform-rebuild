@@ -750,33 +750,70 @@
     .map(function (d) { return '-site:' + d; }).join(' ');
   var SITE_EXCLUDE_NO_LI = SITE_EXCLUDE.replace('-site:linkedin.com', '').trim();
 
+  /** DDG / 搜索页风控挑战：HTTP 可能是 200/202，但正文没有结果。
+   *  必须显式识别，否则会被当成「确实 0 家」，把网络风控误导成关键词问题。 */
+  function looksChallenge(body) {
+    var t = String((body && body.text) || '');
+    return /anomaly-modal|Unfortunately, bots use DuckDuckGo|challenge-form|bots use DuckDuckGo too/i.test(t);
+  }
+
   /** DDG 搜索 → 链接列表（html 失败自动回退 lite） */
   async function searchLinks(q, allowLinkedin) {
     var ex = allowLinkedin ? SITE_EXCLUDE_NO_LI : SITE_EXCLUDE;
     var full = (q + ' ' + ex).trim();
+    var errors = [];
     try {
       var body = await fetchRaw('https://html.duckduckgo.com/html/?q=' + encodeURIComponent(full), 22000);
+      if (looksChallenge(body)) throw new Error('DuckDuckGo 风控挑战页');
       var links = extractLinks(body, 'https://html.duckduckgo.com/');
       if (links.length) return links;
-    } catch (e) { /* 回退 lite */ }
-    var body2 = await fetchRaw('https://lite.duckduckgo.com/lite/?q=' + encodeURIComponent(full), 20000);
-    return extractLinks(body2, 'https://lite.duckduckgo.com/');
+      errors.push('html 0 结果');
+    } catch (e) {
+      if (e && e.cancelled) throw e;
+      errors.push(e.message);
+    }
+    try {
+      var body2 = await fetchRaw('https://lite.duckduckgo.com/lite/?q=' + encodeURIComponent(full), 20000);
+      if (looksChallenge(body2)) throw new Error('DuckDuckGo 风控挑战页');
+      return extractLinks(body2, 'https://lite.duckduckgo.com/');
+    } catch (e2) {
+      if (e2 && e2.cancelled) throw e2;
+      errors.push(e2.message);
+      var err = new Error(errors.join(' | '));
+      err.code = 'FETCH_FAILED';
+      throw err;
+    }
   }
-  /** 并发执行，返回“每组一个数组”（保持分组，便于逐个解析） */
+  /** 并发执行，保持分组；同时返回成功/失败数，供来源层区分「没结果」与「抓不到」 */
   function settleGroups(list) {
     return Promise.allSettled(list).then(function (rs) {
-      if (isCancelled()) return list.map(function () { return []; });
-      return rs.map(function (r) {
-        return (r.status === 'fulfilled' && Array.isArray(r.value)) ? r.value : [];
+      if (isCancelled()) return { groups: list.map(function () { return []; }), ok: 0, fail: 0, errors: [] };
+      var groups = [], errors = [];
+      rs.forEach(function (r) {
+        if (r.status === 'fulfilled' && Array.isArray(r.value)) {
+          groups.push(r.value);
+        } else {
+          groups.push([]);
+          errors.push((r.reason && r.reason.message) || '抓取失败');
+        }
       });
+      return { groups: groups, ok: rs.length - errors.length, fail: errors.length, errors: errors };
     });
+  }
+  /** 所有子请求都失败时抛错，让 find.html 归因为网络/限流，而不是关键词问题 */
+  function fetchFailedError(label, res) {
+    var e = new Error(label + '抓取失败：' + ((res && res.errors) || []).slice(0, 2).join(' | '));
+    e.code = 'FETCH_FAILED';
+    return e;
   }
 
   async function srcDdg(ctx) {
     throwIfCancelled();
     var qs = (ctx.queries || []).slice(0, 4);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
-    var groups = await settleGroups(qs.map(function (o) { return searchLinks(o.q, false); }));
+    var res = await settleGroups(qs.map(function (o) { return searchLinks(o.q, false); }));
+    if (res.fail >= qs.length) throw fetchFailedError('DuckDuckGo ', res);
+    var groups = res.groups;
     var out = [], seen = {};
     groups.forEach(function (links) {
       links.forEach(function (l) {
@@ -793,9 +830,9 @@
     throwIfCancelled();
     var qs = (ctx.queries || []).slice(0, 2);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '"' }];
-    var groups = await settleGroups(qs.map(function (o) {
+    var groups = (await settleGroups(qs.map(function (o) {
       return searchLinks('site:linkedin.com/company ' + o.q, true);
-    }));
+    }))).groups;
     var out = [], seen = {};
     groups.forEach(function (links) {
       links.forEach(function (l) {
@@ -815,10 +852,12 @@
     throwIfCancelled();
     var qs = (ctx.queries || []).slice(0, 2);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
-    var groups = await settleGroups(qs.map(function (o) {
+    var res = await settleGroups(qs.map(function (o) {
       var url = 'https://www.bing.com/search?q=' + encodeURIComponent((o.q + ' ' + SITE_EXCLUDE).trim()) + '&count=30';
       return fetchRaw(url, 25000).then(function (body) { return extractLinks(body, 'https://www.bing.com/'); });
     }));
+    if (res.fail >= qs.length) throw fetchFailedError('Bing ', res);
+    var groups = res.groups;
     var out = [], seen = {};
     groups.forEach(function (links) {
       links.forEach(function (l) {
@@ -841,6 +880,13 @@
       'https://www.europages.co.uk/companies/pg-3/' + enc + '.html'
     ];
     var bodies = await Promise.allSettled(pages.map(function (u) { return fetchRaw(u, 25000); }));
+    throwIfCancelled();
+    if (bodies.length && bodies.every(function (r) { return r.status !== 'fulfilled' || !r.value; })) {
+      var first = bodies[0] && bodies[0].reason;
+      var err = new Error('Europages 抓取失败：' + ((first && first.message) || '全部页面不可达'));
+      err.code = 'FETCH_FAILED';
+      throw err;
+    }
     var out = [], seen = {};
     function add(name, link) {
       name = String(name || '').replace(/\s+/g, ' ').trim();
@@ -1059,7 +1105,7 @@
     var qs = aq.filter(Boolean).slice(0, 4);
     stats.queries = qs.length;
     if (qs.length) {
-      var groups = await settleGroups(qs.map(function (q) { return searchLinks(q, false); }));
+      var groups = (await settleGroups(qs.map(function (q) { return searchLinks(q, false); }))).groups;
       groups.forEach(function (links) {
         links.forEach(function (l) {
           var d = domainOf(l.url);

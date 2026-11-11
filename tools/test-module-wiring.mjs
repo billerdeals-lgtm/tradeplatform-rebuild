@@ -350,5 +350,21 @@ ok('明细逻辑有纯函数测试', fs.existsSync(new URL('../tools/test-doc-it
 ok('图片只按 productId 渲染，不复制 base64', /imageFor,/.test(docItems) && /function imageFor/.test(docItems)
   && !/values\.image\s*=/.test(docs));
 
+/* 23. AI 接口地址与 CSP 一致 + 找客户失败归因 */
+ok('AI 设置接口地址只读', /id="ag_base"[^>]*readonly/.test(agnes));
+ok('AI 设置说明写明仅内置服务与 CSP', /接口地址固定为内置服务/.test(agnes) && /同步修改各页 CSP/.test(agnes));
+ok('AI 设置不再承诺可切换其它服务', !/修改下方内容并保存即可/.test(agnes) && !/你的网关\/v1/.test(agnes));
+ok('loadCfg 强制回退内置接口地址', /cfg\.base = DEFAULTS\.base;/.test(agnes));
+ok('保存面板忽略自定义接口地址', /base: DEFAULTS\.base,/.test(agnes));
+ok('AI 配置回退有单测', fs.existsSync(new URL('../tools/test-ai-config.mjs', import.meta.url)));
+ok('DDG 风控挑战页显式识别', /function looksChallenge/.test(sources) && /anomaly-modal/.test(sources));
+ok('html/lite 都失败时抛 FETCH_FAILED', /err\.code = 'FETCH_FAILED'/.test(sources));
+ok('来源层全部子请求失败时抛 FETCH_FAILED', /function fetchFailedError/.test(sources) && /res\.fail >= qs\.length/.test(sources));
+ok('Europages 全部页面失败不伪装成 0 家', /bodies\.every/.test(sources));
+ok('找客户统计来源成功/失败', /srcOk=0,srcFail=0/.test(find) && /srcFail\+\+/.test(find));
+ok('抓取通道全挂时提示网络/限流', /抓取通道全部失败，多为网络或限流/.test(find));
+ok('来源连通但无结果才提示换关键词', /来源已连通但未找到公司/.test(find));
+ok('不再把通道故障误归因为关键词/来源', !/所有来源均未找到公司/.test(find));
+
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);
