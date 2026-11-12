@@ -921,45 +921,52 @@
     return '';
   }
 
-  function countryFromPhone(text) {
+  /* 只认「+ 区号 + 至少 7 位号码」的完整写法。
+     以前抓所有 +\d{1,3}，会把产品参数 +40°C、+45°C 当成罗马尼亚/丹麦电话。 */
+  function phoneMatches(text) {
     var s = String(text || '');
-    var cands = [], m;
-    var re = /(?:tel:|phone|tel\.?|call|whatsapp|mobile)[^\n]{0,48}?(\+\d{1,3})/gi;
-    while ((m = re.exec(s)) && cands.length < 10) cands.push(m[1]);
-    var re2 = /href\s*=\s*["']tel:(\+\d{1,3})/gi;
-    while ((m = re2.exec(s)) && cands.length < 16) cands.push(m[1]);
-    for (var i = 0; i < cands.length; i++) {
-      var digits = cands[i].replace(/\D/g, '');
-      for (var n = Math.min(3, digits.length); n >= 1; n--) {
-        var hit = PHONE_CC[digits.slice(0, n)];
-        if (hit) return hit;
-      }
+    var re = /\+\d{1,3}(?:[\s().-]?\d){6,12}/g, m, out = [];
+    while ((m = re.exec(s)) && out.length < 40) {
+      var raw = m[0].replace(/[\s().-]+$/, '');
+      var before = s.charAt(m.index - 1), after = s.charAt(m.index + raw.length);
+      if (before === '°' || after === '°' || after === '℃' || /℃/.test(after)) continue;
+      var d = raw.replace(/\D/g, '');
+      if (d.length < 8 || d.length > 15) continue;
+      out.push(raw);
     }
-    /* 兜底：正文里所有国际号码按区号投票，至少 2 票或只有一个候选区号才采用 */
-    var all = s.match(/\+\d{1,3}/g) || [];
-    if (!all.length) return '';
+    return out;
+  }
+
+  function phoneCountryVotes(text) {
     var votes = {};
-    all.forEach(function (x) {
-      var d = x.replace(/\D/g, '');
-      for (var n2 = Math.min(3, d.length); n2 >= 1; n2--) {
-        var cc2 = PHONE_CC[d.slice(0, n2)];
-        if (cc2) { votes[cc2] = (votes[cc2] || 0) + 1; break; }
+    phoneMatches(text).forEach(function (raw) {
+      var d = raw.replace(/\D/g, '');
+      for (var n = 3; n >= 1; n--) {
+        var cc = PHONE_CC[d.slice(0, n)];
+        if (cc) { votes[cc] = (votes[cc] || 0) + 1; break; }
       }
     });
-    var keys = Object.keys(votes);
-    if (!keys.length) return '';
+    return votes;
+  }
+
+  function pickPhoneCountry(votes) {
+    var keys = Object.keys(votes || {});
+    if (!keys.length) return { country: '', votes: 0 };
     keys.sort(function (a, b) { return votes[b] - votes[a]; });
-    if (keys.length > 1 && votes[keys[0]] === votes[keys[1]]) return '';
-    if (votes[keys[0]] >= 2 || keys.length === 1) return keys[0];
-    return '';
+    if (keys.length > 1 && votes[keys[0]] === votes[keys[1]]) return { country: '', votes: 0 };
+    return { country: keys[0], votes: votes[keys[0]] };
+  }
+
+  function countryFromPhone(text) {
+    return pickPhoneCountry(phoneCountryVotes(text)).country;
   }
 
   var ADDRESS_HINT = /\b(?:address|head ?office|headquarters|registered office|office|factory|warehouse|plant)\b|地址|总部/i;
-  var STREET_HINT = /\b(?:P\.?O\.? ?Box|Street|Road|Avenue|Suite|Floor|Industrial Area|District|Building)\b/i;
+  var STREET_HINT = /\b(?:P\.?O\.? ?Box|Street|Road|Avenue|Suite|Floor|Industrial Area|District|Building|Rd|Ave|Blvd|Ln|Pkwy|Hwy)\b\.?/i;
   function countryFromFooter(text) {
     var lines = String(text || '').split(/\n+/);
     for (var i = 0; i < lines.length && i < 500; i++) {
-      var line = lines[i].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      var line = lines[i].replace(/\[([^\]]*)\]\([^)]*\)/g, '$1').replace(/https?:\/\/\S+/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
       if (!line || line.length > 240) continue;
       if (!ADDRESS_HINT.test(line) && !STREET_HINT.test(line)) continue;
       var parts = line.split(/\s*[,，]\s*/);
@@ -988,9 +995,11 @@
     var e = detectCountryExplicit(text);
     if (e) return { country: e, source: 'explicit' };
     var f = countryFromFooter(text);
+    var pv = pickPhoneCountry(phoneCountryVotes(text));
+    /* 多国公司：页脚可能是海外分公司地址，电话（≥2 个同区号）更接近实际联络地 */
+    if (pv.country && pv.votes >= 2 && f && pv.country !== f) return { country: pv.country, source: 'phone' };
     if (f) return { country: f, source: 'footer' };
-    var p = countryFromPhone(text);
-    if (p) return { country: p, source: 'phone' };
+    if (pv.country) return { country: pv.country, source: 'phone' };
     return { country: '', source: '' };
   }
 

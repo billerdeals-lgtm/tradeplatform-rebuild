@@ -212,6 +212,11 @@ ok('描述性标题不当公司名', S.companyNameFromTitle('PowerAll Solar Comp
 ok('电话区号多次出现可定国家', S.countryFromPhone('Sales +971 4 368 6393, warehouse +971 50 973 2174') , 'UAE');
 ok('两个国家号码打平不猜', S.countryFromPhone('Kenya +254 20 123 4567, UAE +971 4 368 6393'), '');
 ok('单次电话区号仍可作为证据', S.countryFromPhone('Call us +254 20 123 4567'), 'Kenya');
+ok('温度 +40°C 不当电话', S.countryFromPhone('Operating temperature -20°C to +40°C, storage +45°C'), '');
+ok('紧凑国际手机号可识别', S.countryFromPhone('Mobile +918884490100'), 'India');
+ok('美国地址缩写可识别', S.countryFromFooter('9152 Taylorsville Rd #309, Louisville, KY 40299, United States'), 'USA');
+ok('Markdown 链接地址可识别', S.countryFromFooter('- [9152 Taylorsville Rd #309, Louisville, KY 40299, United States](https://maps.example.com/?q=9152)'), 'USA');
+ok('多国公司电话优先于海外分公司页脚', S.countryEvidence('powernsun.com', 'Head Office: A-2612A 6th Floor, The Corenthum Building, Sector 62, Noida, UP, India\nSales +971 4 368 6393, warehouse +971 50 973 2174', true), { country: 'UAE', source: 'phone' });
 
 console.log('通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);
