@@ -27,6 +27,9 @@
   /* ---------- 1. 代理层 ---------- */
   /* jina 免费额度有限（约 20 次/分钟），用闸门把并发压到 4，避免被限流成 0 结果 */
   var JINA_MAX = 4, jinaActive = 0, jinaQueue = [];
+  /* 并发限制还不够：一轮挖掘会有搜索 + 20 个官网 + 联系页，很容易在同一分钟
+     超过免费额度（表现为 401/429）。再加一个滑动窗口，超限就等下一分钟。 */
+  var JINA_WINDOW = 60000, JINA_LIMIT = 16, jinaStamps = [];
   function jinaSlot() {
     return new Promise(function (resolve) {
       function tryAcquire() {
@@ -34,6 +37,18 @@
         else jinaQueue.push(tryAcquire);
       }
       tryAcquire();
+    });
+  }
+  function jinaRateSlot() {
+    return new Promise(function (resolve) {
+      function check() {
+        if (isCancelled()) return resolve();
+        var now = Date.now();
+        while (jinaStamps.length && now - jinaStamps[0] > JINA_WINDOW) jinaStamps.shift();
+        if (jinaStamps.length < JINA_LIMIT) { jinaStamps.push(now); return resolve(); }
+        setTimeout(check, 700);
+      }
+      check();
     });
   }
   function jinaRelease() {
@@ -87,6 +102,8 @@
     await jinaSlot();
     try {
       throwIfCancelled();
+      await jinaRateSlot();
+      throwIfCancelled();
       try {
         return await jinaOnce(url, timeout);
       } catch (e) {
@@ -130,8 +147,24 @@
   }
   function host(u) { try { return new URL(u).hostname.replace(/^www\./, ''); } catch (e) { return ''; } }
 
+  /* 可注册域名：shop.acme.co.ke → acme.co.ke，mail.acme.com → acme.com。
+     合并同源结果、判断企业邮箱归属都要用这一层，不能拿完整 host 当键。 */
+  var MULTI_SUFFIX = /^(?:co|com|net|org|gov|edu|ac|or|ne|go|gob|mil|sch|nom|id|web|firm|gen|ind|per|plc|ltd|me|nhs|police)\.[a-z]{2}$/;
+  function registrableDomain(u) {
+    var h = hostLoose(u);
+    if (!h || h.indexOf('.') < 0) return h || '';
+    var p = h.split('.');
+    if (p.length <= 2) return h;
+    var last2 = p.slice(-2).join('.');
+    if (MULTI_SUFFIX.test(last2)) return p.slice(-3).join('.');
+    return last2;
+  }
+
   function nameFromDomain(d) {
-    var core = String(d || '').replace(/^www\./, '').split('.')[0] || '';
+    /* 用可注册域名的核心词，避免 shop.xxx.co.ke 被拼成 "Shop"，
+       也避免把 -uk 这类后缀当成公司名的一部分 */
+    var reg = registrableDomain(d) || String(d || '');
+    var core = String(reg || '').replace(/^www\./, '').split('.')[0] || '';
     core = core.replace(/[-_]+/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); });
     return core.trim();
   }
@@ -190,6 +223,58 @@
     return stripTags(first).slice(0, 160);
   }
 
+  /* ---------- 2.2 公司名清洗（标题优先） ----------
+     目录/搜索结果里的公司名常是域名拼的：shop.xxx.co.ke → "Shop"。
+     抓到官网后用首页标题里的品牌名替换，但必须能和域名对得上，
+     避免把 "How to choose a solar panel supplier" 这类文章标题当公司名。 */
+  var TITLE_NAV = /^(?:home|home ?page|welcome|index|official (?:site|website)|shop|store|products?|catalog(?:ue)?|blog|news|contact(?: us)?|about(?: us)?|login|sign in)$/i;
+  var TITLE_PROMO = /\b(?:for sale|free shipping|best price|lowest price|buy online|shop online|online store|price list|how to|guide|review|vs\.?)\b|^(?:buy|shop|order|get|find|best|cheap|top|discount)\b/i;
+  var TITLE_DESCRIPTIVE = /\b(?:company|supplier|manufacturer|exporter|distributor|wholesaler|dealer|shop|store)\s+in\s+[a-z]/i;
+  var TITLE_LEGAL = /\b(?:co|company|corp|corporation|inc|incorporated|ltd|limited|llc|llp|plc|gmbh|ag|sa|sas|sarl|srl|spa|bv|nv|pte|pvt|holdings?|group|industries|industrial|enterprises?)\b\.?$/i;
+  function companyNameFromTitle(title, domain) {
+    var s = stripTags(String(title || '')).replace(/\s+/g, ' ').trim();
+    if (!s || s.length > 160) return '';
+    var host = hostLoose(domain);
+    var core = String(host || '').replace(/^www\./, '').split('.')[0].replace(/[^a-z0-9]/g, '');
+    var parts = s.split(/\s*[|·•]\s*|\s+[–—]\s+/).map(function (x) { return x.trim(); }).filter(Boolean);
+    var best = '', bestScore = 0;
+    for (var i = 0; i < parts.length; i++) {
+      var p = parts[i].replace(/^[-–—]\s*|\s*[-–—]$/g, '').trim();
+      if (!p || p.length < 3 || p.length > 70) continue;
+      if (!/[A-Za-z\u00c0-\u024f\u0400-\u04ff\u4e00-\u9fff]/.test(p)) continue;
+      if (TITLE_NAV.test(p) || TITLE_DESCRIPTIVE.test(p) || isJunkName(p)) continue;
+      var score = 0;
+      var words = p.split(/\s+/).length;
+      if (words >= 2 && words <= 4) score += 2;
+      else if (words > 7) score -= 4;
+      if (TITLE_LEGAL.test(p)) score += 3;
+      if (TITLE_PROMO.test(p)) score -= 5;
+      if (/[.!?]$/.test(p)) score -= 2;
+      var toks = nameTokens(p);
+      var joined = toks.join('');
+      if (core && joined) {
+        if (joined === core) score += 12;
+        else if (joined.length >= 4 && core.indexOf(joined) >= 0) score += 8;
+        else if (core.length >= 5 && joined.indexOf(core) >= 0) score += 7;
+        else if (core.length >= 4 && toks.indexOf(core) >= 0) score += 6;
+        else {
+          for (var j = 0; j < toks.length; j++) {
+            if (toks[j].length >= 5 && core.indexOf(toks[j]) >= 0) { score += 2; break; }
+          }
+        }
+      }
+      if (score > bestScore) { bestScore = score; best = p; }
+    }
+    return bestScore >= 4 ? best : '';
+  }
+
+  /* 名字里直接带 manufacturer / supplier / exporter 的基本是同行。
+     页面同时有经销商/进口商信号时由调用方保留。 */
+  var SELLER_NAME_RE = /\b(?:manufacturer|factory|supplier|exporter|oem|odm)\b/i;
+  function isSellerName(name) {
+    return SELLER_NAME_RE.test(String(name || ''));
+  }
+
   /* 黑名单：搜索站/社交/聚合/维基/电商/同类型目录站，不作为“公司官网” */
   var BLOCK = [
     'google.', 'gstatic', 'googleusercontent', 'doubleclick', 'googleadservices',
@@ -209,6 +294,7 @@
     'trademo.com', 'exporthub.com', 'tradewheel.com', 'tradeford.',
     'volza.com', 'importgenius', 'panjiva', 'seair.co', 'exportgenius',
     'tradeatlas', '52wmb', 'tradesparq', 'b2bmit', 'ecplaza',
+    'enfsolar.com', 'ensun.io', 'energysage.com', 'solarreviews.com', 'globalspec.com',
     /* CDN / 图床：Europages 等目录页最容易把第一张图片的域名当成公司官网 */
     'cloudfront.net', 'cloudinary.com', 'imgix.net', 'akamaized.net',
     'wixstatic.com', 'amazonaws.com', 'azureedge.net', 'fastly.net',
@@ -219,6 +305,10 @@
     if (!d) return true;
     d = String(d).toLowerCase().replace(/^www\./, '');
     if (d === 'x.com' || d === 'twitter.com') return true;
+    /* 聚合/目录站的域名核心词：propertyfinder.ae、yellowpages-uae.com 这类
+       不是公司官网，命中后直接排除，不进入候选池。 */
+    var core = d.split('.')[0];
+    if (/(?:yellowpages|whitepages|directory|directories|finder|marketplace|companylist|businesslist|listing|b2bportal)/i.test(core)) return true;
     for (var i = 0; i < BLOCK.length; i++) {
       if (d.indexOf(BLOCK[i]) >= 0) return true;
     }
@@ -321,19 +411,115 @@
     }
     return false;
   }
-  function extractContacts(t) {
+  function extractContacts(t, domain) {
     var c = { emails: [], phones: [], was: [] };
     if (!t) return c;
+    var found = [];
     (t.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g) || []).forEach(function (e) {
       var low = e.toLowerCase();
-      if (!isJunkEmail(low) && c.emails.indexOf(low) < 0 && c.emails.length < 3) c.emails.push(low);
+      if (!isJunkEmail(low) && found.indexOf(low) < 0) found.push(low);
     });
+    /* 同一页先按「岗位 + 是否本公司域名」排序，再取前 3 个：
+       webmaster / 建站商邮箱不能排在 sales / info 前面。 */
+    c.emails = rankEmails(found, domain).slice(0, 3);
     var m;
     var wr = /(?:wa\.me\/|whatsapp:\/\/send\?phone=|api\.whatsapp\.com\/send\?phone=)(\+?\d[\d\s]{6,16})/gi;
     while ((m = wr.exec(t)) && c.was.length < 2) { var d = m[1].replace(/\D/g, ''); if (d.length >= 8) c.was.push(d); }
+    /* tel: 链接是最干净的号码来源，优先于正文里的松散数字 */
+    var tr = /href\s*=\s*["']tel:([+0-9()\s.\-]{7,24})["']/gi;
+    while ((m = tr.exec(t)) && c.phones.length < 2) {
+      var rawTel = m[1].replace(/\s+/g, ' ').trim();
+      var telDigits = rawTel.replace(/\D/g, '');
+      if (telDigits.length >= 8 && telDigits.length <= 15 && c.phones.indexOf(rawTel) < 0) c.phones.push(rawTel);
+    }
     var pr = /\+\d{1,3}[\s().-]?\(?\d{1,4}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}\b/g;
-    while ((m = pr.exec(t)) && c.phones.length < 2) { var d3 = m[0].replace(/\D/g, ''); if (d3.length >= 9 && c.was.indexOf(d3) < 0) c.phones.push(m[0].trim()); }
+    while ((m = pr.exec(t)) && c.phones.length < 3) { var d3 = m[0].replace(/\D/g, ''); if (d3.length >= 9 && c.was.indexOf(d3) < 0 && c.phones.indexOf(m[0].trim()) < 0) c.phones.push(m[0].trim()); }
     return c;
+  }
+
+  /* ---------- 4.1 邮箱排序与共享邮箱清理 ---------- */
+  var FREE_MAIL = {
+    'gmail.com': 1, 'googlemail.com': 1, 'yahoo.com': 1, 'yahoo.co.uk': 1, 'hotmail.com': 1,
+    'outlook.com': 1, 'live.com': 1, 'icloud.com': 1, 'me.com': 1, 'aol.com': 1,
+    'protonmail.com': 1, 'proton.me': 1, 'gmx.com': 1, 'gmx.de': 1, 'mail.com': 1,
+    'web.de': 1, 't-online.de': 1, 'yandex.com': 1, 'yandex.ru': 1, 'mail.ru': 1,
+    'qq.com': 1, 'foxmail.com': 1, '163.com': 1, '126.com': 1, 'sina.com': 1,
+    'sohu.com': 1, 'naver.com': 1, 'daum.net': 1, 'hanmail.net': 1,
+    'uol.com.br': 1, 'terra.com.br': 1, 'libero.it': 1, 'laposte.net': 1,
+    'orange.fr': 1, 'free.fr': 1, 'wanadoo.fr': 1
+  };
+  function isFreeMail(host) {
+    host = String(host || '').toLowerCase();
+    return !!(FREE_MAIL[host] || FREE_MAIL[registrableDomain(host)]);
+  }
+  var EMAIL_ROLE_GOOD = [
+    /^(?:purchase|purchasing|procurement|buying|buyer|import|imports|sourcing|order|orders)(?:[._+-]|$)/i,
+    /^(?:sales|export|exports|exporting|international|global|business|commercial|bd)(?:[._+-]|$)/i,
+    /^(?:info|contact|enquir|inquir|hello|office|mail|general|admin|service)(?:[._+-]|$)/i
+  ];
+  var EMAIL_ROLE_BAD = /^(?:webmaster|hostmaster|postmaster|noreply|no[-_.]?reply|it|dev|developer|design|designer|marketing|pr|jobs|career|hr|support|helpdesk|legal)(?:[._+-]|$)/i;
+  /** 越大越可能是「能联系上采购方」的邮箱 */
+  function emailRank(e, domain) {
+    var s = String(e || '').toLowerCase();
+    var at = s.lastIndexOf('@');
+    if (at < 1) return -1;
+    var local = s.slice(0, at), host = s.slice(at + 1);
+    var score = 20;
+    if (EMAIL_ROLE_BAD.test(local)) score -= 15;
+    for (var i = 0; i < EMAIL_ROLE_GOOD.length; i++) {
+      if (EMAIL_ROLE_GOOD[i].test(local)) { score += 30 - i * 6; break; }
+    }
+    var own = registrableDomain(domain);
+    var hd = registrableDomain(host);
+    if (own && hd) {
+      if (own === hd) score += 40;
+      else if (isFreeMail(hd)) score += 5;
+      /* 域名对不上的企业邮箱多半是建站商/模板/关联公司，降权但仍保留候选 */
+      else score -= 25;
+    }
+    return score;
+  }
+  function rankEmails(list, domain) {
+    var arr = (list || []).slice();
+    var order = {};
+    arr.forEach(function (e, i) { if (!(e in order)) order[e] = i; });
+    arr.sort(function (a, b) {
+      var d = emailRank(b, domain) - emailRank(a, domain);
+      return d || (order[a] - order[b]);
+    });
+    return arr;
+  }
+  /**
+   * 同一邮箱域出现在多家不同公司的页面上，基本是建站商/模板/集团代收，
+   * 不能当成每家公司的联系方式。threshold 默认 3，返回清理条数。
+   */
+  function dropSharedEmails(list, threshold) {
+    threshold = threshold || 3;
+    var owners = {}, removed = 0;
+    (list || []).forEach(function (c) {
+      if (!c || !c.email) return;
+      var at = String(c.email).lastIndexOf('@');
+      if (at < 0) return;
+      var hd = registrableDomain(String(c.email).slice(at + 1));
+      var own = registrableDomain(c.website || '');
+      if (!hd || isFreeMail(hd) || (own && own === hd)) return;
+      owners[hd] = owners[hd] || {};
+      owners[hd][own || ('n:' + normCompanyName(c.name))] = 1;
+    });
+    (list || []).forEach(function (c) {
+      if (!c || !c.email) return;
+      var at = String(c.email).lastIndexOf('@');
+      if (at < 0) return;
+      var hd = registrableDomain(String(c.email).slice(at + 1));
+      var own = registrableDomain(c.website || '');
+      if (!hd || isFreeMail(hd) || (own && own === hd)) return;
+      if (owners[hd] && Object.keys(owners[hd]).length >= threshold) {
+        c.email = '';
+        c._emailDropped = hd;
+        removed++;
+      }
+    });
+    return removed;
   }
 
   /* ---------- 5. 各省略行提取（目录标题法） ---------- */
@@ -474,18 +660,30 @@
   ];
   var PRICE_INQUIRY_RE = /\bprice\b|how much|quotation|\bquote\b|price ?list|pricelist|\bMOQ\b|minimum order|per unit|per piece|per ton|per kg|RFQ|request for quotation|tender|procurement/i;
 
-  /** 返回 {skip, reason, score(0/5/7), isPriceInquiry}；strongOnly 只判强信号 */
+  /* 经销商/进口商页面天然会有购物车、现货、单价；这些弱信号不能单独判死。
+     只有「自称工厂/供应商」这类强信号才直接剔除。 */
+  var BUYER_SIGNAL_RE = /\b(?:authorized\s+|leading\s+|independent\s+|official\s+)?(?:distributor|importer|wholesaler|dealer|reseller|stockist|retailer)\b|\bwe (?:import|distribute|stock|supply to|sell to|buy|purchase|source)\b|\bprocurement|purchasing|sourcing|buyer\b/i;
+  var INQUIRY_STRONG_RE = /\bRFQ\b|request for quotation|request a quote|looking for (?:a )?supplier|suppliers? wanted|tender|procurement notice|purchase order|how much (?:does|do|is)|minimum order quantity|\bMOQ\b/i;
+  var INQUIRY_PRICE_RE = /\bprice\b|quotation|\bquote\b|price ?list|pricelist|per unit|per piece|per ton|per kg/i;
+  /* 「我们自己的报价单/购物车」是卖家行为，不是采购询盘 */
+  var SELLER_PRICING_RE = /our price ?list|download (?:our )?price|price list (?:pdf|download)|product price|add to cart|buy now|shop now/i;
+
+  /** 返回 {skip, reason, score(0/5/6/7), isPriceInquiry}；strongOnly 只判强信号 */
   function ruleCheck(text, strongOnly) {
     var s = String(text || '');
+    var buyer = BUYER_SIGNAL_RE.test(s);
     for (var i = 0; i < SKIP_RULES.length; i++) {
       if (strongOnly && !SKIP_RULES[i].strong) continue;
       if (SKIP_RULES[i].re.test(s)) {
+        if (!SKIP_RULES[i].strong && buyer) continue;
         return { skip: true, reason: SKIP_RULES[i].why, score: 0, isPriceInquiry: false };
       }
     }
-    if (PRICE_INQUIRY_RE.test(s)) {
+    var inquiry = INQUIRY_STRONG_RE.test(s) || (INQUIRY_PRICE_RE.test(s) && !SELLER_PRICING_RE.test(s));
+    if (inquiry) {
       return { skip: false, reason: '价格/采购询问', score: 7, isPriceInquiry: true };
     }
+    if (buyer) return { skip: false, reason: '买家信号', score: 6, isPriceInquiry: false };
     return { skip: false, reason: '', score: 5, isPriceInquiry: false };
   }
 
@@ -682,6 +880,236 @@
     return detectCountryExplicit(text) || normalizeCountry(fallback) || '';
   }
 
+  /* ---------- 5.7.1 国家证据分级 ----------
+     不再是「有就填、没有就空」，而是按证据强度取最可靠的一层：
+     官网 ccTLD > JSON-LD addressCountry > Country:/based in > 页脚地址 > 国际电话区号。
+     返回的 source 会显示在界面上，用户能知道这个国家是怎么来的。 */
+  var COUNTRY_RANK = { domain: 5, jsonld: 4, explicit: 3, footer: 2, phone: 1, source: 5 };
+  var ISO_EXTRA = { 'gb': 'United Kingdom', 'uk': 'United Kingdom' };
+  /* 国际电话区号（+1 北美无法区分美/加，故意不收录） */
+  var PHONE_CC = {
+    '20': 'Egypt', '27': 'South Africa', '31': 'Netherlands', '32': 'Belgium',
+    '33': 'France', '34': 'Spain', '36': 'Hungary', '39': 'Italy', '40': 'Romania',
+    '44': 'United Kingdom', '45': 'Denmark', '46': 'Sweden', '47': 'Norway',
+    '48': 'Poland', '49': 'Germany', '51': 'Peru', '52': 'Mexico', '54': 'Argentina',
+    '55': 'Brazil', '56': 'Chile', '57': 'Colombia', '60': 'Malaysia', '61': 'Australia',
+    '62': 'Indonesia', '63': 'Philippines', '64': 'New Zealand', '65': 'Singapore',
+    '66': 'Thailand', '81': 'Japan', '82': 'South Korea', '84': 'Vietnam',
+    '86': 'China', '90': 'Turkey', '91': 'India', '92': 'Pakistan', '94': 'Sri Lanka',
+    '212': 'Morocco', '234': 'Nigeria', '254': 'Kenya', '255': 'Tanzania', '256': 'Uganda',
+    '351': 'Portugal', '353': 'Ireland', '358': 'Finland', '359': 'Bulgaria',
+    '380': 'Ukraine', '385': 'Croatia', '386': 'Slovenia', '421': 'Slovakia',
+    '593': 'Ecuador', '880': 'Bangladesh', '966': 'Saudi Arabia', '971': 'UAE',
+    '974': 'Qatar', '965': 'Kuwait', '968': 'Oman', '973': 'Bahrain',
+    '994': 'Azerbaijan', '995': 'Georgia', '998': 'Uzbekistan'
+  };
+
+  function countryFromJsonLd(text) {
+    var s = String(text || '');
+    var re = /"addressCountry"\s*:\s*"([A-Za-z\u00c0-\u024f ]{2,40})"/gi, m;
+    while ((m = re.exec(s))) {
+      var raw = m[1].replace(/\s+/g, ' ').trim();
+      if (/^[A-Za-z]{2}$/.test(raw)) {
+        var code = raw.toLowerCase();
+        if (ISO_EXTRA[code]) return ISO_EXTRA[code];
+        if (CC_TLD[code]) return CC_TLD[code];
+        continue;
+      }
+      var c = normalizeCountry(raw);
+      if (c) return c;
+    }
+    return '';
+  }
+
+  function countryFromPhone(text) {
+    var s = String(text || '');
+    var cands = [], m;
+    var re = /(?:tel:|phone|tel\.?|call|whatsapp|mobile)[^\n]{0,48}?(\+\d{1,3})/gi;
+    while ((m = re.exec(s)) && cands.length < 10) cands.push(m[1]);
+    var re2 = /href\s*=\s*["']tel:(\+\d{1,3})/gi;
+    while ((m = re2.exec(s)) && cands.length < 16) cands.push(m[1]);
+    for (var i = 0; i < cands.length; i++) {
+      var digits = cands[i].replace(/\D/g, '');
+      for (var n = Math.min(3, digits.length); n >= 1; n--) {
+        var hit = PHONE_CC[digits.slice(0, n)];
+        if (hit) return hit;
+      }
+    }
+    /* 兜底：正文里所有国际号码按区号投票，至少 2 票或只有一个候选区号才采用 */
+    var all = s.match(/\+\d{1,3}/g) || [];
+    if (!all.length) return '';
+    var votes = {};
+    all.forEach(function (x) {
+      var d = x.replace(/\D/g, '');
+      for (var n2 = Math.min(3, d.length); n2 >= 1; n2--) {
+        var cc2 = PHONE_CC[d.slice(0, n2)];
+        if (cc2) { votes[cc2] = (votes[cc2] || 0) + 1; break; }
+      }
+    });
+    var keys = Object.keys(votes);
+    if (!keys.length) return '';
+    keys.sort(function (a, b) { return votes[b] - votes[a]; });
+    if (keys.length > 1 && votes[keys[0]] === votes[keys[1]]) return '';
+    if (votes[keys[0]] >= 2 || keys.length === 1) return keys[0];
+    return '';
+  }
+
+  var ADDRESS_HINT = /\b(?:address|head ?office|headquarters|registered office|office|factory|warehouse|plant)\b|地址|总部/i;
+  var STREET_HINT = /\b(?:P\.?O\.? ?Box|Street|Road|Avenue|Suite|Floor|Industrial Area|District|Building)\b/i;
+  function countryFromFooter(text) {
+    var lines = String(text || '').split(/\n+/);
+    for (var i = 0; i < lines.length && i < 500; i++) {
+      var line = lines[i].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!line || line.length > 240) continue;
+      if (!ADDRESS_HINT.test(line) && !STREET_HINT.test(line)) continue;
+      var parts = line.split(/\s*[,，]\s*/);
+      for (var j = parts.length - 1; j >= 0 && j >= parts.length - 4; j--) {
+        var c = normalizeCountry(parts[j].replace(/[.;].*$/, '').replace(/\s+\d[\d\s-]*$/, '').trim());
+        if (c) return c;
+      }
+      var tail = line.split(/\s+/).slice(-4).join(' ');
+      var c2 = countryInPhrase(tail);
+      if (c2) return c2;
+    }
+    return '';
+  }
+
+  /**
+   * @param {string} website 公司官网
+   * @param {string} text 已抓到的页面正文
+   * @param {boolean} allowPage 目录详情页正文混有多家公司，false 时只用官网后缀
+   */
+  function countryEvidence(website, text, allowPage) {
+    var d = countryFromDomain(website);
+    if (d) return { country: d, source: 'domain' };
+    if (!allowPage || !text) return { country: '', source: '' };
+    var j = countryFromJsonLd(text);
+    if (j) return { country: j, source: 'jsonld' };
+    var e = detectCountryExplicit(text);
+    if (e) return { country: e, source: 'explicit' };
+    var f = countryFromFooter(text);
+    if (f) return { country: f, source: 'footer' };
+    var p = countryFromPhone(text);
+    if (p) return { country: p, source: 'phone' };
+    return { country: '', source: '' };
+  }
+
+  /* ---------- 5.7.2 目标市场匹配 ---------- */
+  var REGION_SETS = {
+    'Southeast Asia': ['Indonesia', 'Vietnam', 'Philippines', 'Malaysia', 'Thailand', 'Singapore', 'Cambodia', 'Myanmar', 'Laos', 'Brunei'],
+    'Middle East': ['UAE', 'Saudi Arabia', 'Qatar', 'Kuwait', 'Bahrain', 'Oman', 'Jordan', 'Lebanon', 'Iraq', 'Iran', 'Israel', 'Turkey', 'Egypt'],
+    'Africa': ['Nigeria', 'Kenya', 'Ghana', 'South Africa', 'Egypt', 'Morocco', 'Tunisia', 'Algeria', 'Ethiopia', 'Tanzania', 'Uganda', 'Zambia', 'Zimbabwe', 'Mozambique', 'Angola', 'Cameroon', 'Ivory Coast', 'Senegal'],
+    'Europe': ['Poland', 'Germany', 'France', 'Italy', 'Spain', 'Netherlands', 'Belgium', 'United Kingdom', 'Ireland', 'Portugal', 'Sweden', 'Norway', 'Denmark', 'Finland', 'Switzerland', 'Austria', 'Czech Republic', 'Greece', 'Romania', 'Hungary', 'Bulgaria', 'Croatia', 'Serbia', 'Slovakia', 'Slovenia', 'Lithuania', 'Latvia', 'Estonia', 'Turkey', 'Russia', 'Ukraine'],
+    'Latin America': ['Mexico', 'Peru', 'Chile', 'Colombia', 'Brazil', 'Argentina', 'Ecuador'],
+    'USA': ['USA']
+  };
+  /** true=属于该市场，false=明确不属于，null=无法判断（保留结果） */
+  function inRegion(country, region) {
+    if (!region || region === '全球' || !country) return null;
+    var set = REGION_SETS[region];
+    if (!set) return null;
+    return set.indexOf(country) >= 0;
+  }
+
+  /* ---------- 5.7.3 联系页发现 ---------- */
+  var CONTACT_HINT = /contact|kontakt|contacto|contactez|contatt|iletisim|li[êe]n h[êe]|联系/i;
+  function contactUrlFromLinks(links, website) {
+    var own = registrableDomain(website);
+    for (var i = 0; i < (links || []).length; i++) {
+      var l = links[i] || {};
+      var d = registrableDomain(l.url);
+      if (!own || d !== own) continue;
+      var path = '';
+      try { path = new URL(l.url).pathname; } catch (e) { path = l.url; }
+      if (!CONTACT_HINT.test(path) && !CONTACT_HINT.test(l.label || '')) continue;
+      if (/\.(?:pdf|jpe?g|png|gif|webp|svg|zip|docx?|xlsx?)$/i.test(path)) continue;
+      return String(l.url).split('#')[0];
+    }
+    return '';
+  }
+
+  /* ---------- 5.7.4 合并去重（域名 + 名称） ----------
+     只按完整 host 当键会漏掉 shop.acme.com / acme.com、
+     acme.com / acme.co.uk、领英记录 / 官网记录这三类重复。 */
+  var LEGAL_WORDS = /\b(?:co|company|corp|corporation|inc|incorporated|ltd|limited|llc|llp|plc|gmbh|ag|sa|sas|sarl|srl|spa|bv|nv|pte|pvt|trading|trade|import|imports|export|exports|group|holding|holdings|enterprise|enterprises|international|intl|industries|industrial)\b/g;
+  var CN_LEGAL = /(有限责任公司|股份有限公司|有限公司|进出口|贸易|商贸|实业|集团|控股|科技|股份|公司)/g;
+  function normCompanyName(v) {
+    var s = String(v == null ? '' : v).toLowerCase();
+    if (!s) return '';
+    s = s.replace(CN_LEGAL, ' ').replace(/&/g, ' and ').replace(/[^\p{L}\p{N}]+/gu, ' ');
+    s = s.replace(LEGAL_WORDS, ' ').replace(/\s+/g, ' ').trim();
+    return s;
+  }
+
+  function fillMissing(target, c) {
+    ['email', 'phone', 'website', 'country', 'desc', 'linkedin', 'profileUrl', 'type', 'why', 'approach'].forEach(function (k) {
+      if (!target[k] && c[k]) target[k] = c[k];
+    });
+    if (!target._text && c._text) target._text = c._text;
+    if (!target._verified && c._verified) target._verified = true;
+    if (!target._aiVerified && c._aiVerified) target._aiVerified = true;
+    if (!target._aiSearch && c._aiSearch) target._aiSearch = true;
+    if (!target._contactUrl && c._contactUrl) target._contactUrl = c._contactUrl;
+    if (!target._inquiry && c._inquiry) target._inquiry = true;
+    /* 名称：优先保留不是域名拼出来的那个 */
+    if (!target._nameFromDomain && target.name) { /* keep */ }
+    else if (c.name && !c._nameFromDomain) { target.name = c.name; target._nameFromDomain = false; }
+    if (c._countrySrc && (COUNTRY_RANK[c._countrySrc] || 0) > (COUNTRY_RANK[target._countrySrc] || 0)) {
+      target._countrySrc = c._countrySrc;
+    }
+    if (c.source && target._sources.indexOf(c.source) < 0) target._sources.push(c.source);
+    (c._sources || []).forEach(function (s) {
+      if (target._sources.indexOf(s) < 0) target._sources.push(s);
+    });
+  }
+
+  function domainCore(u) {
+    var r = registrableDomain(u || '');
+    return r ? r.split('.')[0] : '';
+  }
+
+  function mergeCandidates(list) {
+    var out = [], byDomain = {}, byName = {};
+    function register(rec) {
+      var d = registrableDomain(rec.website || '');
+      if (d) byDomain[d] = rec;
+      var n = normCompanyName(rec.name);
+      if (n && n.length >= 4) {
+        byName[n] = byName[n] || [];
+        if (byName[n].indexOf(rec) < 0) byName[n].push(rec);
+      }
+    }
+    (list || []).forEach(function (c) {
+      if (!c || !c.name) return;
+      var d = registrableDomain(c.website || '');
+      var n = normCompanyName(c.name);
+      var rec = d ? byDomain[d] : null;
+      /* 同名合并：必须同国（或一方未知），且域名核心词一致（或一方没有官网）。
+         这样 acme.com 能并上 acme.co.ke，但不会把 acmesolar.com 和 acme.co.ke 并掉。 */
+      if (!rec && n) {
+        var cands = byName[n] || [];
+        for (var i = 0; i < cands.length; i++) {
+          var x = cands[i];
+          if (x.country && c.country && x.country !== c.country) continue;
+          var xc = domainCore(x.website), cc = domainCore(c.website);
+          if (xc && cc && xc !== cc) continue;
+          rec = x; break;
+        }
+      }
+      if (rec) {
+        fillMissing(rec, c);
+        register(rec);
+        return;
+      }
+      c._sources = (c._sources || []).slice();
+      if (c.source && c._sources.indexOf(c.source) < 0) c._sources.push(c.source);
+      if (!c._sources.length) c._sources.push('目录');
+      out.push(c);
+      register(c);
+    });
+    return out;
+  }
+
   /* ---------- 5.8 抓页 / 二次补全 ---------- */
   async function pageInfo(url, timeout) {
     throwIfCancelled();
@@ -690,7 +1118,7 @@
       text: body.text || '',
       html: !!body.html,
       links: extractLinks(body, url),
-      contacts: extractContacts(body.text || '')
+      contacts: extractContacts(body.text || '', domainOf(url))
     };
   }
 
@@ -738,7 +1166,7 @@
       + '评分：0=明确是供应商/工厂/电商平台；5=不确定；7-9=经销商/进口商/批发商/承包商；10=明确询价/招标/采购需求。\n\n'
       + rows + '\n\n'
       + '只输出 JSON：{"leads":[{"i":1,"score":0,"type":"distributor|importer|wholesaler|retailer|contractor|manufacturer|unknown","product":"","country":"","why":"一句话理由","approach":"一句话跟进建议","lang":"en"}]}';
-    var txt = await AgnesAI.ask(prompt, { json: true, temperature: 0.1, maxTokens: 2200, timeout: 60000 });
+    var txt = await AgnesAI.ask(prompt, { json: true, temperature: 0.1, maxTokens: Math.min(4200, 900 + leads.length * 90), timeout: 60000 });
     var res = AgnesAI.parseLoose(txt);
     return (res && res.leads) || [];
   }
@@ -809,7 +1237,7 @@
 
   async function srcDdg(ctx) {
     throwIfCancelled();
-    var qs = (ctx.queries || []).slice(0, 4);
+    var qs = (ctx.queries || []).slice(0, 5);
     if (!qs.length) qs = [{ q: '"' + ctx.product + '" ' + (ctx.type || 'distributor') }];
     var res = await settleGroups(qs.map(function (o) { return searchLinks(o.q, false); }));
     if (res.fail >= qs.length) throw fetchFailedError('DuckDuckGo ', res);
@@ -820,7 +1248,7 @@
         var d = domainOf(l.url);
         if (!d || isBlocked(d) || seen[d]) return;
         seen[d] = 1;
-        out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'DuckDuckGo' });
+        out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'DuckDuckGo', _nameFromDomain: true });
       });
     });
     return out.slice(0, 40);
@@ -864,7 +1292,7 @@
         var d = domainOf(l.url);
         if (!d || isBlocked(d) || seen[d]) return;
         seen[d] = 1;
-        out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'Bing' });
+        out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: 'Bing', _nameFromDomain: true });
       });
     });
     return out.slice(0, 30);
@@ -947,6 +1375,7 @@
       out.push({
         name: name,
         country: country,
+        _countrySrc: 'source',
         desc: '买家询盘' + (qty ? '：' + qty.trim() : '') + (contact ? ' · 联系人 ' + contact.trim() : ''),
         contact: contact.trim(),
         type: 'importer',
@@ -968,6 +1397,7 @@
       out.push({
         name: nm,
         country: 'USA',
+        _countrySrc: 'source',
         desc: '美国进口商（Zauba 海关记录）· ' + (fallbackProduct || ''),
         type: 'importer',
         _inquiry: true,
@@ -1012,7 +1442,7 @@
       var d = domainOf(l.url);
       if (!d || isBlocked(d) || d === baseHost || seen[d]) return;
       seen[d] = 1;
-      out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: cfg.name });
+      out.push({ name: nameFromDomain(d), website: 'https://' + d, desc: l.label || '', source: cfg.name, _nameFromDomain: true });
     });
     if (!body.html) {
       headingNames(body.text).forEach(function (nm) {
@@ -1044,8 +1474,10 @@
     c._text = info.text;
     c._aiVerified = true;
     if (!c.desc) c.desc = text.slice(0, 160);
-    /* 模型给的国家可能是猜的：只保留官网后缀或页面明确地址 */
-    c.country = countryFromDomain(c.website) || detectCountryExplicit(text) || '';
+    /* 模型给的国家可能是猜的：只保留官网后缀或页面明确证据 */
+    var ev = countryEvidence(c.website, text, true);
+    c.country = ev.country;
+    c._countrySrc = ev.source;
     var ct = info.contacts || { emails: [], phones: [], was: [] };
     if (ct.emails.length && !c.email) c.email = ct.emails[0];
     if (!c.phone) {
@@ -1117,7 +1549,9 @@
             website: 'https://' + d,
             desc: l.label || '',
             source: 'AI',
-            _aiVerified: true
+            _aiVerified: true,   /* 已入池（真实搜索结果或官网核验通过），供 pipeline 兜底 */
+            _aiSearch: true,     /* 搜索路径来的，界面不显示「已核验」 */
+            _nameFromDomain: true
           });
         });
       });
@@ -1178,8 +1612,12 @@
     extractContacts: extractContacts,
     domainOf: domainOf,
     host: host,
+    registrableDomain: registrableDomain,
     nameFromDomain: nameFromDomain,
+    companyNameFromTitle: companyNameFromTitle,
+    pageTitle: pageTitle,
     isBlocked: isBlocked,
+    isSellerName: isSellerName,
     aiNameMatches: aiNameMatches,
     buildQueries: buildQueries,
     ruleCheck: ruleCheck,
@@ -1188,9 +1626,21 @@
     detectCountry: detectCountry,
     detectCountryExplicit: detectCountryExplicit,
     countryFromDomain: countryFromDomain,
+    countryEvidence: countryEvidence,
+    countryFromJsonLd: countryFromJsonLd,
+    countryFromPhone: countryFromPhone,
+    countryFromFooter: countryFromFooter,
+    inRegion: inRegion,
     normalizeCountry: normalizeCountry,
     isJunkName: isJunkName,
     isJunkEmail: isJunkEmail,
+    isFreeMail: isFreeMail,
+    rankEmails: rankEmails,
+    emailRank: emailRank,
+    dropSharedEmails: dropSharedEmails,
+    contactUrlFromLinks: contactUrlFromLinks,
+    mergeCandidates: mergeCandidates,
+    normCompanyName: normCompanyName,
     pageInfo: pageInfo,
     pickWebsite: pickWebsite,
     enrichContacts: enrichContacts,

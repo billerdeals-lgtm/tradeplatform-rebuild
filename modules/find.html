@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>FT Compass · 找客户</title>
 <link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="stylesheet" href="../assets/tokens.css?v=20261111c">
+<link rel="stylesheet" href="../assets/tokens.css?v=20261112a">
 <style>
   body { margin:0; font-family:var(--font-sans); background:var(--bg-page); color:var(--text-1); }
   header { background:var(--brand-900); color:#fff; padding:var(--sp-4) var(--sp-6); display:flex; align-items:center; gap:var(--sp-3); }
@@ -42,6 +42,8 @@
   .filterbar { display:none; align-items:center; gap:12px; flex-wrap:wrap; background:var(--bg-card); border-radius:var(--r-md); box-shadow:var(--shadow-card); padding:10px 14px; margin-bottom:10px; font-size:12.5px; color:var(--text-2); }
   .filterbar input[type=range] { width:160px; }
   .filterbar b { color:var(--brand-700); font-size:15px; }
+  .filterbar label.chk { display:inline-flex; align-items:center; gap:4px; cursor:pointer; user-select:none; }
+  .filterbar label.chk input { margin:0; }
   .tw { overflow-x:auto; }
   table { width:100%; border-collapse:collapse; font-size:13px; background:var(--bg-card); border-radius:var(--r-md); overflow:hidden; box-shadow:var(--shadow-card); }
   th { background:var(--brand-900); color:#fff; text-align:left; padding:10px 12px; font-size:12px; white-space:nowrap; }
@@ -58,6 +60,8 @@
   .tier { font-size:10px; padding:1px 6px; border-radius:999px; margin-left:4px; white-space:nowrap; }
   .t-a { background:#fee2e2; color:#991b1b; } .t-b { background:#ffedd5; color:#9a3412; }
   .t-c { background:#fef9c3; color:#854d0e; } .t-d { background:#f1f5f9; color:#475569; }
+  .ev { font-size:10px; padding:1px 6px; border-radius:999px; margin-left:4px; background:var(--bg-inset); color:var(--text-2); white-space:nowrap; }
+  .ev.ok { background:var(--ok-bg); color:var(--ok-text); }
   .flags { font-size:11px; color:var(--text-2); margin-top:3px; letter-spacing:1px; }
   .bs { font-size:12px; padding:5px 12px; border-radius:var(--r-sm); border:0; cursor:pointer; white-space:nowrap; }
   .bi { background:var(--brand-700); color:#fff; } .bi:hover { background:var(--brand-800); }
@@ -84,10 +88,10 @@
   .dx { background:var(--bg-inset); color:var(--text-2); }
   .srcnote { font-size:11.5px; color:var(--text-3); padding:0 var(--sp-4) var(--sp-4); line-height:1.55; }
 </style>
-<script src="../assets/standalone.js?v=20261111c"></script>
-<script src="../assets/a11y.js?v=20261111c"></script>
-<link rel="stylesheet" href="../assets/responsive.css?v=20261111c">
-<link rel="stylesheet" href="../assets/ui.css?v=20261111c">
+<script src="../assets/standalone.js?v=20261112a"></script>
+<script src="../assets/a11y.js?v=20261112a"></script>
+<link rel="stylesheet" href="../assets/responsive.css?v=20261112a">
+<link rel="stylesheet" href="../assets/ui.css?v=20261112a">
 </head>
 <body>
 <header><span class="mod-ico" aria-hidden="true">
@@ -123,6 +127,8 @@
     <span>最低意向分</span>
     <input type="range" id="minScore" aria-label="最低 AI 评分" min="0" max="12" step="1" value="4" oninput="applyFilter()">
     <b id="minVal">4</b><span>/12</span>
+    <label class="chk"><input type="checkbox" id="fContact" onchange="applyFilter()"> 只看有联系方式</label>
+    <label class="chk"><input type="checkbox" id="fVerified" onchange="applyFilter()"> 只看已核验</label>
     <span id="fInfo" style="color:var(--text-3)" role="status"></span>
   </div>
   <div class="acts" id="bR" style="display:none;margin-top:0">
@@ -144,7 +150,7 @@
   </div>
   <div class="df"><button class="dx" onclick="dlg.close()">取消</button><button class="ds" onclick="convSave()">保存到线索</button></div>
 </dialog>
-<script src="../js/datastore.js?v=20261111c"></script><script src="../js/sources.js?v=20261111c"></script><script src="../js/lead-dedupe.js?v=20261111c"></script><script src="../agnes-ai.js?v=20261111c"></script><script src="../js/license.js?v=20261111c"></script><script>
+<script src="../js/datastore.js?v=20261112a"></script><script src="../js/sources.js?v=20261112a"></script><script src="../js/lead-dedupe.js?v=20261112a"></script><script src="../agnes-ai.js?v=20261112a"></script><script src="../js/license.js?v=20261112a"></script><script>
 'use strict';
 var S={all:[],results:[],convIds:{},dupIds:{},round:0,seq:0,_p:null};
 
@@ -212,23 +218,22 @@ async function inBatches(list,size,fn,label){
   ensureLive();
 }
 
-/* ---------- 合并去重 ---------- */
+/* ---------- 合并去重 ----------
+   原来只按完整 host 去重：shop.acme.com / acme.com、acme.com / acme.co.ke、
+   领英记录 / 官网记录都会变成两条。现在交给 Sources.mergeCandidates：
+   先按可注册域名，再按名称 + 域名核心词，合并时字段取更可信的值。 */
 function dedupe(list){
-  var map={},out=[];
-  list.forEach(function(c){
-    if(!c||!c.name)return;
-    var key=c.website?Sources.domainOf(c.website):(c.linkedin?'li:'+c.linkedin.toLowerCase():(c.name||'').toLowerCase().replace(/[^a-z0-9]+/g,''));
-    if(!key)return;
-    var e=map[key];
-    if(e){
-      ['email','phone','website','country','desc','linkedin'].forEach(function(k){if(!e[k]&&c[k])e[k]=c[k]});
-      if(c.source&&e._sources.indexOf(c.source)<0)e._sources.push(c.source);
-      return;
-    }
-    c._sources=[c.source||'目录'];
-    map[key]=c;out.push(c);
-  });
-  return out;
+  try{return Sources.mergeCandidates(list)}catch(e){return list||[]}
+}
+
+/* 证据强度：多源印证 > 官网已核验 > 有联系方式。意向分相同时用它排序。 */
+function evidenceRank(r){
+  return ((r._sources||[]).length>1?2:0)+(r._verified?2:0)+(hasC(r)?1:0)+(r._inquiry?1:0);
+}
+var COUNTRY_SRC_LABEL={domain:'官网后缀',jsonld:'结构化数据',explicit:'页面明确写法',footer:'页脚地址',phone:'电话区号',source:'来源目录'};
+function countryTip(r){
+  var s=COUNTRY_SRC_LABEL[r._countrySrc];
+  return s?'国家依据：'+s:'';
 }
 
 /* ---------- 主流程 ---------- */
@@ -258,7 +263,9 @@ async function runPipeline(append){
     region:regionText(),
     type:v('k_type'),
     queries:Sources.buildQueries(prod,regionText(),v('k_type'),14,S.round),
-    exclude:append?S.all.map(function(r){return (r.name||'').toLowerCase()}):[]
+    exclude:append?S.all.map(function(r){return (r.name||'').toLowerCase()}):[],
+    /* 名字会被标题升级，「换一批」不能只按名字排重，域名也要排 */
+    excludeDomains:append?S.all.map(function(r){return Sources.registrableDomain(r.website||'')}).filter(Boolean):[]
   };
   log('关键词矩阵：'+ctx.queries.length+' 条 · '+ctx.queries.slice(0,3).map(function(o){return o.q}).join(' ｜ '),true);
 
@@ -298,13 +305,17 @@ async function runPipeline(append){
 
     var merged=dedupe(all).filter(function(c){
       /* 兜底：AI 来源必须带核验标记，防止未核验公司漏进结果 */
-      if(c.source==='AI'&&!c._aiVerified)return false;
+      if(c.source==='AI'&&!c._aiVerified&&!c._aiSearch)return false;
       if(Sources.isJunkName(c.name))return false;
-      return c.name.length>2&&ctx.exclude.indexOf((c.name||'').toLowerCase())<0;
+      if(c.name.length<=2)return false;
+      if(ctx.exclude.indexOf((c.name||'').toLowerCase())>=0)return false;
+      if(ctx.excludeDomains.indexOf(Sources.registrableDomain(c.website||''))>=0)return false;
+      return true;
     });
     if(!merged.length){
       /* 区分抓取通道故障与「确实没搜到」：全部源失败时换关键词/加来源没有意义 */
       if(srcFail>0&&srcOk===0)throw new Error('抓取通道全部失败，多为网络或限流，请稍后重试');
+      if(srcFail>0&&!all.length)throw new Error('多数来源抓取失败（部分连通但没有返回公司），请稍后重试或换一批来源');
       throw new Error('来源已连通但未找到公司，请换个关键词或增加来源');
     }
     log('合并去重后 '+merged.length+' 家',true);
@@ -315,6 +326,9 @@ async function runPipeline(append){
     merged=merged.filter(function(c){
       var rc=Sources.ruleCheck((c.name||'')+' '+(c.desc||''),false);
       if(rc.skip)return false;
+      /* 名字里直接写 manufacturer/supplier/exporter 的是同行；
+         页面同时有采购/经销信号的保留。 */
+      if(Sources.isSellerName(c.name)&&!rc.isPriceInquiry&&rc.reason!=='买家信号')return false;
       c._rule=rc;return true;
     });
     if(before-merged.length)log('规则预筛剔除 '+(before-merged.length)+' 家供应商/电商页');
@@ -334,12 +348,22 @@ async function runPipeline(append){
           var w=Sources.pickWebsite(info.links,Sources.domainOf(c.profileUrl));
           if(w)c.website=w;
         }
-        /* 只信官网完整后缀与页面明确地址，不用搜索片段/城市名猜。
-           目录详情页（Europages 等）的正文混有多家公司/筛选器国家，不能当证据。 */
-        if(!c.country)c.country=Sources.countryFromDomain(c.website)||(c.profileUrl?'':Sources.detectCountryExplicit(info.text));
+        /* 域名拼出来的名字（shop.xxx → "Shop"）用首页标题里的品牌名替换；
+           标题必须能和域名核心词对上，文章/促销标题不会被当成公司名。 */
+        if(c._nameFromDomain){
+          var tn=Sources.companyNameFromTitle(Sources.pageTitle(info.text),c.website||c.profileUrl||'');
+          if(tn){c.name=tn;c._nameFromDomain=false}
+        }
+        /* 国家证据分级：官网后缀 > JSON-LD > 页面明确写法 > 页脚地址 > 电话区号。
+           目录详情页（Europages 等）正文混有多家公司/筛选器国家，不能当证据。 */
+        if(!c.country){
+          var ev=Sources.countryEvidence(c.website,info.text,!c.profileUrl);
+          if(ev.country){c.country=ev.country;c._countrySrc=ev.source}
+        }
         var ct=info.contacts;
         if(ct.emails.length&&!c.email)c.email=ct.emails[0];
         if(!c.phone){if(ct.was.length)c.phone='+'+ct.was[0];else if(ct.phones.length)c.phone=ct.phones[0]}
+        if(!c._contactUrl)c._contactUrl=Sources.contactUrlFromLinks(info.links,c.website||c.profileUrl);
         if(!c.desc&&info.text)c.desc=info.text.replace(/\s+/g,' ').slice(0,160);
         c._verified=true;
       }catch(e){if(e&&e.cancelled)throw e;c._fetchFail=true}
@@ -357,10 +381,23 @@ async function runPipeline(append){
     merged=live;
     if(!merged.length)throw new Error('域名页全部被判为供应商，请换个关键词');
     log('规则复筛后剩 '+merged.length+' 家',true);
+    setP(54);
+
+    /* 4.5 目标市场落地：国家证据明确且不属于所选大区 → 剔除。
+       国家未知、或只有「页脚地址」这类弱证据的保留，避免误杀。 */
+    var region=regionText(),dropRegion=0;
+    if(region){
+      merged=merged.filter(function(c){
+        if(Sources.inRegion(c.country,region)===false&&c._countrySrc&&c._countrySrc!=='footer'&&c._countrySrc!=='phone'){dropRegion++;return false}
+        return true;
+      });
+      if(dropRegion)log('地区不符剔除 '+dropRegion+' 家（目标：'+region+'）');
+      if(!merged.length)throw new Error('结果都属于其它市场，请放宽目标市场或换关键词');
+    }
     setP(58);
 
     /* 5. AI 买家意向评分 */
-    var toScore=merged.slice(0,15),aiMap={};
+    var toScore=merged.slice(0,24),aiMap={};
     if($('optEnrich').checked&&toScore.length&&typeof AgnesAI!=='undefined'){
       $('st').textContent='🧠 AI 买家意向评分…';
       try{
@@ -392,21 +429,41 @@ async function runPipeline(append){
     });
     setP(74);
 
-    /* 6. 二次补全（高分且缺邮箱） */
+    /* 6. 二次补全（高分且缺邮箱）：先抓官网自己的联系页，再回退到搜索 */
     var need=merged.filter(function(c){return c.score>=7&&!c.email}).slice(0,6);
     if(need.length){
       await inBatches(need,2,async function(c){
-        var ex=await Sources.enrichContacts(c.name,c.website?Sources.domainOf(c.website):'');
-        if(ex.emails.length&&!c.email)c.email=ex.emails[0];
-        if(!c.phone){if(ex.was.length)c.phone='+'+ex.was[0];else if(ex.phones.length)c.phone=ex.phones[0]}
-        if(ex.country&&!c.country)c.country=ex.country;
+        if(c._contactUrl){
+          try{
+            var info=await Sources.pageInfo(c._contactUrl,15000);
+            var ct=info.contacts;
+            if(ct.emails.length&&!c.email)c.email=ct.emails[0];
+            if(!c.phone){if(ct.was.length)c.phone='+'+ct.was[0];else if(ct.phones.length)c.phone=ct.phones[0]}
+            if(!c.country){
+              var ev=Sources.countryEvidence('',info.text,true);
+              if(ev.country){c.country=ev.country;c._countrySrc=ev.source}
+            }
+          }catch(e){if(e&&e.cancelled)throw e}
+        }
+        if(!c.email){
+          var ex=await Sources.enrichContacts(c.name,c.website?Sources.domainOf(c.website):'');
+          if(ex.emails.length)c.email=ex.emails[0];
+          if(!c.phone){if(ex.was.length)c.phone='+'+ex.was[0];else if(ex.phones.length)c.phone=ex.phones[0]}
+        }
       },'🔎 二次补全联系方式');
     }
+    /* 6.5 共享邮箱清理：同一邮箱域挂在多家不同公司上，基本是建站商/模板/代收 */
+    var droppedMail=Sources.dropSharedEmails(merged);
+    if(droppedMail)log('剔除共享/代理邮箱 '+droppedMail+' 个',true);
     setP(94);
 
-    /* 7. 入库 + 过滤 */
+    /* 7. 入库 + 过滤（追加时同时按名称和可注册域名排重） */
     merged.forEach(function(c){
-      if(S.all.some(function(x){return x.name.toLowerCase()===c.name.toLowerCase()}))return;
+      var rd=Sources.registrableDomain(c.website||'');
+      if(S.all.some(function(x){
+        return x.name.toLowerCase()===c.name.toLowerCase()
+          ||(rd&&Sources.registrableDomain(x.website||'')===rd);
+      }))return;
       c._id='L'+(S.seq++);
       S.all.push(c);
     });
@@ -442,8 +499,17 @@ async function runPipeline(append){
 /* ---------- 过滤 + 渲染 ---------- */
 function applyFilter(){
   var min=parseInt($('minScore').value,10)||0;
+  var onlyC=$('fContact').checked,onlyV=$('fVerified').checked;
   $('minVal').textContent=min;
-  S.results=S.all.filter(function(r){return (r.score||0)>=min}).sort(function(a,b){return (b.score||0)-(a.score||0)});
+  S.results=S.all.filter(function(r){
+    if((r.score||0)<min)return false;
+    if(onlyC&&!hasC(r))return false;
+    if(onlyV&&!r._verified)return false;
+    return true;
+  }).sort(function(a,b){
+    /* 意向分相同看证据：多源印证 > 已核验 > 有联系方式 */
+    return (b.score||0)-(a.score||0)||evidenceRank(b)-evidenceRank(a);
+  });
   $('fInfo').textContent='共 '+S.all.length+' 家，显示 '+S.results.length+' 家';
   $('fbar').style.display=S.all.length?'flex':'none';
   render();
@@ -486,9 +552,12 @@ function render(){
     }else{ch='<span style="color:var(--text-3)">—</span>'}
     var link=FT.safeUrl(r.website||r.linkedin||'');
     var tip='理由：'+(r.why||'—')+(r.approach?' ｜ 建议：'+r.approach:'');
+    var ev='';
+    if(r._verified)ev+='<span class="ev ok" title="已抓取官网并核验">✓ 核验</span>';
+    if((r._sources||[]).length>1)ev+='<span class="ev" title="'+esc('来源：'+(r._sources||[]).join(' / '))+'">多源 '+(r._sources||[]).length+'</span>';
     return '<tr><td><div class="cn">'+(link?'<a href="'+esc(link)+'" target="_blank" rel="noopener">'+esc(r.name)+'</a>':esc(r.name))+'</div>'+(r.desc?'<div class="cd" title="'+esc(r.desc)+'">'+esc(r.desc.slice(0,80))+'</div>':'')+'</td>'
-      +'<td>'+esc(r.country||'未知')+'</td>'
-      +'<td><span class="score" title="'+esc(tip)+'">'+r.score+'<small>/12</small></span><span class="tier t-'+(r.tier?r.tier.key:'d')+'">'+(r.tier?r.tier.label:'低')+'</span>'+(flagsOf(r)?'<div class="flags">'+flagsOf(r)+'</div>':'')+'</td>'
+      +'<td'+(countryTip(r)?' title="'+esc(countryTip(r))+'"':'')+'>'+esc(r.country||'未知')+'</td>'
+      +'<td><span class="score" title="'+esc(tip)+'">'+r.score+'<small>/12</small></span><span class="tier t-'+(r.tier?r.tier.key:'d')+'">'+(r.tier?r.tier.label:'低')+'</span>'+ev+(flagsOf(r)?'<div class="flags">'+flagsOf(r)+'</div>':'')+'</td>'
       +'<td class="cc">'+ch+'</td>'
       +'<td>'+badges+'</td>'
       +'<td>'+(imp?'<span class="imp">✓ 已导入</span>':(dup?'<span class="imp" title="'+esc('线索库已有：'+dup)+'">✓ 已在线索库</span>':((hasC(r)||r._inquiry)?'<button class="bs bi" onclick="openConv(\''+r._id+'\')">→ 导入</button>':(r.website?'<button class="bs bd" onclick="digOne(\''+r._id+'\')">⛏ 深挖</button>':''))))+'</td></tr>';
@@ -504,9 +573,12 @@ async function digOne(id){
   $('st').textContent='⛏ 抓取 '+Sources.host(r.website)+'…';
   try{
     var info=await Sources.pageInfo(r.website,15000);
-    if(info.contacts.emails.length)r.email=info.contacts.emails[0];
+    if(info.contacts.emails.length&&!r.email)r.email=info.contacts.emails[0];
     if(!r.phone){if(info.contacts.was.length)r.phone='+'+info.contacts.was[0];else if(info.contacts.phones.length)r.phone=info.contacts.phones[0]}
-    if(!r.country)r.country=Sources.countryFromDomain(r.website)||(r.profileUrl?'':Sources.detectCountryExplicit(info.text));
+    if(!r.country){
+      var ev=Sources.countryEvidence(r.website,info.text,!r.profileUrl);
+      if(ev.country){r.country=ev.country;r._countrySrc=ev.source}
+    }
     r._verified=true;
   }catch(e){}
   $('st').textContent=hasC(r)?'✓ 挖到联系方式':'未提取到';render();

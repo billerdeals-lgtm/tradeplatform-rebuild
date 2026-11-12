@@ -288,8 +288,8 @@ ok('国家只按完整后缀识别', /function countryFromDomain/.test(sources) 
 ok('不再用城市/裸国家词推断', !/COUNTRY_MAP/.test(sources) && /function detectCountryExplicit/.test(sources) && /裸国家词/.test(sources));
 ok('AI 国家字段不再直接采用', !/a\.country&&!c\.country/.test(find) && /AI 的国家字段不作为证据/.test(find));
 ok('找不到国家显示未知', /esc\(r\.country\|\|'未知'\)/.test(find));
-ok('抓页后按官网后缀识别国家', /Sources\.countryFromDomain\(c\.website\)/.test(find) && /Sources\.countryFromDomain\(r\.website\)/.test(find));
-ok('目录详情页正文不作为国家证据', /c\.profileUrl\?'':Sources\.detectCountryExplicit/.test(find) && /r\.profileUrl\?'':Sources\.detectCountryExplicit/.test(find));
+ok('抓页后按国家证据分级识别', /Sources\.countryEvidence\(c\.website/.test(find) && /Sources\.countryEvidence\(r\.website/.test(find) && /function countryEvidence/.test(sources));
+ok('目录详情页正文不作为国家证据', /!c\.profileUrl\)/.test(find) && /!r\.profileUrl\)/.test(find) && /if \(!allowPage \|\| !text\)/.test(sources));
 ok('CDN 图床不当作公司官网', /cloudfront\.net/.test(sources) && /function isBlocked/.test(sources));
 ok('邮箱过滤器存在并被提取流程调用', /function isJunkEmail/.test(sources) && /isJunkEmail\(low\)/.test(sources) && /duckduckgo\.com/.test(sources));
 ok('结果清洗存在并用于合并结果', /function isJunkName/.test(sources) && /Sources\.isJunkName\(c\.name\)/.test(find) && /isJunkName\(name\)/.test(sources));
