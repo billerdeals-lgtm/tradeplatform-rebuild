@@ -107,6 +107,7 @@ payload = { "v":1, "id":"FT-A7F3", "co":"XX贸易有限公司", "iat":1792493422
 - 签名格式：**raw r||s（IEEE P1363，64 字节）**，base64url、无 `=` 填充
   - WebCrypto `verify` 原生就是该格式
   - Node 侧必须显式传 `dsaEncoding: 'ieee-p1363'`，否则默认 DER 会验不过
+  - **必须是规范编码**：64 字节签名编成 86 个字符，末位字符只有高 2 位有效，`atob` 会丢弃剩下 4 位，导致「改掉最后一个字符仍然验签通过」。前端验签前用 `isCanonicalB64url()` 做「解码后重编码必须逐字相同」校验，并强制签名段解出 64 字节。
 - 公钥：SPKI DER 的 base64，硬编码在 `license.js`
 
 ### 5.3 存储与混淆

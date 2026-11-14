@@ -113,6 +113,31 @@ sigRaw[0] = sigRaw[0] ^ 0xFF;
 const r4 = await L.activate('FT1.' + parts[1] + '.' + b64url(sigRaw));
 check('改签名 → SIGNATURE', r4.ok === false && r4.code === 'SIGNATURE', JSON.stringify(r4));
 
+console.log('\n[5b] 末位填充位（atob 会忽略的那 4 位）');
+const ALPHA64 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+const sigSeg = parts[2];
+const lastCh = sigSeg[sigSeg.length - 1];
+let sameBytes = 0, accepted = 0;
+for (const ch of ALPHA64) {
+  if (ch === lastCh) continue;
+  const altSeg = sigSeg.slice(0, -1) + ch;
+  const same = Buffer.from(altSeg.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+    .equals(Buffer.from(sigSeg.replace(/-/g, '+').replace(/_/g, '/'), 'base64'));
+  if (same) sameBytes++;
+  const r = await L.activate('FT1.' + parts[1] + '.' + altSeg);
+  if (r.ok) accepted++;
+}
+check('确实存在「换字不换字节」的末位变体（bug 成因）', sameBytes > 0, 'sameBytes=' + sameBytes);
+check('末位任何变体一律拒绝', accepted === 0, 'accepted=' + accepted);
+
+const rEnd = await L.activate('FT1.' + parts[1] + '.' + sigSeg + 'A');
+check('末尾多打一个字符 → 拒绝', rEnd.ok === false, JSON.stringify(rEnd));
+const rCut = await L.activate('FT1.' + parts[1] + '.' + sigSeg.slice(0, -1));
+check('末尾少一个字符 → 拒绝', rCut.ok === false, JSON.stringify(rCut));
+const midCut = sigSeg.slice(0, 40) + sigSeg.slice(41);
+const rMid = await L.activate('FT1.' + parts[1] + '.' + midCut);
+check('中间少一个字符 → 拒绝', rMid.ok === false, JSON.stringify(rMid));
+
 console.log('\n[6] 版本规则');
 const r5 = await L.activate(sign({ ...base, ver: '2', id: 'FT-V2' }));
 check('ver=2（高于当前 1.x）→ VERSION', r5.ok === false && r5.code === 'VERSION', JSON.stringify(r5));

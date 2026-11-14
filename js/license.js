@@ -58,6 +58,14 @@
     for (var i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
     return out;
   }
+  /* atob 会忽略 base64 末位多余的「填充位」：64 字节签名编成 86 个字符，
+     最后一个字符只有高 2 位有效，另外 4 位随便改都解出同一串字节，
+     验签照样通过。所以必须要求「规范编码」——重编码后与原文逐字一致。 */
+  var B64URL_RE = /^[A-Za-z0-9_-]+$/;
+  function isCanonicalB64url(s) {
+    if (!B64URL_RE.test(s)) return false;
+    try { return bytesToB64url(b64urlToBytes(s)) === s; } catch (e) { return false; }
+  }
   function xorBytes(bytes) {
     var k = utf8Encode(XOR_KEY);
     var out = new Uint8Array(bytes.length);
@@ -206,6 +214,17 @@
     if (parts.length !== 3 || !parts[1] || !parts[2]) {
       return Promise.resolve({ ok: false, code: 'FORMAT', msg: '激活码格式不正确，请完整粘贴' });
     }
+    /* 必须整段是规范的 base64url：改任何一个字符（哪怕只动末位无效位）都不认 */
+    if (!B64URL_RE.test(parts[1]) || !B64URL_RE.test(parts[2])) {
+      return Promise.resolve({ ok: false, code: 'FORMAT', msg: '激活码格式不正确，请完整粘贴' });
+    }
+    if (!isCanonicalB64url(parts[1]) || !isCanonicalB64url(parts[2])) {
+      return Promise.resolve({ ok: false, code: 'SIGNATURE', msg: '激活码无效，请整行复制后重试（不要手动修改）' });
+    }
+    var sigBytes = b64urlToBytes(parts[2]);
+    if (sigBytes.length !== 64) {
+      return Promise.resolve({ ok: false, code: 'SIGNATURE', msg: '激活码无效，请整行复制后重试（不要手动修改）' });
+    }
     var pj;
     try { pj = JSON.parse(utf8Decode(b64urlToBytes(parts[1]))); }
     catch (e) { return Promise.resolve({ ok: false, code: 'FORMAT', msg: '激活码内容无法解析' }); }
@@ -226,7 +245,7 @@
         return global.crypto.subtle.verify(
           { name: 'ECDSA', hash: 'SHA-256' },
           key,
-          b64urlToBytes(parts[2]),
+          sigBytes,
           utf8Encode(parts[1])
         );
       })

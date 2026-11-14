@@ -185,6 +185,7 @@ ok('抬头不再写「授权给」', !/授权给/.test(home));
 ok('公司抬头只对已授权显示', /function paintLicCompany\(\)/.test(home) && /s\.pro&&s\.company/.test(home) && /chip\.hidden=true/.test(home));
 ok('激活后立即刷新公司抬头', /License\.onChange\(function\(\)\{ paintLicCompany\(\);/.test(home));
 ok('已激活客户单证不加授权水印', /if \(s\.pro\) return '';/.test(license) && /已激活客户不加纸面\/导出水印/.test(license));
+ok('激活码必须规范 base64url（末位无效位也判无效）', /isCanonicalB64url/.test(license) && /bytesToB64url\(b64urlToBytes\(s\)\) === s/.test(license) && /sigBytes\.length !== 64/.test(license));
 ok('无水印时纸面不渲染空页脚', /\.paper:not\(\[data-wm\]\)::after\{display:none\}/.test(paper));
 ok('签发工具拦截编码损坏的公司名', /编码损坏/.test(signTool) && /uFFFD/.test(signTool));
 ok('签发工具支持 UTF-8 文件传公司名', /--company-file/.test(signTool) && /readFileSync\(p, 'utf8'\)/.test(signTool));
