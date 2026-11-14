@@ -7,10 +7,10 @@
 <meta name="theme-color" content="#047857">
 <title>FT Compass · 外贸客户开发工作台</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<link rel="stylesheet" href="assets/tokens.css?v=20261114a">
-<link rel="stylesheet" href="assets/responsive.css?v=20261114a">
-<link rel="stylesheet" href="assets/ui.css?v=20261114a">
-<script src="assets/standalone.js?v=20261114a"></script>
+<link rel="stylesheet" href="assets/tokens.css?v=20261114b">
+<link rel="stylesheet" href="assets/responsive.css?v=20261114b">
+<link rel="stylesheet" href="assets/ui.css?v=20261114b">
+<script src="assets/standalone.js?v=20261114b"></script>
 <style>
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -139,6 +139,21 @@
     display: grid; place-items: center; cursor: pointer;
   }
   .top-avatar:hover { background: var(--brand-800); }
+  /* 授权公司抬头：只有已激活（pro）时显示，试用期隐藏 */
+  .top-company {
+    display: inline-flex; align-items: center; gap: 6px;
+    max-width: 300px; padding: 5px 10px; border-radius: 8px;
+    background: var(--brand-50); border: 1px solid #a7f3d0;
+    color: var(--brand-800); font-size: 12.5px; min-width: 0;
+  }
+  .top-company[hidden] { display: none; }
+  .top-company svg { width: 14px; height: 14px; flex: 0 0 14px; }
+  .top-company .tc-label { color: var(--brand-700); font-size: 11px; flex: 0 0 auto; }
+  .top-company b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  @media (max-width: 1100px) {
+    .top-company .tc-label { display: none; }
+    .top-company { max-width: 190px; }
+  }
 
   iframe { flex: 1; border: 0; background: var(--bg-page); }
   #views { flex: 1; min-height: 0; position: relative; }
@@ -487,6 +502,11 @@
       <b id="topTitle">工作台</b>
     </div>
     <div class="top-actions">
+      <span class="top-company" id="topCompany" hidden>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+        <span class="tc-label">授权给</span>
+        <b id="topCompanyName"></b>
+      </span>
       <button type="button" class="topbtn" onclick="reloadView()" title="重新载入当前模块">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
         重载
@@ -634,16 +654,16 @@
   <div style="padding:18px" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=20261114a"></script>
-<script src="js/datastore.js?v=20261114a"></script>
-<script src="js/quote-validity.js?v=20261114a"></script>
-<script src="js/license.js?v=20261114a"></script>
-<script src="assets/a11y.js?v=20261114a"></script>
+<script src="agnes-ai.js?v=20261114b"></script>
+<script src="js/datastore.js?v=20261114b"></script>
+<script src="js/quote-validity.js?v=20261114b"></script>
+<script src="js/license.js?v=20261114b"></script>
+<script src="assets/a11y.js?v=20261114b"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261114a';
+var MODULE_V = '20261114b';
 /* 深链：模块 id 白名单，避免把任意字符串塞进 iframe.src */
 var VIEW_RE = /^modules\/[a-z0-9_-]+\.html(?:\?[^#]*)?$/i;
 var LRU_MAX = 3;
@@ -898,7 +918,23 @@ function refresh(){
   refreshBackupBar();
   renderQuota();
 }
+/* 页眉右上角显示激活码绑定的公司抬头：共享激活码时，对方界面会直接显示购买方公司名 */
+function paintLicCompany(){
+  var chip=$('topCompany'), nameEl=$('topCompanyName');
+  if(!chip||!nameEl)return;
+  var s=null; try{ s=License.status(); }catch(e){}
+  if(s&&s.pro&&s.company){
+    nameEl.textContent=s.company;
+    chip.hidden=false;
+    chip.title='授权公司：'+s.company+(s.id?' · 编号 '+s.id:'')+' · 仅限本公司使用，请勿共享激活码';
+  }else{
+    nameEl.textContent='';
+    chip.hidden=true;
+    chip.title='';
+  }
+}
 function paintLicenseDot(){
+  paintLicCompany();
   var dot=$('mDot'); if(!dot)return;
   var s=null; try{ s=License.status(); }catch(e){}
   if(!s||(!s.pro&&!s.state)){ dot.style.background='rgba(255,255,255,.45)'; dot.title='授权状态未知'; return; }
@@ -1203,7 +1239,9 @@ var bootView = viewFromHash();
 if (bootView !== 'home') go(bootView, { fromHash: true });
 refresh();
 renderQuota();
+try{ License.onChange(function(){ paintLicCompany(); paintLicenseDot(); }); }catch(e){}
 License.ready();
+paintLicCompany();
 paintLicenseDot();
 setTimeout(paintLicenseDot, 400);
 </script>

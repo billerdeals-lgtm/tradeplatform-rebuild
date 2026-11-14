@@ -177,6 +177,9 @@ ok('公共邮箱不参与域名匹配', /GENERIC_DOMAINS/.test(leadDedupe) && /g
 ok('购买入口有 QQ/邮箱', /BUY_QQ/.test(license) && /BUY_EMAIL/.test(license) && /2279201868@qq\.com/.test(license));
 ok('我已购买有可用转化路径', /mailto:/.test(license) && /global\.location\.href = BUY_URL/.test(license));
 ok('激活弹窗展示联系方式', /buyContactText\(\)/.test(license) && /lic-buy/.test(license));
+ok('页眉有授权公司抬头容器', /id="topCompany"/.test(home) && /id="topCompanyName"/.test(home) && /class="top-company"/.test(home));
+ok('公司抬头只对已授权显示', /function paintLicCompany\(\)/.test(home) && /s\.pro&&s\.company/.test(home) && /chip\.hidden=true/.test(home));
+ok('激活后立即刷新公司抬头', /License\.onChange\(function\(\)\{ paintLicCompany\(\);/.test(home));
 ok('license 已统一发布戳', /license\.js\?v=/.test(home) && /license\.js\?v=/.test(quotes));
 
 /* 16. 话术库补缺 + 占位符说明 + 默认按热度 */
