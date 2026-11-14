@@ -60,6 +60,17 @@ const fixedText = fs.readFileSync(ledger, 'utf8');
 ok('repair 从激活码还原公司名', fixedText.includes('河北林灵贸易有限公司') && !fixedText.includes('\uFFFD'), out3);
 ok('repair 生成备份', fs.readdirSync(profile).some(f => f.startsWith('licenses.csv.bak-')));
 
+/* 4. 发卡向导：从 stdin 收中文并签发（模拟桌面 发卡.bat） */
+const wiz = path.join(repo, 'tools/sign-wizard.mjs');
+const wout = execFileSync(process.execPath, [wiz, '--no-clip'], {
+  cwd: repo, env, encoding: 'utf8', input: '河北林灵贸易有限公司\n', stdio: ['pipe', 'pipe', 'pipe']
+});
+const wcode = (wout.match(/FT1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/) || [''])[0];
+const wseg = wcode.split('.')[1] || '';
+const wp = wseg ? JSON.parse(Buffer.from(wseg.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8')) : {};
+ok('发卡向导接受中文输入', !!wcode && wp.co === '河北林灵贸易有限公司', wout.slice(0, 160));
+ok('发卡向导写入台账正确', fs.readFileSync(ledger, 'utf8').includes('河北林灵贸易有限公司'));
+
 fs.rmSync(sandbox, { recursive: true, force: true });
 console.log('\n通过 ' + pass + ' 项，失败 ' + fail + ' 项');
 process.exit(fail ? 1 : 0);
