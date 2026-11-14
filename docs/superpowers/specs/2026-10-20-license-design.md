@@ -387,8 +387,9 @@ licenses.csv
 - `index.html`：侧边栏新增 `#licBadge`（试用剩余 / 已授权公司名，点击打开激活框）；`.navlist` 可收缩滚动，小窗口下备份/恢复按钮不再被挤出。
 - `modules/find.html`：`doSearch()` 先 `License.consume('find')`，零结果（`S.all.length===0`）在 catch 中 `License.refund('find')`；`doMore()` 不扣次。
 - `modules/quotes.html` / `modules/docs.html` / `modules/products.html`：加载 `license.js` 并在启动时 `License.ready()`（否则首屏导出可能取不到水印文案）。
-- `js/excel.js`：每个 sheet 首行插入灰字水印（`ss:StyleID="wm"` + `MergeAcross`）。
-- `js/paper.js`：`Paper.apply()` 写入 `data-wm`，CSS `::after` 渲染；打印时改为固定页脚；首屏早于 IndexedDB 就绪时，等 `License.ready()` 后补写。
+- `js/excel.js`：试用版每个 sheet 首行插入灰字水印；已激活不加水印。
+- `js/paper.js`：`Paper.apply()` 写入 `data-wm`，CSS `::after` 渲染；已激活不写水印，`.paper:not([data-wm])` 不渲染空页脚；打印时改为固定页脚；首屏早于 IndexedDB 就绪时，等 `License.ready()` 后补写。
+- `index.html`：页眉右上角显示激活码绑定的公司抬头（仅 PRO），替代单证上的授权水印。
 
 与设计稿的实现差异：
 

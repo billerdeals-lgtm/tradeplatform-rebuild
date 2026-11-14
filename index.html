@@ -7,10 +7,10 @@
 <meta name="theme-color" content="#047857">
 <title>FT Compass · 外贸客户开发工作台</title>
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
-<link rel="stylesheet" href="assets/tokens.css?v=20261114b">
-<link rel="stylesheet" href="assets/responsive.css?v=20261114b">
-<link rel="stylesheet" href="assets/ui.css?v=20261114b">
-<script src="assets/standalone.js?v=20261114b"></script>
+<link rel="stylesheet" href="assets/tokens.css?v=20261114c">
+<link rel="stylesheet" href="assets/responsive.css?v=20261114c">
+<link rel="stylesheet" href="assets/ui.css?v=20261114c">
+<script src="assets/standalone.js?v=20261114c"></script>
 <style>
   * { box-sizing: border-box; }
   html, body { height: 100%; }
@@ -141,18 +141,16 @@
   .top-avatar:hover { background: var(--brand-800); }
   /* 授权公司抬头：只有已激活（pro）时显示，试用期隐藏 */
   .top-company {
-    display: inline-flex; align-items: center; gap: 6px;
-    max-width: 300px; padding: 5px 10px; border-radius: 8px;
+    display: inline-flex; align-items: center; gap: 8px;
+    max-width: 520px; padding: 7px 14px; border-radius: 10px;
     background: var(--brand-50); border: 1px solid #a7f3d0;
-    color: var(--brand-800); font-size: 12.5px; min-width: 0;
+    color: var(--brand-900); font-size: 16px; min-width: 0;
   }
   .top-company[hidden] { display: none; }
-  .top-company svg { width: 14px; height: 14px; flex: 0 0 14px; }
-  .top-company .tc-label { color: var(--brand-700); font-size: 11px; flex: 0 0 auto; }
-  .top-company b { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+  .top-company svg { width: 17px; height: 17px; flex: 0 0 17px; color: var(--brand-700); }
+  .top-company b { font-weight: 700; letter-spacing: .01em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
   @media (max-width: 1100px) {
-    .top-company .tc-label { display: none; }
-    .top-company { max-width: 190px; }
+    .top-company { max-width: 300px; font-size: 14.5px; padding: 6px 11px; }
   }
 
   iframe { flex: 1; border: 0; background: var(--bg-page); }
@@ -504,7 +502,6 @@
     <div class="top-actions">
       <span class="top-company" id="topCompany" hidden>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-        <span class="tc-label">授权给</span>
         <b id="topCompanyName"></b>
       </span>
       <button type="button" class="topbtn" onclick="reloadView()" title="重新载入当前模块">
@@ -654,16 +651,16 @@
   <div style="padding:18px" id="agPanel"></div>
 </dialog>
 
-<script src="agnes-ai.js?v=20261114b"></script>
-<script src="js/datastore.js?v=20261114b"></script>
-<script src="js/quote-validity.js?v=20261114b"></script>
-<script src="js/license.js?v=20261114b"></script>
-<script src="assets/a11y.js?v=20261114b"></script>
+<script src="agnes-ai.js?v=20261114c"></script>
+<script src="js/datastore.js?v=20261114c"></script>
+<script src="js/quote-validity.js?v=20261114c"></script>
+<script src="js/license.js?v=20261114c"></script>
+<script src="assets/a11y.js?v=20261114c"></script>
 <script>
 'use strict';
 /* 模块 iframe 缓存版本：改动 modules/*.html 或它们引用的 js 后把字母/数字往后调，
    避免用户只刷新首页、iframe 里仍跑旧代码（GitHub Pages 缓存很顽固） */
-var MODULE_V = '20261114b';
+var MODULE_V = '20261114c';
 /* 深链：模块 id 白名单，避免把任意字符串塞进 iframe.src */
 var VIEW_RE = /^modules\/[a-z0-9_-]+\.html(?:\?[^#]*)?$/i;
 var LRU_MAX = 3;

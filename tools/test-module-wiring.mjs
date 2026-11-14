@@ -26,6 +26,7 @@ const datastore = read('js/datastore.js');
 const quoteValidity = read('js/quote-validity.js');
 const leadDedupe = read('js/lead-dedupe.js');
 const license = read('js/license.js');
+const paper = read('js/paper.js');
 const tplData = read('js/templates_data.js');
 const find = read('modules/find.html');
 const stageAnalytics = read('js/stage-analytics.js');
@@ -178,8 +179,11 @@ ok('购买入口有 QQ/邮箱', /BUY_QQ/.test(license) && /BUY_EMAIL/.test(licen
 ok('我已购买有可用转化路径', /mailto:/.test(license) && /global\.location\.href = BUY_URL/.test(license));
 ok('激活弹窗展示联系方式', /buyContactText\(\)/.test(license) && /lic-buy/.test(license));
 ok('页眉有授权公司抬头容器', /id="topCompany"/.test(home) && /id="topCompanyName"/.test(home) && /class="top-company"/.test(home));
+ok('抬头不再写「授权给」', !/授权给/.test(home));
 ok('公司抬头只对已授权显示', /function paintLicCompany\(\)/.test(home) && /s\.pro&&s\.company/.test(home) && /chip\.hidden=true/.test(home));
 ok('激活后立即刷新公司抬头', /License\.onChange\(function\(\)\{ paintLicCompany\(\);/.test(home));
+ok('已激活客户单证不加授权水印', /if \(s\.pro\) return '';/.test(license) && /已激活客户不加纸面\/导出水印/.test(license));
+ok('无水印时纸面不渲染空页脚', /\.paper:not\(\[data-wm\]\)::after\{display:none\}/.test(paper));
 ok('license 已统一发布戳', /license\.js\?v=/.test(home) && /license\.js\?v=/.test(quotes));
 
 /* 16. 话术库补缺 + 占位符说明 + 默认按热度 */

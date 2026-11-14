@@ -416,7 +416,9 @@
   function watermark() {
     var s = _status || (_trial ? computeStatus() : null);
     if (!s) return '';
-    if (s.pro) return 'Licensed to ' + s.company + ' · ' + s.id + ' · Not for redistribution';
+    /* 已激活客户不加纸面/导出水印：抬头已经在页眉显示，避免单证上出现第二个公司名。
+       水印只用于卡未激活客户，防止试用版直接交付给终端客户。 */
+    if (s.pro) return '';
     if (s.state === 'trial_over') return 'FT Compass Trial Expired · Not for client delivery';
     return 'FT Compass Trial · Not for client delivery · ' + s.daysLeft + ' days left';
   }

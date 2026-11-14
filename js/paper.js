@@ -63,8 +63,9 @@
     + '.paper.tpl-customs tbody tr:nth-child(even) td{background:#f3f1ea}'
     + '.paper.tpl-customs .notes{font-size:12px;line-height:1.6}'
 
-    /* 授权水印（文案由 License.watermark() 写入 data-wm） */
+    /* 授权水印（文案由 License.watermark() 写入 data-wm）；无文案时不渲染空页脚 */
     + '.paper::after{content:attr(data-wm);display:block;margin-top:16px;padding-top:8px;border-top:1px dashed #d9e2ec;font-size:9pt;color:#9aa5b1;text-align:center;letter-spacing:.02em}'
+    + '.paper:not([data-wm])::after{display:none}'
 
     /* 横版打印适配：统一在 .paper 上做整页排版，避免模块各自为政 */
     + '@media print{'

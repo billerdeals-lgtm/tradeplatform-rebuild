@@ -90,9 +90,8 @@ check('activate 成功', r1.ok === true, JSON.stringify(r1));
 check('状态为 pro', L.status().state === 'pro');
 check('公司名正确', L.status().company === company);
 check('编号正确', L.status().id === 'FT-TEST');
-check('水印含公司名', L.watermark().includes(company), L.watermark());
-check('水印含编号', L.watermark().includes('FT-TEST'));
-check('水印为英文文案', L.watermark().indexOf('Licensed to') === 0, L.watermark());
+check('已激活不加纸面水印', L.watermark() === '', L.watermark());
+check('已激活仍保留公司抬头数据', L.status().company === company);
 check('备份码一致', L.backupCode() === code);
 check('试用期不再拦截', await L.consume('find') === true);
 
