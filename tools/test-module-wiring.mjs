@@ -27,6 +27,8 @@ const quoteValidity = read('js/quote-validity.js');
 const leadDedupe = read('js/lead-dedupe.js');
 const license = read('js/license.js');
 const paper = read('js/paper.js');
+const signTool = read('tools/sign-license.mjs');
+const repairTool = read('tools/repair-licenses.mjs');
 const tplData = read('js/templates_data.js');
 const find = read('modules/find.html');
 const stageAnalytics = read('js/stage-analytics.js');
@@ -184,6 +186,10 @@ ok('公司抬头只对已授权显示', /function paintLicCompany\(\)/.test(home
 ok('激活后立即刷新公司抬头', /License\.onChange\(function\(\)\{ paintLicCompany\(\);/.test(home));
 ok('已激活客户单证不加授权水印', /if \(s\.pro\) return '';/.test(license) && /已激活客户不加纸面\/导出水印/.test(license));
 ok('无水印时纸面不渲染空页脚', /\.paper:not\(\[data-wm\]\)::after\{display:none\}/.test(paper));
+ok('签发工具拦截编码损坏的公司名', /编码损坏/.test(signTool) && /uFFFD/.test(signTool));
+ok('签发工具支持 UTF-8 文件传公司名', /--company-file/.test(signTool) && /readFileSync\(p, 'utf8'\)/.test(signTool));
+ok('签发后台账回读自检', /台账回读校验失败/.test(signTool));
+ok('台账乱码可从激活码还原', /payload\.co|o\.co/.test(repairTool) && /\.bak-/.test(repairTool) && /decodePayload/.test(repairTool));
 ok('license 已统一发布戳', /license\.js\?v=/.test(home) && /license\.js\?v=/.test(quotes));
 
 /* 16. 话术库补缺 + 占位符说明 + 默认按热度 */

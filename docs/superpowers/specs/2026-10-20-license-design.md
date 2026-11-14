@@ -291,6 +291,11 @@ License.onChange(fn)             // 状态变化回调（更新徽章）
   - 存整行激活码，客户丢码时直接回发，不必重签
   - 旧版 4 列台账首次运行会自动升级表头，历史行补空列
   - 台账被 Excel/WPS 占用时只提示、不阻断：激活码照常打印，退出码仍为 0
+  - 文件为 **UTF-8 + BOM**（WPS/Excel 双击打开中文不乱码），写入后回读自检
+- 公司名编码自检：传入含 `U+FFFD`（`�`）或 `锟斤拷` 的名字直接拒签，并提示改用 UTF-8 文件
+  - `--company-file <path>`：从 UTF-8 文本读公司名（首行），绕开 cmd / 旧控制台 / GBK 脚本的 argv 编码问题
+  - `--company-file -`：从 stdin 读；例：`echo 公司名 | node tools/sign-license.mjs --company-file -`
+- `tools/repair-licenses.mjs`：历史台账乱码修复。默认只预览，`--write` 备份后写回；公司名取自激活码 payload 的 `co`，不靠猜；目标文件被 WPS 占用时退化为写 `licenses.fixed.csv` 副本
 - 不写数据库、不联网
 
 ### 11.3 版本规则
@@ -382,7 +387,9 @@ licenses.csv
 
 - `js/license.js`：公钥内置（SPKI base64）；四重冗余（IndexedDB `ft_license/kv` + localStorage `_9f3a2c`/`_b71c4e` + cookie `_ftc9`）；`loadState(autoLock, writeBack)` 区分「启动初始化」与「跨窗口软同步」，软同步只更新内存与徽章、不落盘；`persistTrial()` 值未变化时跳过写入。
 - `tools/gen-key.mjs`：一次性生成 P-256 密钥对，私钥写入 `%USERPROFILE%\.ftcompass\private.pem`（仓库外，已 gitignore）。
-- `tools/sign-license.mjs`：`--company "公司名" [--id FT-XXXX] [--ver 1]`；签名原文是 payload 的 **base64url 段字符串**；Node 端 `dsaEncoding:'ieee-p1363'` 输出 raw `r||s` 64 字节；台账 `licenses.csv` 记 5 列（含整行激活码），旧 4 列台账自动升级；台账被占用时只告警、不吞码。
+- `tools/sign-license.mjs`：`--company "公司名"` 或 `--company-file UTF-8文件` `[--id FT-XXXX] [--ver 1]`；签名原文是 payload 的 **base64url 段字符串**；Node 端 `dsaEncoding:'ieee-p1363'` 输出 raw `r||s` 64 字节；台账 `licenses.csv` 记 5 列（含整行激活码），旧 4 列台账自动升级；台账被占用时只告警、不吞码；含替换字符的公司名直接拒签。
+- `tools/repair-licenses.mjs`：把台账里的乱码公司名按激活码 payload 还原（预览/`--write`，自动备份，占用时写副本）。
+- `tools/test-license-ledger.mjs`：签发编码自检 + 坏名字拒签 + 台账还原共 8 项。
 - `tools/test-license.mjs`：30 项离线自测（格式、签名篡改、payload 篡改、版本高低、带换行粘贴、扣次/返还、30 次上限、水印）。
 - `index.html`：侧边栏新增 `#licBadge`（试用剩余 / 已授权公司名，点击打开激活框）；`.navlist` 可收缩滚动，小窗口下备份/恢复按钮不再被挤出。
 - `modules/find.html`：`doSearch()` 先 `License.consume('find')`，零结果（`S.all.length===0`）在 catch 中 `License.refund('find')`；`doMore()` 不扣次。

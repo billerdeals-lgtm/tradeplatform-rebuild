@@ -26,13 +26,43 @@ if (!fs.existsSync(keyPath)) {
   process.exit(1);
 }
 
-const company = String(arg('company', '') || '').trim();
+/* 公司名输入：默认走命令行参数。命令行编码不确定时（Git Bash / cmd / 旧版 PowerShell
+   会把中文按 GBK 字节交给 Node），改用 --company-file 传一个 UTF-8 文本，彻底绕开编码。 */
+function readCompany() {
+  const file = arg('company-file', '');
+  if (file) {
+    if (file === '-') {
+      const raw = fs.readFileSync(0, 'utf8');
+      return raw.replace(/^\uFEFF/, '').split(/\r?\n/)[0];
+    }
+    const p = path.resolve(process.cwd(), file);
+    if (!fs.existsSync(p)) {
+      console.error('找不到公司名文件：' + p);
+      process.exit(1);
+    }
+    return fs.readFileSync(p, 'utf8').replace(/^\uFEFF/, '').split(/\r?\n/)[0];
+  }
+  return arg('company', '');
+}
+
+const company = String(readCompany() || '').trim();
 if (!company) {
   console.error('缺少公司名。用法：node tools/sign-license.mjs --company "XX贸易有限公司"');
+  console.error('  或：node tools/sign-license.mjs --company-file company.txt（文件为 UTF-8）');
+  console.error('  或：echo 公司名 | node tools/sign-license.mjs --company-file -');
   process.exit(1);
 }
 if (company.length > 60) {
   console.error('公司名过长（≤60 字）');
+  process.exit(1);
+}
+
+/* 编码自检：中文一旦在命令行环节被按 GBK 字节解读，就会变成 U+FFFD（显示为 �）。
+   这种名字签进激活码后客户页眉永远是乱码，且不可逆，必须在落盘前拦住。 */
+if (/\uFFFD/.test(company) || /锟斤拷|烫烫烫|屯屯屯/.test(company)) {
+  console.error('公司名编码损坏：' + company);
+  console.error('  原因：中文没有以 UTF-8 传进来（常见于 cmd / 旧版控制台 / GBK 脚本调用）。');
+  console.error('  处理：把公司名存成 UTF-8 文本，然后用 --company-file 指定；或从 UTF-8 的 .mjs 里调用。');
   process.exit(1);
 }
 
@@ -95,6 +125,11 @@ let ledgerErr = null;
 try {
   ensureLedger();
   fs.appendFileSync(ledger, line, 'utf8');
+  /* 回读自检：确认落盘的中文和内存里的一致，避免再出现「码是对的、台账是乱码」 */
+  const back = fs.readFileSync(ledger, 'utf8').trimEnd().split(/\r?\n/).pop() || '';
+  if (!back.includes(company)) {
+    throw new Error('台账回读校验失败：写入的公司名与预期不一致');
+  }
 } catch (e) {
   ledgerErr = e;
 }
