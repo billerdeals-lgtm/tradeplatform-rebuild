@@ -13,10 +13,10 @@
   var TRIAL_DAYS = 15;
   var TRIAL_USES = 30;
 
-  /* 购买 / 找回激活码：先留微信号和邮箱占位，保证点「我已购买」有反应。
+  /* 购买 / 找回激活码：QQ 和邮箱。
      以后有发卡台/微店，把 BUY_URL 换成商品页即可，按钮会优先跳转。 */
-  var BUY_WECHAT = 'ftcompass';
-  var BUY_EMAIL = 'buy@ftcompass.com';
+  var BUY_QQ = '2279201868';
+  var BUY_EMAIL = '2279201868@qq.com';
   var BUY_URL = 'mailto:' + BUY_EMAIL
     + '?subject=' + encodeURIComponent('FT Compass 激活码（我已购买）')
     + '&body=' + encodeURIComponent('你好，我需要 FT Compass 激活码。\n公司名称：\n购买渠道：');
@@ -511,10 +511,10 @@
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
-  /* 购买/激活联系方式文案：微信、邮箱都留空时退回默认提示 */
+  /* 购买/激活联系方式文案：QQ、邮箱都留空时退回默认提示 */
   function buyContactText() {
     var parts = [];
-    if (BUY_WECHAT) parts.push('微信 ' + BUY_WECHAT);
+    if (BUY_QQ) parts.push('QQ ' + BUY_QQ);
     if (BUY_EMAIL) parts.push('邮箱 ' + BUY_EMAIL);
     return parts.join(' · ') || '请联系卖家';
   }

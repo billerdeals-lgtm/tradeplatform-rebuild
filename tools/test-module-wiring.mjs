@@ -174,7 +174,7 @@ ok('保存线索前调用模糊查重并排除自己', /LeadDedupe\.find\(S\.lea
 ok('查重命中可跳过或强行保存', /疑似已有类似客户/.test(leads) && /点「取消」返回修改/.test(leads) && /if \(!confirm\([\s\S]{0,260}\)\) return;/.test(leads));
 ok('查重按名称和域名匹配', /名称完全相同/.test(leadDedupe) && /网站\/邮箱域名相同/.test(leadDedupe));
 ok('公共邮箱不参与域名匹配', /GENERIC_DOMAINS/.test(leadDedupe) && /gmail\.com/.test(leadDedupe));
-ok('购买入口有微信/邮箱占位', /BUY_WECHAT/.test(license) && /BUY_EMAIL/.test(license) && /buy@ftcompass\.com/.test(license));
+ok('购买入口有 QQ/邮箱', /BUY_QQ/.test(license) && /BUY_EMAIL/.test(license) && /2279201868@qq\.com/.test(license));
 ok('我已购买有可用转化路径', /mailto:/.test(license) && /global\.location\.href = BUY_URL/.test(license));
 ok('激活弹窗展示联系方式', /buyContactText\(\)/.test(license) && /lic-buy/.test(license));
 ok('license 已统一发布戳', /license\.js\?v=/.test(home) && /license\.js\?v=/.test(quotes));
